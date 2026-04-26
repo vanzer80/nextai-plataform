@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { MapPin, Phone, Mail, User, Building2, FileText, Plus, Trash2, Loader2, Pencil, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -63,8 +63,7 @@ export default function ClientDetailSheet({ open, onOpenChange, client, onEdit, 
   const [deletingLocationId, setDeletingLocationId] = useState<string | null>(null);
   const [deletingClient, setDeletingClient] = useState(false);
 
-  // Sync locations when client changes
-  useState(() => { setLocations(client?.client_locations ?? []); });
+  useEffect(() => { setLocations(client?.client_locations ?? []); }, [client]);
 
   const handleUnitCepBlur = useCallback(async (cep: string) => {
     const result = await fetchViaCep(cep);
