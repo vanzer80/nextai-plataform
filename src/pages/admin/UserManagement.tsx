@@ -59,6 +59,8 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState<{ id: string; name: string } | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchUsers = async () => {
     try {
@@ -160,16 +162,25 @@ export default function UserManagement() {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
+  const handleDelete = async () => {
+    if (!confirmDeleteUser) return;
+    const { id, name } = confirmDeleteUser;
+    setDeletingId(id);
+    setConfirmDeleteUser(null);
     try {
-      const { error } = await supabase.functions.invoke('admin-delete-user', {
+      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
         body: { userId: id },
       });
-      if (error) throw error;
+      if (error) {
+        const msg = (data as any)?.error ?? error.message;
+        throw new Error(msg);
+      }
       toast.info(`Acesso de ${name} revogado.`);
-      setUsers(users.filter(u => u.id !== id));
+      setUsers(prev => prev.filter(u => u.id !== id));
     } catch (err: any) {
       toast.error("Falha ao remover acesso", { description: err.message });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -337,18 +348,18 @@ export default function UserManagement() {
                   <TableCell className="text-muted-foreground text-sm">{u.team_id || '-'}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
-                      <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 p-0 text-muted-foreground hover:bg-muted hover:text-foreground rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
-                        <MoreHorizontal className="h-4 w-4" />
+                      <DropdownMenuTrigger disabled={deletingId === u.id} className="inline-flex items-center justify-center h-8 w-8 p-0 text-muted-foreground hover:bg-muted hover:text-foreground rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
+                        {deletingId === u.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-40 rounded-xl">
                         <DropdownMenuItem className="cursor-pointer font-medium flex items-center">
                           <Edit className="mr-2 h-4 w-4" />
                           Editar
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           variant="destructive"
                           className="cursor-pointer font-medium flex items-center"
-                          onClick={() => handleDelete(u.id, u.full_name)}
+                          onClick={() => setConfirmDeleteUser({ id: u.id, name: u.full_name })}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Excluir
@@ -370,6 +381,26 @@ export default function UserManagement() {
         </div>
         )}
       </div>
+
+      {/* Confirmação de exclusão */}
+      <Dialog open={!!confirmDeleteUser} onOpenChange={(open) => { if (!open) setConfirmDeleteUser(null); }}>
+        <DialogContent className="sm:max-w-[420px] rounded-2xl p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-4 border-b border-border bg-muted/40">
+            <DialogTitle className="text-lg font-bold text-foreground">Excluir colaborador?</DialogTitle>
+            <DialogDescription>
+              O acesso de <span className="font-semibold text-foreground">{confirmDeleteUser?.name}</span> será revogado permanentemente. Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="p-6 pt-4 sm:justify-end gap-2">
+            <Button variant="outline" className="rounded-lg h-10 font-semibold" onClick={() => setConfirmDeleteUser(null)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" className="rounded-lg h-10 font-semibold" onClick={handleDelete}>
+              Confirmar exclusão
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
