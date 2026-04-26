@@ -11,6 +11,11 @@ export interface ReceiptExtractionResult {
 
 export interface MaterialExtractionResult {
   especificacao_tecnica: string;
+  marca: string;
+  modelo: string;
+  codigo_referencia: string;
+  tensao: string;
+  capacidade: string;
   quantidade: string;
   obs: string;
 }
@@ -55,10 +60,25 @@ function normalizeReceipt(raw: any): ReceiptExtractionResult {
 }
 
 function normalizeMaterial(raw: any): MaterialExtractionResult {
+  const toStr = (v: unknown): string => {
+    if (!v && v !== 0) return '';
+    if (typeof v === 'object') {
+      // Gemini às vezes retorna objeto apesar do schema STRING — extrair primeiro valor string encontrado
+      const obj = v as Record<string, unknown>;
+      const firstStr = Object.values(obj).find(x => typeof x === 'string' && x);
+      return firstStr ? String(firstStr) : '';
+    }
+    return String(v);
+  };
   return {
-    especificacao_tecnica: String(raw.especificacao_tecnica ?? ''),
-    quantidade: String(raw.quantidade ?? ''),
-    obs: String(raw.obs ?? ''),
+    especificacao_tecnica: toStr(raw.especificacao_tecnica),
+    marca: toStr(raw.marca),
+    modelo: toStr(raw.modelo),
+    codigo_referencia: toStr(raw.codigo_referencia),
+    tensao: toStr(raw.tensao),
+    capacidade: toStr(raw.capacidade),
+    quantidade: toStr(raw.quantidade),
+    obs: toStr(raw.obs),
   };
 }
 

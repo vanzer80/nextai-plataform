@@ -99,8 +99,15 @@ export default function NewMaterialRequest() {
 
   const applyMaterialExtraction = (data: Awaited<ReturnType<typeof extractMaterialFromImages>>) => {
     const filled = new Set<string>();
-    if (data.especificacao_tecnica) {
-      setValue('especificacao_tecnica', data.especificacao_tecnica, { shouldValidate: true });
+
+    // Montar especificação completa combinando base + campos técnicos identificados
+    const partes = [data.marca, data.modelo, data.codigo_referencia, data.tensao, data.capacidade].filter(Boolean);
+    const especificacaoCompleta = partes.length > 0
+      ? `${data.especificacao_tecnica} — ${partes.join(' | ')}`
+      : data.especificacao_tecnica;
+
+    if (especificacaoCompleta) {
+      setValue('especificacao_tecnica', especificacaoCompleta, { shouldValidate: true });
       filled.add('especificacao_tecnica');
     }
     if (data.quantidade) {
