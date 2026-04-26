@@ -6,20 +6,20 @@ import type { CreateServiceReportDTO } from '@/src/types/reports';
 export type SyncStatus = 'local' | 'pending' | 'syncing' | 'synced' | 'error' | 'conflicted';
 
 export interface ReportDraft {
-  localDraftId: string;         // UUID gerado no cliente
+  localDraftId: string;
   syncStatus: SyncStatus;
-  supabaseId: string | null;    // preenchido após primeiro sync
+  supabaseId: string | null;
   data: CreateServiceReportDTO;
   checklistAnswers?: Record<string, object>;
-  updatedAt: number;            // timestamp ms
+  updatedAt: number;
   retries: number;
   errorMessage: string | null;
 }
 
-export type QueueItemType = 'create' | 'update' | 'uploadAttachment';
+export type QueueItemType = 'create' | 'update' | 'uploadAttachment' | 'create_full';
 
 export interface QueueItem {
-  id?: number;                  // autoincrement
+  id?: number;
   type: QueueItemType;
   localDraftId: string;
   payload: unknown;
@@ -33,25 +33,41 @@ export interface CachedReport {
   cachedAt: number;
 }
 
+export interface StoredBlob {
+  blob: Blob;
+  name: string;
+  type: string;
+  caption: string;
+}
+
+// Blobs e metadados salvos offline para submissão completa via RPC
+export interface PendingBlob {
+  draftId: string;
+  attachments: StoredBlob[];
+  technicianSignature: string | null;
+  clientSignature: string | null;
+  clientSignerName: string;
+  checklistAnswers: Record<string, unknown>;
+}
+
 // ── Schema do banco ───────────────────────────────────────────
 
 const DB_NAME = 'portal-mopar-reports';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
 export function getDB(): Promise<IDBPDatabase> {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains('reportDrafts')) {
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
           db.createObjectStore('reportDrafts', { keyPath: 'localDraftId' });
-        }
-        if (!db.objectStoreNames.contains('offlineSyncQueue')) {
           db.createObjectStore('offlineSyncQueue', { keyPath: 'id', autoIncrement: true });
-        }
-        if (!db.objectStoreNames.contains('cachedReports')) {
           db.createObjectStore('cachedReports', { keyPath: 'supabaseId' });
+        }
+        if (oldVersion < 2) {
+          db.createObjectStore('pendingBlobs', { keyPath: 'draftId' });
         }
       },
     });
@@ -109,7 +125,6 @@ export async function enqueue(item: Omit<QueueItem, 'id'>): Promise<void> {
 export async function peekQueue(): Promise<QueueItem | undefined> {
   const db = await getDB();
   const all = await db.getAll('offlineSyncQueue');
-  // FIFO: menor id primeiro
   return all.sort((a, b) => (a.id ?? 0) - (b.id ?? 0))[0];
 }
 
@@ -156,4 +171,21 @@ export async function getAllCachedReports(): Promise<CachedReport[]> {
 export async function removeCachedReport(supabaseId: string): Promise<void> {
   const db = await getDB();
   await db.delete('cachedReports', supabaseId);
+}
+
+// ── pendingBlobs ──────────────────────────────────────────────
+
+export async function savePendingBlobs(entry: PendingBlob): Promise<void> {
+  const db = await getDB();
+  await db.put('pendingBlobs', entry);
+}
+
+export async function getPendingBlobs(draftId: string): Promise<PendingBlob | undefined> {
+  const db = await getDB();
+  return db.get('pendingBlobs', draftId);
+}
+
+export async function deletePendingBlobs(draftId: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('pendingBlobs', draftId);
 }

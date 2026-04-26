@@ -19,6 +19,7 @@ import {
 import { supabase } from '@/src/lib/supabase';
 
 import { useAuth } from '@/src/contexts/AuthContext';
+import { useOfflineSync } from '@/src/hooks/useOfflineSync';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -50,6 +51,7 @@ export default function AppLayout() {
   const { user, signOut } = useAuth();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { pendingCount } = useOfflineSync();
 
   // Filter links based on user role
   const userRole = user?.role || 'Tecnico'; // fallback
@@ -114,7 +116,8 @@ export default function AppLayout() {
     return authorizedLinks.map((link) => {
       const Icon = link.icon;
       const isActive = location.pathname === link.path;
-      
+      const showPendingBadge = link.path === '/reports' && pendingCount > 0;
+
       return (
         <NavLink
           key={link.path}
@@ -122,13 +125,18 @@ export default function AppLayout() {
           onClick={() => isMobile && setIsMobileMenuOpen(false)}
           className={clsx(
             'flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all rounded-lg',
-            isActive 
+            isActive
               ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm'
               : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
           )}
         >
           <Icon className="h-5 w-5 shrink-0" />
-          {link.name}
+          <span className="flex-1">{link.name}</span>
+          {showPendingBadge && (
+            <span className="ml-auto h-5 min-w-5 px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
+              {pendingCount}
+            </span>
+          )}
         </NavLink>
       );
     });

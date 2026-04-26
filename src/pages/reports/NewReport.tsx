@@ -12,7 +12,7 @@ import { useReportDraft } from '@/src/hooks/useReportDraft';
 import { useChecklistTemplate } from '@/src/hooks/useChecklistTemplate';
 import SyncStatusIndicator from './components/SyncStatusIndicator';
 import { submitReport } from '@/src/services/reportService';
-import type { ServiceType, ReportChecklistItem, EvidenceFile } from '@/src/types/reports';
+import type { ServiceType, ReportChecklistItem, EvidenceFile, CreateServiceReportDTO } from '@/src/types/reports';
 
 const Step1Identification = lazy(() => import('./components/steps/Step1Identification'));
 const Step2AssetContext   = lazy(() => import('./components/steps/Step2AssetContext'));
@@ -173,15 +173,22 @@ export default function NewReport() {
       navigate('/reports');
     } catch (err) {
       console.error('[NewReport] submit error', err);
-      // Fallback: save to offline queue
+      // Fallback: salva tudo offline (formulário + fotos + assinatura + checklist)
       try {
-        await draft.submitDraft({
-          technician_id: user?.id ?? '',
-          status: 'pending_review',
-          ...form.getValues(),
-        } as Parameters<typeof draft.submitDraft>[0]);
-        toast.warning('Sem conexão — formulário salvo localmente.', {
-          description: 'Fotos e assinatura precisam ser adicionadas após reconectar. O texto será sincronizado automaticamente.',
+        await draft.submitDraft(
+          {
+            technician_id: user?.id ?? '',
+            status: 'pending_review',
+            ...form.getValues(),
+          } as CreateServiceReportDTO,
+          checklistAnswers,
+          attachments,
+          technicianSignature,
+          clientSignature,
+          clientSignerName,
+        );
+        toast.warning('Sem conexão — relatório salvo localmente.', {
+          description: 'Fotos, checklist e assinatura incluídos. Será sincronizado ao reconectar.',
         });
         navigate('/reports');
       } catch {
