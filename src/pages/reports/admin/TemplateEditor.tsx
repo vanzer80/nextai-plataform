@@ -142,7 +142,7 @@ function ItemDialog({ open, initial, onSave, onClose }: ItemDialogProps) {
           <Button
             onClick={() => { if (canSave) { onSave(draft); onClose(); } }}
             disabled={!canSave}
-            className="rounded-xl bg-blue-600 hover:bg-blue-700"
+            className="rounded-xl bg-primary hover:bg-primary/90"
           >
             {initial?.dbId ? 'Salvar alterações' : 'Adicionar item'}
           </Button>
@@ -265,7 +265,7 @@ export default function TemplateEditor() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-20 text-slate-400">
+      <div className="flex justify-center py-20 text-muted-foreground">
         <Loader2 className="h-7 w-7 animate-spin" />
       </div>
     );
@@ -280,22 +280,22 @@ export default function TemplateEditor() {
           variant="ghost"
           size="icon"
           onClick={() => navigate('/admin/checklist-templates')}
-          className="h-10 w-10 rounded-full hover:bg-slate-200 shrink-0"
+          className="h-10 w-10 rounded-full hover:bg-muted shrink-0"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold text-slate-900">
+          <h1 className="text-xl font-bold text-foreground">
             {isEdit ? 'Editar Template' : 'Novo Template'}
           </h1>
           {isEdit && header.name && (
-            <p className="text-xs text-slate-500 truncate">{header.name}</p>
+            <p className="text-xs text-muted-foreground truncate">{header.name}</p>
           )}
         </div>
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="h-10 rounded-xl bg-blue-600 hover:bg-blue-700 gap-2 font-semibold shrink-0"
+          className="h-10 rounded-xl bg-primary hover:bg-primary/90 gap-2 font-semibold shrink-0"
         >
           {saving
             ? <Loader2 className="h-4 w-4 animate-spin" />
@@ -305,8 +305,8 @@ export default function TemplateEditor() {
       </div>
 
       {/* Dados do template */}
-      <Card className="shadow-sm border-slate-200">
-        <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+      <Card className="shadow-sm border-border">
+        <CardHeader className="pb-3 border-b border-border bg-muted/40 rounded-t-xl">
           <CardTitle className="text-base">Informações do Template</CardTitle>
         </CardHeader>
         <CardContent className="pt-5 space-y-4">
@@ -375,17 +375,17 @@ export default function TemplateEditor() {
       </Card>
 
       {/* Itens */}
-      <Card className="shadow-sm border-slate-200">
-        <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+      <Card className="shadow-sm border-border">
+        <CardHeader className="pb-3 border-b border-border bg-muted/40 rounded-t-xl">
           <CardTitle className="text-base flex items-center gap-2">
             Itens do Checklist
-            <span className="ml-auto text-xs font-normal text-slate-400">{items.length} itens</span>
+            <span className="ml-auto text-xs font-normal text-muted-foreground">{items.length} itens</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-4 space-y-2">
 
           {items.length === 0 && (
-            <p className="text-sm text-slate-400 text-center py-6">
+            <p className="text-sm text-muted-foreground text-center py-6">
               Nenhum item ainda. Adicione o primeiro abaixo.
             </p>
           )}
@@ -393,13 +393,13 @@ export default function TemplateEditor() {
           {items.map((item, idx) => (
             <div
               key={item.localId}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2.5"
+              className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2.5"
             >
-              <GripVertical className="h-4 w-4 text-slate-300 shrink-0" />
+              <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <p className="text-sm font-semibold text-slate-800 truncate">{item.label}</p>
+                  <p className="text-sm font-semibold text-foreground truncate">{item.label}</p>
                   {item.is_required && (
                     <span className="text-[10px] font-bold text-rose-500">*</span>
                   )}
@@ -409,7 +409,7 @@ export default function TemplateEditor() {
                     {ITEM_TYPE_LABEL[item.item_type]}
                   </span>
                   {item.item_type === 'select' && item.options.length > 0 && (
-                    <span className="text-[10px] text-slate-400">{item.options.join(' · ')}</span>
+                    <span className="text-[10px] text-muted-foreground">{item.options.join(' · ')}</span>
                   )}
                 </div>
               </div>
@@ -420,7 +420,7 @@ export default function TemplateEditor() {
                   type="button"
                   onClick={() => moveItem(item.localId, -1)}
                   disabled={idx === 0}
-                  className="h-5 w-5 flex items-center justify-center rounded text-slate-400 hover:text-slate-700 disabled:opacity-25"
+                  className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-25"
                 >
                   <ChevronUp className="h-3.5 w-3.5" />
                 </button>
@@ -428,7 +428,7 @@ export default function TemplateEditor() {
                   type="button"
                   onClick={() => moveItem(item.localId, 1)}
                   disabled={idx === items.length - 1}
-                  className="h-5 w-5 flex items-center justify-center rounded text-slate-400 hover:text-slate-700 disabled:opacity-25"
+                  className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-25"
                 >
                   <ChevronDown className="h-3.5 w-3.5" />
                 </button>
@@ -438,14 +438,14 @@ export default function TemplateEditor() {
               <button
                 type="button"
                 onClick={() => openEdit(item)}
-                className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 shrink-0"
+                className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 shrink-0"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
               <button
                 type="button"
                 onClick={() => removeItem(item.localId)}
-                className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 shrink-0"
+                className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-50 shrink-0"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -456,7 +456,7 @@ export default function TemplateEditor() {
             type="button"
             variant="outline"
             onClick={openAdd}
-            className="w-full h-10 rounded-xl border-dashed border-slate-300 text-slate-500 hover:border-blue-300 hover:text-blue-600 gap-2 mt-1"
+            className="w-full h-10 rounded-xl border-dashed border-input text-muted-foreground hover:border-primary/50 hover:text-primary gap-2 mt-1"
           >
             <Plus className="h-4 w-4" /> Adicionar item
           </Button>

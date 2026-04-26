@@ -100,9 +100,9 @@ export default function SignatureCanvas({ onSave, label = 'Assine aqui' }: Signa
 
   return (
     <div className="space-y-2">
-      <div className="relative rounded-xl border-2 border-slate-300 bg-white overflow-hidden">
+      <div className="relative rounded-xl border-2 border-input bg-background overflow-hidden">
         {isEmpty && (
-          <p className="absolute inset-0 flex items-center justify-center text-sm text-slate-400 pointer-events-none select-none">
+          <p className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground pointer-events-none select-none">
             {label}
           </p>
         )}

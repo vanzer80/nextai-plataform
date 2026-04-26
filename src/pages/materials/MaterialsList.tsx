@@ -266,14 +266,14 @@ export default function MaterialsList() {
 
         {/* Tabs + Search */}
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-          <div className="flex gap-1 bg-slate-100 p-1 rounded-xl overflow-x-auto shrink-0">
+          <div className="flex gap-1 bg-muted p-1 rounded-xl overflow-x-auto shrink-0">
             {TABS.map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={clsx(
                   'px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all',
-                  activeTab === tab ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  activeTab === tab ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                 )}
               >
                 {tab}
@@ -291,7 +291,7 @@ export default function MaterialsList() {
               placeholder="Buscar por item, cidade, cliente, técnico..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="pl-9 h-10 rounded-xl bg-white border-slate-200 text-sm"
+              className="pl-9 h-10 rounded-xl bg-background border-input text-sm"
             />
           </div>
         </div>

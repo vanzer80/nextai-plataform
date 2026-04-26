@@ -22,15 +22,15 @@ export default function ChecklistRenderer({ items, answers, onChange }: Checklis
         const answer = answers[item.id] ?? {};
 
         return (
-          <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-4 space-y-2">
+          <div key={item.id} className="rounded-xl border border-border bg-card p-4 space-y-2">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1">
-                <p className="text-sm font-semibold text-slate-800">
+                <p className="text-sm font-semibold text-foreground">
                   {item.label}
                   {item.is_required && <span className="text-rose-500 ml-1">*</span>}
                 </p>
                 {item.description && (
-                  <p className="text-xs text-slate-500 mt-0.5">{item.description}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
                 )}
               </div>
 
@@ -66,7 +66,7 @@ export default function ChecklistRenderer({ items, answers, onChange }: Checklis
                     template_item_id: item.id,
                   })
                 }
-                className="min-h-[80px] resize-none rounded-lg bg-slate-50 border-slate-300 text-sm"
+                className="min-h-[80px] resize-none rounded-lg bg-background border-input text-sm"
               />
             )}
 
@@ -85,7 +85,7 @@ export default function ChecklistRenderer({ items, answers, onChange }: Checklis
                     template_item_id: item.id,
                   })
                 }
-                className="h-10 rounded-lg bg-slate-50 border-slate-300 text-sm"
+                className="h-10 rounded-lg bg-background border-input text-sm"
               />
             )}
 
@@ -104,7 +104,7 @@ export default function ChecklistRenderer({ items, answers, onChange }: Checklis
                   })
                 }
               >
-                <SelectTrigger className="h-10 rounded-lg bg-slate-50 border-slate-300 text-sm">
+                <SelectTrigger className="h-10 rounded-lg bg-background border-input text-sm">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -118,11 +118,11 @@ export default function ChecklistRenderer({ items, answers, onChange }: Checklis
             {/* Photo */}
             {item.item_type === 'photo' && (
               <Label className="block">
-                <div className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center cursor-pointer hover:bg-slate-50 transition-colors">
+                <div className="border-2 border-dashed border-input rounded-lg p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors">
                   {answer.attachment_url ? (
                     <p className="text-xs text-emerald-600 font-medium">Foto anexada ✓</p>
                   ) : (
-                    <p className="text-xs text-slate-500">Toque para anexar foto</p>
+                    <p className="text-xs text-muted-foreground">Toque para anexar foto</p>
                   )}
                   <input
                     type="file"

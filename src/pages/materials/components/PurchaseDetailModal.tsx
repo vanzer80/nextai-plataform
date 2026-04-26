@@ -78,11 +78,11 @@ function buildNotification(newStatus: string, itemName: string, res: string) {
 
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="flex items-start gap-3 py-2.5 border-b border-slate-100 last:border-0">
-      <span className="text-slate-400 mt-0.5 shrink-0">{icon}</span>
+    <div className="flex items-start gap-3 py-2.5 border-b border-border last:border-0">
+      <span className="text-muted-foreground mt-0.5 shrink-0">{icon}</span>
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide leading-none mb-0.5">{label}</p>
-        <p className="text-sm font-medium text-slate-800 break-words">{value}</p>
+        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide leading-none mb-0.5">{label}</p>
+        <p className="text-sm font-medium text-foreground break-words">{value}</p>
       </div>
     </div>
   );
@@ -133,21 +133,21 @@ export default function PurchaseDetailModal({ request, canProcess, onClose, onUp
   return (
     <Dialog open={!!request} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="w-[95vw] max-w-4xl sm:max-w-4xl p-0 gap-0 border-0 bg-transparent shadow-none">
-        <div className="bg-white rounded-2xl flex flex-col overflow-hidden max-h-[92vh]">
+        <div className="bg-card rounded-2xl flex flex-col overflow-hidden max-h-[92vh]">
 
           {/* ── Header ── */}
-          <div className="px-5 py-4 border-b border-slate-100 bg-white shrink-0">
+          <div className="px-5 py-4 border-b border-border bg-card shrink-0">
             <div className="flex items-center justify-between gap-3 flex-wrap pr-6">
-              <DialogTitle className="text-base font-bold text-slate-900 font-mono">
+              <DialogTitle className="text-base font-bold text-foreground font-mono">
                 {request.request_number ?? `#${request.id.substring(0, 8).toUpperCase()}`}
               </DialogTitle>
               <Badge className={clsx('shrink-0', STATUS_BADGE[request.status] || 'bg-slate-100 text-slate-700 border-0')}>
                 {request.status}
               </Badge>
             </div>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500 mt-1">
-              <User className="h-3 w-3 shrink-0 text-slate-400" />
-              <span className="font-semibold text-slate-700">{request.users?.full_name || 'Usuário'}</span>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground mt-1">
+              <User className="h-3 w-3 shrink-0 text-muted-foreground" />
+              <span className="font-semibold text-foreground">{request.users?.full_name || 'Usuário'}</span>
               <span className="text-slate-300">•</span>
               <span>{new Date(request.created_at).toLocaleDateString('pt-BR')}</span>
               {request.prazo && (
@@ -155,7 +155,7 @@ export default function PurchaseDetailModal({ request, canProcess, onClose, onUp
                   <span className="text-slate-300">•</span>
                   <span>Prazo: <strong className={clsx(
                     new Date(request.prazo) < new Date() && request.status === 'Pendente'
-                      ? 'text-rose-600' : 'text-slate-600'
+                      ? 'text-rose-600' : 'text-foreground'
                   )}>{new Date(request.prazo).toLocaleDateString('pt-BR')}</strong></span>
                 </>
               )}
@@ -171,8 +171,8 @@ export default function PurchaseDetailModal({ request, canProcess, onClose, onUp
           <div className={clsx('overflow-y-auto p-5 space-y-4 min-w-0', canProcess ? 'flex-1' : 'flex-1')}>
 
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Localização & Serviço</p>
-              <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 bg-white overflow-hidden">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Localização & Serviço</p>
+              <div className="rounded-xl border border-border divide-y divide-border bg-card overflow-hidden">
                 {request.cidade && <InfoRow icon={<MapPin className="h-4 w-4" />} label="Cidade" value={request.cidade} />}
                 {request.clients?.name && <InfoRow icon={<Building2 className="h-4 w-4" />} label="Cliente" value={request.clients.name} />}
                 {request.loja && <InfoRow icon={<Building2 className="h-4 w-4" />} label="Loja / Unidade" value={request.loja} />}
@@ -183,9 +183,9 @@ export default function PurchaseDetailModal({ request, canProcess, onClose, onUp
             </div>
 
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Especificação Técnica</p>
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap break-words">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Especificação Técnica</p>
+              <div className="bg-muted/40 rounded-xl p-4 border border-border">
+                <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words">
                   {request.especificacao_tecnica || request.item}
                 </p>
               </div>
@@ -193,8 +193,8 @@ export default function PurchaseDetailModal({ request, canProcess, onClose, onUp
 
             {request.obs && (
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Observações</p>
-                <p className="text-sm text-slate-700 italic bg-amber-50 border border-amber-100 rounded-xl p-3 break-words">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Observações</p>
+                <p className="text-sm text-foreground italic bg-amber-50 border border-amber-100 rounded-xl p-3 break-words">
                   {request.obs}
                 </p>
               </div>
@@ -219,16 +219,16 @@ export default function PurchaseDetailModal({ request, canProcess, onClose, onUp
 
             {/* Devolutiva anterior para o Comprador */}
             {canProcess && request.comprador_response && (
-              <div className="bg-slate-100 rounded-xl p-3 border border-slate-200">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide mb-1">Devolutiva anterior</p>
-                <p className="text-sm text-slate-600 italic break-words">{request.comprador_response}</p>
+              <div className="bg-muted/40 rounded-xl p-3 border border-border">
+                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wide mb-1">Devolutiva anterior</p>
+                <p className="text-sm text-muted-foreground italic break-words">{request.comprador_response}</p>
               </div>
             )}
 
             {/* Read-only para técnico */}
             {!canProcess && request.comprador_response && (
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Resposta do Setor de Compras</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Resposta do Setor de Compras</p>
                 <div className={clsx('rounded-xl p-4 border', request.status === 'Cancelado' ? 'bg-rose-50 border-rose-200' : 'bg-blue-50 border-blue-200')}>
                   <p className={clsx('text-sm leading-relaxed break-words', request.status === 'Cancelado' ? 'text-rose-800' : 'text-blue-800')}>
                     {request.comprador_response}
@@ -251,14 +251,14 @@ export default function PurchaseDetailModal({ request, canProcess, onClose, onUp
 
           {/* ── Coluna Direita: Painel de Ação (Comprador only) ── */}
           {canProcess && (
-            <div className="w-full lg:w-[320px] shrink-0 border-t lg:border-t-0 lg:border-l border-slate-200 bg-slate-50 flex flex-col overflow-hidden">
+            <div className="w-full lg:w-[320px] shrink-0 border-t lg:border-t-0 lg:border-l border-border bg-muted/40 flex flex-col overflow-hidden">
               <div className="flex-1 overflow-y-auto p-5 space-y-4">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Painel de Ação</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Painel de Ação</p>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-slate-700">Atualizar Status *</Label>
+                  <Label className="text-sm font-semibold text-foreground">Atualizar Status *</Label>
                   <Select value={status} onValueChange={setStatus}>
-                    <SelectTrigger className="h-11 rounded-xl bg-white border-slate-300 focus:ring-blue-600">
+                    <SelectTrigger className="h-11 rounded-xl bg-background border-input focus:ring-ring">
                       <SelectValue placeholder="Selecione um status..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -274,36 +274,36 @@ export default function PurchaseDetailModal({ request, canProcess, onClose, onUp
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-slate-700">
+                  <Label className="text-sm font-semibold text-foreground">
                     {status === 'Cancelado' ? 'Motivo do Cancelamento' : 'Devolutiva ao Técnico'}
                   </Label>
                   <Textarea
                     value={response}
                     onChange={e => setResponse(e.target.value)}
                     placeholder={status === 'Cancelado' ? 'Informe o motivo do cancelamento...' : 'Fornecedor, prazo de entrega, observações...'}
-                    className="min-h-[100px] rounded-xl bg-white border-slate-300 focus-visible:ring-blue-600 resize-none text-sm"
+                    className="min-h-[100px] rounded-xl bg-background border-input focus-visible:ring-ring resize-none text-sm"
                   />
                 </div>
 
                 {showPriceFields && (
                   <>
                     <div className="space-y-2">
-                      <Label className="text-sm font-semibold text-slate-700">Valor Pago (R$)</Label>
+                      <Label className="text-sm font-semibold text-foreground">Valor Pago (R$)</Label>
                       <div className="relative">
-                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium pointer-events-none">R$</span>
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">R$</span>
                         <Input
                           type="number" step="0.01" placeholder="0,00"
                           value={price} onChange={e => setPrice(e.target.value)}
-                          className="h-11 pl-10 rounded-xl bg-white border-slate-300 focus-visible:ring-blue-600"
+                          className="h-11 pl-10 rounded-xl bg-background border-input focus-visible:ring-ring"
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-semibold text-slate-700">Link de Onde Comprou</Label>
+                      <Label className="text-sm font-semibold text-foreground">Link de Onde Comprou</Label>
                       <Input
                         type="url" placeholder="https://..."
                         value={purchaseLink} onChange={e => setPurchaseLink(e.target.value)}
-                        className="h-11 rounded-xl bg-white border-slate-300 focus-visible:ring-blue-600"
+                        className="h-11 rounded-xl bg-background border-input focus-visible:ring-ring"
                       />
                     </div>
                   </>
@@ -311,17 +311,17 @@ export default function PurchaseDetailModal({ request, canProcess, onClose, onUp
               </div>
 
               {/* Botão fixo na base do painel */}
-              <div className="p-5 border-t border-slate-200 bg-white shrink-0 space-y-2">
+              <div className="p-5 border-t border-border bg-card shrink-0 space-y-2">
                 <Button
                   onClick={handleSave}
                   disabled={saving || !status}
-                  className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm"
+                  className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm"
                 >
                   {saving
                     ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando...</>
                     : 'Salvar & Notificar Técnico'}
                 </Button>
-                <p className="text-[10px] text-center text-slate-400 font-medium">
+                <p className="text-[10px] text-center text-muted-foreground font-medium">
                   O técnico será notificado automaticamente.
                 </p>
               </div>

@@ -246,7 +246,7 @@ export default function NewMaterialRequest() {
   if (loadingData) {
     return (
       <div className="flex justify-center items-center h-48">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -265,8 +265,8 @@ export default function NewMaterialRequest() {
 
   const aiClass = (field: string) =>
     aiFilledFields.has(field)
-      ? 'bg-blue-50 border-blue-400 focus-visible:ring-blue-600'
-      : 'bg-slate-50 border-slate-300 focus-visible:ring-blue-600';
+      ? 'bg-blue-50 border-blue-400 focus-visible:ring-ring'
+      : 'bg-background border-input focus-visible:ring-ring';
 
   const aiCount = aiFilledFields.size;
 
@@ -276,15 +276,15 @@ export default function NewMaterialRequest() {
         <Button
           variant="ghost" size="icon"
           onClick={() => isEditMode ? navigate('/materials') : setStep('capture')}
-          className="h-10 w-10 shrink-0 rounded-full hover:bg-slate-200"
+          className="h-10 w-10 shrink-0 rounded-full hover:bg-muted"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-xl font-bold tracking-tight text-foreground">
             {isEditMode ? 'Editar Solicitação' : 'Nova Solicitação de Compra'}
           </h1>
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-muted-foreground">
             {isEditMode ? 'Atualize os dados da solicitação' : 'Preencha os dados do material necessário'}
           </p>
         </div>
@@ -304,28 +304,28 @@ export default function NewMaterialRequest() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
         {/* Localização */}
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+        <Card className="shadow-sm border-border">
+          <CardHeader className="pb-3 border-b border-border bg-muted/40 rounded-t-xl">
             <CardTitle className="text-base flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-blue-600" />
+              <MapPin className="h-4 w-4 text-primary" />
               Localização
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4 space-y-4">
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700">Cidade *</Label>
-              <Input placeholder="Ex: São Paulo" className="h-12 rounded-xl bg-slate-50 border-slate-300 focus-visible:ring-blue-600" {...register('cidade')} />
+              <Label className="text-sm font-semibold text-foreground">Cidade *</Label>
+              <Input placeholder="Ex: São Paulo" className="h-12 rounded-xl bg-background border-input focus-visible:ring-ring" {...register('cidade')} />
               {errors.cidade && <p className="text-sm text-rose-600">{errors.cidade.message}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700">Cliente</Label>
+              <Label className="text-sm font-semibold text-foreground">Cliente</Label>
               <Select onValueChange={(v) => setValue('client_id', v === 'none' ? '' : v)} value={selectedClient || 'none'}>
-                <SelectTrigger className="h-12 text-base rounded-xl bg-slate-50 border-slate-300 focus:ring-blue-600">
+                <SelectTrigger className="h-12 text-base rounded-xl bg-background border-input focus:ring-ring">
                   <SelectValue placeholder="Selecione o cliente..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none" className="py-3 text-slate-500 italic">-- Nenhum / Avulso --</SelectItem>
+                  <SelectItem value="none" className="py-3 text-muted-foreground italic">-- Nenhum / Avulso --</SelectItem>
                   {clients.map(c => (
                     <SelectItem key={c.id} value={c.id} className="py-3">{c.name}</SelectItem>
                   ))}
@@ -334,25 +334,25 @@ export default function NewMaterialRequest() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700">Loja / Unidade</Label>
-              <Input placeholder="Ex: Loja 05, Unidade Centro..." className="h-12 rounded-xl bg-slate-50 border-slate-300 focus-visible:ring-blue-600" {...register('loja')} />
+              <Label className="text-sm font-semibold text-foreground">Loja / Unidade</Label>
+              <Input placeholder="Ex: Loja 05, Unidade Centro..." className="h-12 rounded-xl bg-background border-input focus-visible:ring-ring" {...register('loja')} />
             </div>
           </CardContent>
         </Card>
 
         {/* Serviço */}
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+        <Card className="shadow-sm border-border">
+          <CardHeader className="pb-3 border-b border-border bg-muted/40 rounded-t-xl">
             <CardTitle className="text-base flex items-center gap-2">
-              <Wrench className="h-4 w-4 text-blue-600" />
+              <Wrench className="h-4 w-4 text-primary" />
               Serviço
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4 space-y-4">
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700">Tipo de Manutenção *</Label>
+              <Label className="text-sm font-semibold text-foreground">Tipo de Manutenção *</Label>
               <Select onValueChange={(v) => setValue('maintenance_type', v, { shouldValidate: true })} value={selectedMaintenanceType}>
-                <SelectTrigger className="h-12 text-base rounded-xl bg-slate-50 border-slate-300 focus:ring-blue-600">
+                <SelectTrigger className="h-12 text-base rounded-xl bg-background border-input focus:ring-ring">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -364,28 +364,28 @@ export default function NewMaterialRequest() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700">Prazo *</Label>
-              <Input type="date" className="h-12 rounded-xl bg-slate-50 border-slate-300 focus-visible:ring-blue-600" {...register('prazo')} />
+              <Label className="text-sm font-semibold text-foreground">Prazo *</Label>
+              <Input type="date" className="h-12 rounded-xl bg-background border-input focus-visible:ring-ring" {...register('prazo')} />
               {errors.prazo && <p className="text-sm text-rose-600">{errors.prazo.message}</p>}
             </div>
           </CardContent>
         </Card>
 
         {/* Material */}
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+        <Card className="shadow-sm border-border">
+          <CardHeader className="pb-3 border-b border-border bg-muted/40 rounded-t-xl">
             <CardTitle className="text-base flex items-center gap-2">
-              <Package className="h-4 w-4 text-blue-600" />
+              <Package className="h-4 w-4 text-primary" />
               Material
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4 space-y-4">
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
                 Especificação Técnica *
                 {aiFilledFields.has('especificacao_tecnica') && (
-                  <span className="text-xs text-blue-600 font-normal flex items-center gap-1">
+                  <span className="text-xs text-primary font-normal flex items-center gap-1">
                     <Sparkles className="h-3 w-3" /> IA
                   </span>
                 )}
@@ -399,34 +399,34 @@ export default function NewMaterialRequest() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700">Foto do Material</Label>
-              <div className="border-2 border-dashed border-slate-300 rounded-xl p-5 text-center hover:bg-slate-50 transition-colors relative bg-white">
+              <Label className="text-sm font-semibold text-foreground">Foto do Material</Label>
+              <div className="border-2 border-dashed border-input rounded-xl p-5 text-center hover:bg-muted/50 transition-colors relative bg-background">
                 <input
                   type="file"
                   accept="image/*"
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   onChange={(e) => e.target.files?.[0] && setFoto(e.target.files[0])}
                 />
-                <div className="flex flex-col items-center gap-2 text-slate-600">
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
                   <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
                     <Upload className="h-5 w-5" />
                   </div>
                   {foto ? (
                     <p className="text-sm font-medium text-blue-600">{foto.name}</p>
                   ) : existingFotoUrl ? (
-                    <><p className="text-sm font-medium text-emerald-600">Foto atual mantida</p><p className="text-xs text-slate-500">Clique para trocar</p></>
+                    <><p className="text-sm font-medium text-emerald-600">Foto atual mantida</p><p className="text-xs text-muted-foreground">Clique para trocar</p></>
                   ) : (
-                    <><p className="text-sm font-semibold">Clique para adicionar foto</p><p className="text-xs text-slate-500">JPG ou PNG</p></>
+                    <><p className="text-sm font-semibold">Clique para adicionar foto</p><p className="text-xs text-muted-foreground">JPG ou PNG</p></>
                   )}
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
                 Quantidade *
                 {aiFilledFields.has('quantidade') && (
-                  <span className="text-xs text-blue-600 font-normal flex items-center gap-1">
+                  <span className="text-xs text-primary font-normal flex items-center gap-1">
                     <Sparkles className="h-3 w-3" /> IA
                   </span>
                 )}
@@ -440,20 +440,20 @@ export default function NewMaterialRequest() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700">Link de Referência</Label>
-              <Input placeholder="https://..." className="h-12 rounded-xl bg-slate-50 border-slate-300 focus-visible:ring-blue-600" {...register('link_referencia')} />
+              <Label className="text-sm font-semibold text-foreground">Link de Referência</Label>
+              <Input placeholder="https://..." className="h-12 rounded-xl bg-background border-input focus-visible:ring-ring" {...register('link_referencia')} />
             </div>
           </CardContent>
         </Card>
 
         {/* Observações */}
-        <Card className="shadow-sm border-slate-200">
+        <Card className="shadow-sm border-border">
           <CardContent className="pt-4">
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
                 Observações
                 {aiFilledFields.has('obs') && (
-                  <span className="text-xs text-blue-600 font-normal flex items-center gap-1">
+                  <span className="text-xs text-primary font-normal flex items-center gap-1">
                     <Sparkles className="h-3 w-3" /> IA
                   </span>
                 )}
@@ -470,7 +470,7 @@ export default function NewMaterialRequest() {
         <div className="pt-2 pb-8 flex gap-3">
           <Button
             type="button" variant="outline"
-            className="flex-1 h-14 rounded-xl text-base font-semibold border-slate-300 text-slate-700"
+            className="flex-1 h-14 rounded-xl text-base font-semibold border-border text-foreground"
             onClick={() => isEditMode ? navigate('/materials') : setStep('capture')}
             disabled={isSubmitting}
           >
@@ -478,7 +478,7 @@ export default function NewMaterialRequest() {
           </Button>
           <Button
             type="submit"
-            className="flex-1 h-14 rounded-xl text-base font-semibold bg-blue-600 hover:bg-blue-700 text-white"
+            className="flex-1 h-14 rounded-xl text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
             disabled={isSubmitting}
           >
             {isSubmitting

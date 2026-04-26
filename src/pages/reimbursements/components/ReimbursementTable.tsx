@@ -37,45 +37,45 @@ export default function ReimbursementTable({
   const allSelected = data.length > 0 && data.every(item => selectedIds.includes(item.id));
   const someSelected = selectedIds.length > 0 && !allSelected;
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mt-4 overflow-x-auto">
+    <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden mt-4 overflow-x-auto">
       <Table className="min-w-[600px]">
-        <TableHeader className="bg-slate-50">
-          <TableRow className="hover:bg-transparent border-slate-200">
+        <TableHeader className="bg-muted/40">
+          <TableRow className="hover:bg-transparent border-border">
             {isManager && (
               <TableHead className="w-[50px]">
-                <input 
-                  type="checkbox" 
-                  className="rounded border-slate-300 w-4 h-4" 
+                <input
+                  type="checkbox"
+                  className="rounded border-input w-4 h-4"
                   checked={allSelected}
                   onChange={(e) => onSelectAll(e.target.checked)}
                 />
               </TableHead>
             )}
-            <TableHead className="font-semibold text-slate-700 w-[120px]">Data</TableHead>
+            <TableHead className="font-semibold text-foreground w-[120px]">Data</TableHead>
             {isManager && <TableHead className="font-semibold text-slate-700">Colaborador</TableHead>}
-            <TableHead className="font-semibold text-slate-700">Categoria</TableHead>
-            <TableHead className="font-semibold text-slate-700">Descrição</TableHead>
-            <TableHead className="font-semibold text-slate-700 font-numeric text-right">Valor</TableHead>
-            <TableHead className="font-semibold text-slate-700 text-center">Anexo</TableHead>
-            <TableHead className="font-semibold text-slate-700 text-center">Status</TableHead>
-            <TableHead className="font-semibold text-slate-700 text-right w-[100px]"></TableHead>
+            <TableHead className="font-semibold text-foreground">Categoria</TableHead>
+            <TableHead className="font-semibold text-foreground">Descrição</TableHead>
+            <TableHead className="font-semibold text-foreground font-numeric text-right">Valor</TableHead>
+            <TableHead className="font-semibold text-foreground text-center">Anexo</TableHead>
+            <TableHead className="font-semibold text-foreground text-center">Status</TableHead>
+            <TableHead className="font-semibold text-foreground text-right w-[100px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.map((item) => (
-            <TableRow key={item.id} className={`hover:bg-slate-50/50 border-slate-100 transition-colors ${selectedIds.includes(item.id) ? 'bg-blue-50/50' : ''}`}>
+            <TableRow key={item.id} className={`hover:bg-muted/30 border-border transition-colors ${selectedIds.includes(item.id) ? 'bg-primary/5' : ''}`}>
               {isManager && (
                 <TableCell>
-                  <input 
-                    type="checkbox" 
-                    className="rounded border-slate-300 w-4 h-4" 
+                  <input
+                    type="checkbox"
+                    className="rounded border-input w-4 h-4"
                     checked={selectedIds.includes(item.id)}
                     onChange={(e) => onSelectOne(item.id, e.target.checked)}
                     onClick={(e) => e.stopPropagation()}
                   />
                 </TableCell>
               )}
-              <TableCell className="font-medium text-slate-600 text-sm">
+              <TableCell className="font-medium text-muted-foreground text-sm">
                 {new Date(item.created_at).toLocaleDateString()}
               </TableCell>
 
@@ -83,11 +83,11 @@ export default function ReimbursementTable({
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Avatar className="h-6 w-6">
-                      <AvatarFallback className="text-[10px] bg-slate-200 text-slate-700 font-bold">
+                      <AvatarFallback className="text-[10px] bg-muted text-foreground font-bold">
                         {item.users?.full_name?.slice(0, 2).toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm text-slate-900 font-medium truncate max-w-[120px]">
+                    <span className="text-sm text-foreground font-medium truncate max-w-[120px]">
                       {item.users?.full_name || 'Desconhecido'}
                     </span>
                   </div>
@@ -95,14 +95,14 @@ export default function ReimbursementTable({
               )}
 
               <TableCell>
-                <span className="text-sm font-semibold text-slate-800">{item.category}</span>
+                <span className="text-sm font-semibold text-foreground">{item.category}</span>
               </TableCell>
 
-              <TableCell className="text-slate-500 text-sm max-w-[200px] truncate">
+              <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate">
                 {item.description}
               </TableCell>
 
-              <TableCell className="text-right font-bold text-slate-900 whitespace-nowrap">
+              <TableCell className="text-right font-bold text-foreground whitespace-nowrap">
                 R$ {Number(item.amount).toFixed(2).replace('.', ',')}
               </TableCell>
 

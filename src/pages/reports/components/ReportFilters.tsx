@@ -27,16 +27,16 @@ export default function ReportFilters({ filter, onChange, onClear }: ReportFilte
   const hasActiveFilter = filter.status || filter.dateFrom || filter.dateTo;
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3">
+    <div className="bg-card rounded-xl border border-border p-4 shadow-sm space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Status */}
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Status</Label>
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</Label>
           <Select
             value={filter.status ?? ''}
             onValueChange={val => onChange({ ...filter, status: val as ReportStatus | '' })}
           >
-            <SelectTrigger className="h-10 rounded-lg bg-slate-50 border-slate-300 text-sm">
+            <SelectTrigger className="h-10 rounded-lg bg-background border-input text-sm">
               <SelectValue placeholder="Todos os status" />
             </SelectTrigger>
             <SelectContent>
@@ -51,23 +51,23 @@ export default function ReportFilters({ filter, onChange, onClear }: ReportFilte
 
         {/* Data início */}
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">De</Label>
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">De</Label>
           <Input
             type="date"
             value={filter.dateFrom ?? ''}
             onChange={e => onChange({ ...filter, dateFrom: e.target.value || undefined })}
-            className="h-10 rounded-lg bg-slate-50 border-slate-300 text-sm"
+            className="h-10 rounded-lg bg-background border-input text-sm"
           />
         </div>
 
         {/* Data fim */}
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Até</Label>
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Até</Label>
           <Input
             type="date"
             value={filter.dateTo ?? ''}
             onChange={e => onChange({ ...filter, dateTo: e.target.value || undefined })}
-            className="h-10 rounded-lg bg-slate-50 border-slate-300 text-sm"
+            className="h-10 rounded-lg bg-background border-input text-sm"
           />
         </div>
       </div>
@@ -78,7 +78,7 @@ export default function ReportFilters({ filter, onChange, onClear }: ReportFilte
             variant="ghost"
             size="sm"
             onClick={onClear}
-            className="text-xs text-slate-500 hover:text-slate-800 h-8"
+            className="text-xs text-muted-foreground hover:text-foreground h-8"
           >
             Limpar filtros
           </Button>

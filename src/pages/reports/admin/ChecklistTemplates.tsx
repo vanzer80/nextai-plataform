@@ -91,15 +91,15 @@ export default function ChecklistTemplates() {
       {/* Cabeçalho */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <ListChecks className="h-5 w-5 text-blue-600" />
+          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+            <ListChecks className="h-5 w-5 text-primary" />
             Templates de Checklist
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Gerencie os modelos de checklist por tipo de serviço
           </p>
         </div>
-        <Button asChild className="h-10 rounded-xl bg-blue-600 hover:bg-blue-700 gap-2 font-semibold shrink-0">
+        <Button asChild className="h-10 rounded-xl bg-primary hover:bg-primary/90 gap-2 font-semibold shrink-0">
           <Link to="/admin/checklist-templates/new">
             <Plus className="h-4 w-4" /> Novo
           </Link>
@@ -108,7 +108,7 @@ export default function ChecklistTemplates() {
 
       {/* Filtro */}
       <Select value={filterType} onValueChange={v => setFilterType(v as ServiceType | 'all')}>
-        <SelectTrigger className="h-10 rounded-xl bg-white border-slate-300 text-sm">
+        <SelectTrigger className="h-10 rounded-xl bg-background border-input text-sm">
           <SelectValue placeholder="Todos os tipos" />
         </SelectTrigger>
         <SelectContent>
@@ -121,11 +121,11 @@ export default function ChecklistTemplates() {
 
       {/* Lista */}
       {loading ? (
-        <div className="flex justify-center py-16 text-slate-400">
+        <div className="flex justify-center py-16 text-muted-foreground">
           <Loader2 className="h-7 w-7 animate-spin" />
         </div>
       ) : visible.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-16 text-slate-400">
+        <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
           <AlertTriangle className="h-8 w-8" />
           <p className="text-sm">Nenhum template encontrado.</p>
         </div>
@@ -134,30 +134,30 @@ export default function ChecklistTemplates() {
           {visible.map(tmpl => (
             <div
               key={tmpl.id}
-              className={`rounded-xl border bg-white p-4 shadow-sm transition-opacity ${
-                tmpl.is_active ? 'border-slate-200' : 'border-slate-200 opacity-60'
+              className={`rounded-xl border bg-card p-4 shadow-sm transition-opacity ${
+                tmpl.is_active ? 'border-border' : 'border-border opacity-60'
               }`}
             >
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-bold text-slate-900 truncate">{tmpl.name}</p>
+                    <p className="text-sm font-bold text-foreground truncate">{tmpl.name}</p>
                     {tmpl.service_type && (
                       <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${TYPE_COLOR[tmpl.service_type]}`}>
                         {SERVICE_TYPE_LABEL[tmpl.service_type]}
                       </span>
                     )}
                     {!tmpl.is_active && (
-                      <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-500">
+                      <Badge variant="secondary" className="text-[10px] bg-muted text-muted-foreground">
                         Inativo
                       </Badge>
                     )}
                   </div>
                   {tmpl.description && (
-                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">{tmpl.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{tmpl.description}</p>
                   )}
                   {tmpl.asset_category && (
-                    <p className="text-[11px] text-slate-400 mt-0.5">Categoria: {tmpl.asset_category}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Categoria: {tmpl.asset_category}</p>
                   )}
                 </div>
 
@@ -170,12 +170,12 @@ export default function ChecklistTemplates() {
               </div>
 
               {/* Ações */}
-              <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
+              <div className="flex gap-2 mt-3 pt-3 border-t border-border">
                 <Button
                   asChild
                   variant="outline"
                   size="sm"
-                  className="flex-1 h-8 rounded-lg text-xs gap-1.5 border-slate-300"
+                  className="flex-1 h-8 rounded-lg text-xs gap-1.5 border-border"
                 >
                   <Link to={`/admin/checklist-templates/${tmpl.id}/edit`}>
                     <Pencil className="h-3.5 w-3.5" /> Editar
@@ -201,7 +201,7 @@ export default function ChecklistTemplates() {
           <DialogHeader>
             <DialogTitle>Excluir template?</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             O template <strong>{toDelete?.name}</strong> e todos os seus itens serão excluídos permanentemente.
             Relatórios já respondidos não são afetados.
           </p>

@@ -19,19 +19,19 @@ export function OrcamentoCard({ orcamento }: { orcamento: Orcamento }) {
   return (
     <Link
       to={`/orcamentos/${orcamento.id}`}
-      className="block bg-white rounded-xl border border-slate-200 p-4 hover:border-blue-300 hover:shadow-md transition-all"
+      className="block bg-card rounded-xl border border-border p-4 hover:border-primary/50 hover:shadow-md transition-all"
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-slate-900 truncate">{titulo}</p>
+          <p className="font-semibold text-foreground truncate">{titulo}</p>
           {orcamento.service_reports?.os_number && (
-            <p className="text-xs text-slate-500 mt-0.5">OS: {orcamento.service_reports.os_number}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">OS: {orcamento.service_reports.os_number}</p>
           )}
         </div>
         <OrcamentoStatusBadge status={orcamento.status} />
       </div>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-500">
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
         {orcamento.clients?.name && (
           <span className="flex items-center gap-1">
             <Building2 className="h-3.5 w-3.5" />

@@ -84,7 +84,7 @@ export default function ReimbursementDetailModal({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="w-[95vw] max-w-4xl overflow-hidden p-0 border-0 bg-transparent shadow-none gap-0">
-        <div className="bg-white rounded-2xl flex flex-col lg:flex-row overflow-hidden max-h-[92vh]">
+        <div className="bg-card rounded-2xl flex flex-col lg:flex-row overflow-hidden max-h-[92vh]">
 
           {/* Esquerda: Foto */}
           <div className="w-full lg:w-5/12 bg-slate-900 relative h-44 lg:h-auto overflow-hidden shrink-0">
@@ -101,8 +101,8 @@ export default function ReimbursementDetailModal({
           </div>
 
           {/* Direita: Conteúdo */}
-          <div className="w-full lg:w-7/12 bg-white flex flex-col min-h-0">
-            <DialogHeader className="p-6 pb-4 border-b border-slate-100 shrink-0 text-left">
+          <div className="w-full lg:w-7/12 bg-card flex flex-col min-h-0">
+            <DialogHeader className="p-6 pb-4 border-b border-border shrink-0 text-left">
               <DialogTitle className="text-2xl font-bold flex items-center justify-between">
                 Solicitação #{item.id?.slice(0,6)}
                 {getStatusBadge(item.status)}
@@ -116,12 +116,12 @@ export default function ReimbursementDetailModal({
               
               {/* Abas Simples: Informações / Histórico */}
               <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 gap-4">
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                  <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Categoria</h4>
-                  <p className="font-bold text-slate-900">{item.category}</p>
+                <div className="bg-muted/40 p-4 rounded-xl border border-border">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Categoria</h4>
+                  <p className="font-bold text-foreground">{item.category}</p>
                 </div>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                  <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Valor</h4>
+                <div className="bg-muted/40 p-4 rounded-xl border border-border">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Valor</h4>
                   <p className="font-extrabold text-blue-600 text-xl">
                     R$ {Number(item.amount).toFixed(2).replace('.', ',')}
                   </p>
@@ -129,32 +129,32 @@ export default function ReimbursementDetailModal({
               </div>
 
               {/* Informações Auxiliares */}
-              <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+              <div className="grid grid-cols-2 gap-4 bg-muted/40 p-4 rounded-xl border border-border">
                 <div>
-                  <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Colaborador</h4>
-                  <p className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Colaborador</h4>
+                  <p className="font-bold text-foreground flex items-center gap-1.5">
                     <UserIcon className="h-3 w-3 text-blue-500" />
                     {item.users?.full_name || 'Usuário'}
                   </p>
                 </div>
                 {item.maintenance_type && (
                   <div>
-                    <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Manutenção</h4>
-                    <p className="font-semibold text-slate-800">{item.maintenance_type}</p>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Manutenção</h4>
+                    <p className="font-semibold text-foreground">{item.maintenance_type}</p>
                   </div>
                 )}
                 {item.clients?.name && (
                   <div className="col-span-2 mt-1">
-                    <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Cliente / Filial</h4>
-                    <p className="font-semibold text-slate-800">{item.clients.name} {item.branch ? `(${item.branch})` : ''}</p>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Cliente / Filial</h4>
+                    <p className="font-semibold text-foreground">{item.clients.name} {item.branch ? `(${item.branch})` : ''}</p>
                   </div>
                 )}
               </div>
 
               {/* Descrição */}
               <div>
-                 <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-1">Descrição</h4>
-                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-slate-700 font-medium">
+                 <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-1">Descrição</h4>
+                 <div className="bg-muted/40 p-4 rounded-xl border border-border text-foreground font-medium">
                    {item.description || 'Nenhuma descrição informada.'}
                  </div>
               </div>
@@ -162,12 +162,12 @@ export default function ReimbursementDetailModal({
               {/* Dados de Pagamento */}
               {(item.favorecido || item.pix_key) && (
                 <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-widest">Pagamento</h4>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Pagamento</h4>
                   <div className="grid grid-cols-1 gap-3">
                     {item.favorecido && (
-                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <Label className="text-[10px] font-bold text-slate-400 uppercase">Favorecido</Label>
-                        <p className="font-bold text-slate-800">{item.favorecido}</p>
+                      <div className="bg-muted/40 p-4 rounded-xl border border-border">
+                        <Label className="text-[10px] font-bold text-muted-foreground uppercase">Favorecido</Label>
+                        <p className="font-bold text-foreground">{item.favorecido}</p>
                       </div>
                     )}
                     {item.pix_key && (
@@ -200,31 +200,31 @@ export default function ReimbursementDetailModal({
               {/* HISTÓRICO DE AUDITORIA */}
               <div className="space-y-4 pt-4">
                 <div className="flex items-center gap-2">
-                  <History className="h-4 w-4 text-slate-400" />
-                  <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-widest">Histórico de Alterações</h4>
+                  <History className="h-4 w-4 text-muted-foreground" />
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Histórico de Alterações</h4>
                 </div>
                 
                 <div className="space-y-3">
                   {loadingHistory ? (
-                    <div className="h-10 w-full animate-pulse bg-slate-100 rounded-lg"></div>
+                    <div className="h-10 w-full animate-pulse bg-muted rounded-lg"></div>
                   ) : history.length === 0 ? (
-                    <p className="text-xs text-slate-400 italic">Nenhuma alteração registrada.</p>
+                    <p className="text-xs text-muted-foreground italic">Nenhuma alteração registrada.</p>
                   ) : (
                     history.map((h) => (
-                      <div key={h.id} className="relative pl-6 border-l-2 border-slate-100 pb-2">
-                        <div className="absolute -left-[9px] top-0 h-4 w-4 rounded-full bg-slate-200 border-2 border-white"></div>
+                      <div key={h.id} className="relative pl-6 border-l-2 border-border pb-2">
+                        <div className="absolute -left-[9px] top-0 h-4 w-4 rounded-full bg-muted border-2 border-card"></div>
                         <div className="flex flex-col">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-slate-700">
+                            <span className="text-xs font-bold text-foreground">
                               {h.old_status ? `${h.old_status} → ${h.new_status}` : `Início: ${h.new_status}`}
                             </span>
-                            <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                               <Clock className="h-2.5 w-2.5" />
                               {format(new Date(h.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
                             </span>
                           </div>
                           {h.reason && (
-                            <p className="text-xs text-slate-500 mt-1 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                            <p className="text-xs text-muted-foreground mt-1 bg-muted/40 p-2 rounded-lg border border-border">
                               "{h.reason}"
                             </p>
                           )}
@@ -238,7 +238,7 @@ export default function ReimbursementDetailModal({
             </div>
 
             {/* AÇÕES (Rodapé) */}
-            <div className="p-6 border-t border-slate-100 bg-slate-50 shrink-0">
+            <div className="p-6 border-t border-border bg-muted/40 shrink-0">
               {isManager && (item.status === 'Pendente' || item.status === 'Revisao') ? (
                 isRejecting ? (
                   <div className="space-y-3">
@@ -246,7 +246,7 @@ export default function ReimbursementDetailModal({
                       placeholder="Motivo da reprovação..."
                       value={rejectionReason}
                       onChange={(e) => setRejectionReason(e.target.value)}
-                      className="bg-white resize-none"
+                      className="bg-background resize-none"
                     />
                     <div className="flex gap-2">
                       <Button variant="outline" className="flex-1" onClick={() => setIsRejecting(false)}>Cancelar</Button>
@@ -263,7 +263,7 @@ export default function ReimbursementDetailModal({
                       placeholder="O que o técnico deve ajustar?"
                       value={returnReason}
                       onChange={(e) => setReturnReason(e.target.value)}
-                      className="bg-white resize-none border-orange-200"
+                      className="bg-background resize-none border-orange-200"
                     />
                     <div className="flex gap-2">
                       <Button variant="outline" className="flex-1" onClick={() => setIsReturning(false)}>Cancelar</Button>
@@ -318,5 +318,5 @@ export default function ReimbursementDetailModal({
 }
 
 function Label({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <label className={clsx("text-xs font-semibold text-slate-500 mb-1 block", className)}>{children}</label>;
+  return <label className={clsx("text-xs font-semibold text-muted-foreground mb-1 block", className)}>{children}</label>;
 }

@@ -289,7 +289,7 @@ export default function NewReimbursement() {
   if (isLoadingForm) {
     return (
       <div className="flex justify-center p-12">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -309,8 +309,8 @@ export default function NewReimbursement() {
   // Retorna classe de destaque para campos preenchidos pela IA
   const aiClass = (field: string) =>
     aiFilledFields.has(field)
-      ? 'bg-blue-50 border-blue-400 focus-visible:ring-blue-600'
-      : 'bg-slate-50 border-slate-300 focus-visible:ring-blue-600';
+      ? 'bg-blue-50 border-blue-400 focus-visible:ring-ring'
+      : 'bg-background border-input focus-visible:ring-ring';
 
   const aiCount = aiFilledFields.size;
 
@@ -320,15 +320,15 @@ export default function NewReimbursement() {
         <Button
           variant="ghost" size="icon"
           onClick={() => isEditMode ? navigate('/reimbursements') : setStep('capture')}
-          className="h-10 w-10 shrink-0 rounded-full hover:bg-slate-200"
+          className="h-10 w-10 shrink-0 rounded-full hover:bg-muted"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-xl font-bold tracking-tight text-foreground">
             {isEditMode ? 'Editar Reembolso' : 'Novo Reembolso'}
           </h1>
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-muted-foreground">
             {isEditMode ? 'Atualize as informações do seu comprovante' : 'Registre sua despesa de campo'}
           </p>
         </div>
@@ -360,19 +360,19 @@ export default function NewReimbursement() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
         {/* Card: Detalhes da Despesa */}
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+        <Card className="shadow-sm border-border">
+          <CardHeader className="pb-3 border-b border-border bg-muted/40 rounded-t-xl">
             <CardTitle className="text-base flex items-center gap-2">
-              <Receipt className="h-4 w-4 text-blue-600" />
+              <Receipt className="h-4 w-4 text-primary" />
               Detalhes da Despesa
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4 space-y-5">
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
                 Categoria *
-                {aiFilledFields.has('category') && <span className="text-xs text-blue-600 font-normal flex items-center gap-1"><Sparkles className="h-3 w-3" /> IA</span>}
+                {aiFilledFields.has('category') && <span className="text-xs text-primary font-normal flex items-center gap-1"><Sparkles className="h-3 w-3" /> IA</span>}
               </Label>
               <Select
                 onValueChange={(val) => {
@@ -397,11 +397,11 @@ export default function NewReimbursement() {
 
             {selectedCategory === 'Outros' && (
               <div className="space-y-2">
-                <Label className="text-sm font-semibold text-slate-700">Qual despesa? *</Label>
+                <Label className="text-sm font-semibold text-foreground">Qual despesa? *</Label>
                 <Input
                   type="text"
                   placeholder="Ex: Estacionamento, Material de limpeza, Ferramenta..."
-                  className="h-14 text-base rounded-xl bg-slate-50 border-slate-300 focus-visible:ring-blue-600"
+                  className="h-14 text-base rounded-xl bg-background border-input focus-visible:ring-ring"
                   value={customCategory}
                   onChange={(e) => setCustomCategory(e.target.value)}
                 />
@@ -410,12 +410,12 @@ export default function NewReimbursement() {
             )}
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
                 Valor (R$) *
-                {aiFilledFields.has('amount') && <span className="text-xs text-blue-600 font-normal flex items-center gap-1"><Sparkles className="h-3 w-3" /> IA</span>}
+                {aiFilledFields.has('amount') && <span className="text-xs text-primary font-normal flex items-center gap-1"><Sparkles className="h-3 w-3" /> IA</span>}
               </Label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-medium text-lg">R$</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium text-lg">R$</span>
                 <Input
                   type="number"
                   step="0.01"
@@ -428,9 +428,9 @@ export default function NewReimbursement() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
                 Data da Despesa
-                {aiFilledFields.has('expense_date') && <span className="text-xs text-blue-600 font-normal flex items-center gap-1"><Sparkles className="h-3 w-3" /> IA</span>}
+                {aiFilledFields.has('expense_date') && <span className="text-xs text-primary font-normal flex items-center gap-1"><Sparkles className="h-3 w-3" /> IA</span>}
               </Label>
               <Input
                 type="date"
@@ -441,9 +441,9 @@ export default function NewReimbursement() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
                   Favorecido / Estabelecimento
-                  {aiFilledFields.has('favorecido') && <span className="text-xs text-blue-600 font-normal flex items-center gap-1"><Sparkles className="h-3 w-3" /> IA</span>}
+                  {aiFilledFields.has('favorecido') && <span className="text-xs text-primary font-normal flex items-center gap-1"><Sparkles className="h-3 w-3" /> IA</span>}
                 </Label>
                 <Input
                   type="text"
@@ -454,19 +454,19 @@ export default function NewReimbursement() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm font-semibold text-slate-700">Chave PIX (se houver na nota)</Label>
+                <Label className="text-sm font-semibold text-foreground">Chave PIX (se houver na nota)</Label>
                 <Input
                   type="text"
                   placeholder="Ex: CNPJ, Email, Telefone..."
-                  className="h-14 text-base rounded-xl bg-slate-50 border-slate-300 focus-visible:ring-blue-600"
+                  className="h-14 text-base rounded-xl bg-background border-input focus-visible:ring-ring"
                   {...register("pix")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
                   Descrição {selectedCategory === "Outros" ? "*" : ""}
-                  {aiFilledFields.has('description') && <span className="text-xs text-blue-600 font-normal flex items-center gap-1"><Sparkles className="h-3 w-3" /> IA</span>}
+                  {aiFilledFields.has('description') && <span className="text-xs text-primary font-normal flex items-center gap-1"><Sparkles className="h-3 w-3" /> IA</span>}
                 </Label>
                 <Input
                   type="text"
@@ -482,23 +482,23 @@ export default function NewReimbursement() {
         </Card>
 
         {/* Card: Vínculo de Serviço */}
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+        <Card className="shadow-sm border-border">
+          <CardHeader className="pb-3 border-b border-border bg-muted/40 rounded-t-xl">
             <CardTitle className="text-base flex items-center gap-2">
-              <Receipt className="h-4 w-4 text-blue-600" />
+              <Receipt className="h-4 w-4 text-primary" />
               Vínculo de Serviço
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4 space-y-5">
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700">Preventiva ou Corretiva</Label>
+              <Label className="text-sm font-semibold text-foreground">Preventiva ou Corretiva</Label>
               <Select onValueChange={(val) => setValue("maintenance_type", val === "none" ? "" : val)} value={selectedMaintenanceType || "none"}>
-                <SelectTrigger className="h-14 text-base rounded-xl bg-slate-50 border-slate-300 focus:ring-blue-600">
+                <SelectTrigger className="h-14 text-base rounded-xl bg-background border-input focus:ring-ring">
                   <SelectValue placeholder="Selecione o tipo..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none" className="py-3 text-base text-slate-500 italic">-- Não se aplica --</SelectItem>
+                  <SelectItem value="none" className="py-3 text-base text-muted-foreground italic">-- Não se aplica --</SelectItem>
                   <SelectItem value="Preventiva" className="py-3 text-base">Preventiva</SelectItem>
                   <SelectItem value="Corretiva" className="py-3 text-base">Corretiva</SelectItem>
                 </SelectContent>
@@ -506,13 +506,13 @@ export default function NewReimbursement() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700">Cliente</Label>
+              <Label className="text-sm font-semibold text-foreground">Cliente</Label>
               <Select onValueChange={(val) => setValue("client_id", val === "none" ? "" : val)} value={selectedClient || "none"}>
-                <SelectTrigger className="h-14 text-base rounded-xl bg-slate-50 border-slate-300 focus:ring-blue-600">
+                <SelectTrigger className="h-14 text-base rounded-xl bg-background border-input focus:ring-ring">
                   <SelectValue placeholder="Selecione o cliente..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none" className="py-3 text-base text-slate-500 italic">-- Nenhum cliente / Avulso --</SelectItem>
+                  <SelectItem value="none" className="py-3 text-base text-muted-foreground italic">-- Nenhum cliente / Avulso --</SelectItem>
                   {clients.map(client => (
                     <SelectItem key={client.id} value={client.id} className="py-3 text-base">
                       {client.name}
@@ -523,21 +523,21 @@ export default function NewReimbursement() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700">Filial</Label>
+              <Label className="text-sm font-semibold text-foreground">Filial</Label>
               <Input
                 type="text"
                 placeholder="Ex: SP, RJ, Loja 10..."
-                className="h-14 text-base rounded-xl bg-slate-50 border-slate-300 focus-visible:ring-blue-600"
+                className="h-14 text-base rounded-xl bg-background border-input focus-visible:ring-ring"
                 {...register("branch")}
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700">Orçamento</Label>
+              <Label className="text-sm font-semibold text-foreground">Orçamento</Label>
               <Input
                 type="text"
                 placeholder="Ex: ORC-2026-04"
-                className="h-14 text-base rounded-xl bg-slate-50 border-slate-300 focus-visible:ring-blue-600"
+                className="h-14 text-base rounded-xl bg-background border-input focus-visible:ring-ring"
                 {...register("budget")}
               />
             </div>
@@ -546,22 +546,22 @@ export default function NewReimbursement() {
         </Card>
 
         {/* Card: Comprovante */}
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+        <Card className="shadow-sm border-border">
+          <CardHeader className="pb-3 border-b border-border bg-muted/40 rounded-t-xl">
             <CardTitle className="text-base flex items-center gap-2">
-              <Upload className="h-4 w-4 text-blue-600" />
+              <Upload className="h-4 w-4 text-primary" />
               Comprovante
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4 space-y-4">
-            <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:bg-slate-50 transition-colors relative bg-white">
+            <div className="border-2 border-dashed border-input rounded-xl p-6 text-center hover:bg-muted/50 transition-colors relative bg-background">
               <input
                 type="file"
                 accept="image/*,.pdf"
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 onChange={(e) => e.target.files?.[0] && setFile(e.target.files[0])}
               />
-              <div className="flex flex-col items-center gap-2 text-slate-600">
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
                 <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mb-2">
                   <Receipt className="h-6 w-6" />
                 </div>
@@ -572,7 +572,7 @@ export default function NewReimbursement() {
                 ) : (
                   <>
                     <p className="text-sm font-semibold">Adicionar ou trocar comprovante</p>
-                    <p className="text-xs text-slate-500">JPG, PNG ou PDF (Max. 5MB)</p>
+                    <p className="text-xs text-muted-foreground">JPG, PNG ou PDF (Max. 5MB)</p>
                   </>
                 )}
               </div>
@@ -586,7 +586,7 @@ export default function NewReimbursement() {
         <div className="pt-2 pb-8 flex gap-3">
           <Button
             type="button" variant="outline"
-            className="flex-1 h-14 rounded-xl text-base font-semibold border-slate-300 text-slate-700 shadow-sm"
+            className="flex-1 h-14 rounded-xl text-base font-semibold border-border text-foreground shadow-sm"
             onClick={() => isEditMode ? navigate('/reimbursements') : setStep('capture')}
             disabled={isSubmitting}
           >
@@ -594,7 +594,7 @@ export default function NewReimbursement() {
           </Button>
           <Button
             type="submit"
-            className="flex-1 h-14 rounded-xl text-base font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+            className="flex-1 h-14 rounded-xl text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
             disabled={isSubmitting}
           >
             {isSubmitting

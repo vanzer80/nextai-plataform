@@ -438,7 +438,7 @@ export default function ReimbursementsList() {
         ))}
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row gap-3 bg-card p-4 rounded-xl border border-border shadow-sm">
         <div className="flex-1">
           <label className="text-xs font-semibold text-slate-500 uppercase mb-1 block">Status</label>
           <Select value={statusFilter} onValueChange={setStatusFilter}>

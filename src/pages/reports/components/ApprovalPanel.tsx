@@ -120,7 +120,7 @@ export default function ApprovalPanel({ report, onSuccess }: ApprovalPanelProps)
         const Icon = cfg.icon;
         return (
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <Icon className="h-4 w-4" />
               {cfg.label} — {report.os_number ? `OS ${report.os_number}` : 'este relatório'}
             </div>
@@ -130,13 +130,13 @@ export default function ApprovalPanel({ report, onSuccess }: ApprovalPanelProps)
                 value={comment}
                 onChange={e => setComment(e.target.value)}
                 placeholder={cfg.placeholder}
-                className="min-h-[90px] resize-none rounded-xl bg-white border-slate-300 text-sm focus-visible:ring-blue-600"
+                className="min-h-[90px] resize-none rounded-xl bg-background border-input text-sm focus-visible:ring-ring"
                 autoFocus
               />
             )}
 
             {!cfg.needsComment && (
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-muted-foreground">
                 Confirme a aprovação do relatório. Uma notificação será enviada ao técnico.
               </p>
             )}
