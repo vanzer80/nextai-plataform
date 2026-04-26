@@ -230,6 +230,7 @@ export default function AppLayout() {
               <UserProfileDropdown />
             </div>
             <div className="shrink-0 flex items-center gap-1">
+              <ThemeToggle compact className="border-sidebar-border bg-sidebar-accent text-sidebar-foreground hover:bg-sidebar-accent/80" />
               <NotificationsDropdown />
             </div>
           </div>
@@ -307,10 +308,6 @@ export default function AppLayout() {
           );
         })}
       </nav>
-
-      <div className="fixed right-4 bottom-[84px] lg:bottom-4 z-[60]">
-        <ThemeToggle className="shadow-md" />
-      </div>
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col relative w-full h-full pt-[64px] pb-[72px] lg:pt-0 lg:pb-0 overflow-hidden bg-background">
