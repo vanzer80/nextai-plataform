@@ -194,27 +194,60 @@ export default function OrcamentoDetail() {
 
       {/* Informações */}
       <Card>
-        <CardContent className="pt-4 grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Cliente</p>
-            <p className="font-semibold text-slate-900 mt-0.5">{orcamento.clients?.name ?? '—'}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Técnico</p>
-            <p className="font-semibold text-slate-900 mt-0.5">{orcamento.users?.full_name ?? '—'}</p>
-          </div>
-          {orcamento.service_reports?.os_number && (
-            <div>
-              <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">OS vinculada</p>
-              <p className="font-semibold text-slate-900 mt-0.5">{orcamento.service_reports.os_number}</p>
+        <CardContent className="pt-4 flex flex-col gap-4 text-sm">
+          {/* Cliente */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Cliente</p>
+              <p className="font-semibold text-slate-900 mt-0.5">{orcamento.clients?.name ?? '—'}</p>
+              {orcamento.clients?.cnpj && (
+                <p className="text-xs text-slate-500 font-mono mt-0.5">{orcamento.clients.cnpj}</p>
+              )}
             </div>
-          )}
-          {orcamento.validade && (
+            {(orcamento.clients?.logradouro || orcamento.clients?.cidade) && (
+              <div className="col-span-2">
+                <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Endereço</p>
+                {orcamento.clients.logradouro && (
+                  <p className="text-slate-700 mt-0.5">
+                    {[orcamento.clients.logradouro, orcamento.clients.numero].filter(Boolean).join(', ')}
+                  </p>
+                )}
+                {(orcamento.clients.cidade || orcamento.clients.estado) && (
+                  <p className="text-slate-600 text-xs">
+                    {[orcamento.clients.bairro, orcamento.clients.cidade, orcamento.clients.estado].filter(Boolean).join(' — ')}
+                  </p>
+                )}
+              </div>
+            )}
+            {(orcamento.clients?.contato_nome || orcamento.clients?.contato_telefone || orcamento.clients?.contato_email) && (
+              <div className="col-span-2">
+                <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Contato</p>
+                {orcamento.clients.contato_nome && <p className="text-slate-700 mt-0.5">{orcamento.clients.contato_nome}</p>}
+                <p className="text-slate-600 text-xs">
+                  {[orcamento.clients.contato_telefone, orcamento.clients.contato_email].filter(Boolean).join(' · ')}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-slate-100 pt-4 grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Válido até</p>
-              <p className="font-semibold text-slate-900 mt-0.5">{formatDate(orcamento.validade)}</p>
+              <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Técnico</p>
+              <p className="font-semibold text-slate-900 mt-0.5">{orcamento.users?.full_name ?? '—'}</p>
             </div>
-          )}
+            {orcamento.service_reports?.os_number && (
+              <div>
+                <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">OS vinculada</p>
+                <p className="font-semibold text-slate-900 mt-0.5">{orcamento.service_reports.os_number}</p>
+              </div>
+            )}
+            {orcamento.validade && (
+              <div>
+                <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Válido até</p>
+                <p className="font-semibold text-slate-900 mt-0.5">{formatDate(orcamento.validade)}</p>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

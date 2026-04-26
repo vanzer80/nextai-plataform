@@ -20,7 +20,18 @@ export function gerarPdfOrcamento(orcamento: OrcamentoComItens): void {
 
   const hoje = formatDate(new Date().toISOString().slice(0, 10));
   const numOrc = `ORC-${orcamento.id.slice(0, 8).toUpperCase()}`;
-  const clienteNome = orcamento.clients?.name ?? '—';
+  const cli = orcamento.clients;
+  const clienteNome = cli?.name ?? '—';
+  const clienteCnpj = cli?.cnpj ?? null;
+  const clienteEndereco = cli
+    ? [cli.logradouro, cli.numero].filter(Boolean).join(', ')
+    : '';
+  const clienteCidade = cli
+    ? [cli.bairro, cli.cidade, cli.estado].filter(Boolean).join(' — ')
+    : '';
+  const clienteContato = cli?.contato_nome ?? null;
+  const clienteTelefone = cli?.contato_telefone ?? null;
+  const clienteEmail = cli?.contato_email ?? null;
   const tecnicoNome = orcamento.users?.full_name ?? '—';
   const osNum = orcamento.service_reports?.os_number ?? null;
 
@@ -64,10 +75,32 @@ export function gerarPdfOrcamento(orcamento: OrcamentoComItens): void {
   doc.setTextColor(15, 23, 42);
   doc.text(clienteNome, marginL, y);
 
-  y += 5;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(71, 85, 105);
+
+  if (clienteCnpj) {
+    y += 5;
+    doc.text(clienteCnpj, marginL, y);
+  }
+
+  if (clienteEndereco) {
+    y += 5;
+    doc.text(clienteEndereco, marginL, y);
+  }
+
+  if (clienteCidade) {
+    y += 5;
+    doc.text(clienteCidade, marginL, y);
+  }
+
+  if (clienteContato || clienteTelefone || clienteEmail) {
+    y += 5;
+    const contatoParts = [clienteContato, clienteTelefone, clienteEmail].filter(Boolean);
+    doc.text(contatoParts.join(' · '), marginL, y);
+  }
+
+  y += 5;
   doc.text(`Técnico responsável: ${tecnicoNome}`, marginL, y);
 
   if (osNum) {

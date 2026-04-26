@@ -10,7 +10,7 @@ import type {
 const ORCAMENTO_SELECT = `
   id, report_id, client_id, technician_id, status, titulo, observacoes,
   rejection_reason, validade, desconto_pct, created_at, updated_at,
-  clients(name),
+  clients(name, cnpj, cidade, estado, logradouro, numero, bairro, contato_nome, contato_telefone, contato_email),
   users:technician_id(full_name),
   service_reports:report_id(os_number)
 `;

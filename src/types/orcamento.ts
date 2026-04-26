@@ -23,7 +23,18 @@ export interface Orcamento {
   desconto_pct: number;
   created_at: string;
   updated_at: string;
-  clients?: { name: string } | null;
+  clients?: {
+    name: string;
+    cnpj: string | null;
+    cidade: string | null;
+    estado: string | null;
+    logradouro: string | null;
+    numero: string | null;
+    bairro: string | null;
+    contato_nome: string | null;
+    contato_telefone: string | null;
+    contato_email: string | null;
+  } | null;
   users?: { full_name: string } | null;
   service_reports?: { os_number: string | null } | null;
 }
