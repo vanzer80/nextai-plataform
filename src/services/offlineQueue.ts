@@ -5,14 +5,47 @@ import {
   incrementRetry,
   updateDraftStatus,
   cacheReport,
+  getDraft,
+  getPendingBlobs,
+  deletePendingBlobs,
   type QueueItem,
 } from '@/src/lib/reportIndexedDB';
+import { submitReport, type SubmitReportPayload } from '@/src/services/reportService';
+import type { EvidenceFile } from '@/src/types/reports';
 
 const MAX_RETRIES = 3;
 
-// Processa um item da fila. Retorna true se processado com sucesso.
 async function processItem(item: QueueItem): Promise<boolean> {
   try {
+    if (item.type === 'create_full') {
+      const draft = await getDraft(item.localDraftId);
+      if (!draft) throw new Error('Rascunho não encontrado');
+      const blobs = await getPendingBlobs(item.localDraftId);
+
+      const attachments: EvidenceFile[] = (blobs?.attachments ?? []).map(att => ({
+        id: crypto.randomUUID(),
+        file: new File([att.blob], att.name, { type: att.type }),
+        preview: '',
+        caption: att.caption,
+      }));
+
+      const reportId = await submitReport({
+        formValues: draft.data as unknown as SubmitReportPayload['formValues'],
+        technicianId: draft.data.technician_id,
+        localDraftId: item.localDraftId,
+        checklistAnswers: (blobs?.checklistAnswers ?? {}) as SubmitReportPayload['checklistAnswers'],
+        attachments,
+        technicianSignature: blobs?.technicianSignature ?? null,
+        clientSignature: blobs?.clientSignature ?? null,
+        clientSignerName: blobs?.clientSignerName ?? '',
+      });
+
+      await updateDraftStatus(item.localDraftId, 'synced', reportId);
+      await deletePendingBlobs(item.localDraftId);
+      return true;
+    }
+
+    // Legacy path — mantido para itens 'create' já na fila antes do P-03
     if (item.type === 'create') {
       const payload = item.payload as Record<string, unknown>;
       const { data, error } = await supabase
@@ -51,7 +84,6 @@ async function processItem(item: QueueItem): Promise<boolean> {
   }
 }
 
-// Processa toda a fila FIFO. Para no primeiro erro permanente (3 retries).
 export async function processQueue(): Promise<{ processed: number; failed: number }> {
   const items = await getAllQueueItems();
   let processed = 0;
@@ -59,7 +91,6 @@ export async function processQueue(): Promise<{ processed: number; failed: numbe
 
   for (const item of items) {
     if (item.retries >= MAX_RETRIES) {
-      // Marca como erro permanente e remove da fila para não bloquear
       await updateDraftStatus(item.localDraftId, 'error', undefined, 'Máximo de tentativas atingido');
       await dequeue(item.id!);
       failed++;

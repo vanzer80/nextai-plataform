@@ -4,10 +4,12 @@ import {
   getDraft,
   deleteDraft,
   enqueue,
+  savePendingBlobs,
+  deletePendingBlobs,
   type ReportDraft,
   type SyncStatus,
 } from '@/src/lib/reportIndexedDB';
-import type { CreateServiceReportDTO } from '@/src/types/reports';
+import type { CreateServiceReportDTO, EvidenceFile, ReportChecklistItem } from '@/src/types/reports';
 
 const AUTOSAVE_INTERVAL_MS = 30_000;
 
@@ -16,7 +18,14 @@ export interface UseReportDraftReturn {
   syncStatus: SyncStatus;
   isDirty: boolean;
   saveNow: (data: CreateServiceReportDTO, checklistAnswers?: Record<string, object>) => Promise<void>;
-  submitDraft: (data: CreateServiceReportDTO) => Promise<void>;
+  submitDraft: (
+    data: CreateServiceReportDTO,
+    checklistAnswers: Record<string, Partial<ReportChecklistItem>>,
+    attachments: EvidenceFile[],
+    technicianSignature: string | null,
+    clientSignature: string | null,
+    clientSignerName: string,
+  ) => Promise<void>;
   discardDraft: () => Promise<void>;
   loadDraft: (id: string) => Promise<ReportDraft | undefined>;
 }
@@ -45,7 +54,6 @@ export function useReportDraft(existingLocalDraftId?: string): UseReportDraftRet
     setIsDirty(false);
   }, [localDraftId]);
 
-  // Autosave a cada 30s se houver dados
   useEffect(() => {
     autosaveTimer.current = setInterval(async () => {
       if (latestData.current && isDirty) {
@@ -58,27 +66,44 @@ export function useReportDraft(existingLocalDraftId?: string): UseReportDraftRet
     };
   }, [saveNow, isDirty]);
 
-  // Registra dados alterados (chamado pelo form ao mudar)
   const markDirty = useCallback((data: CreateServiceReportDTO) => {
     latestData.current = data;
     setIsDirty(true);
   }, []);
 
-  // Submete o relatório: salva localmente e enfileira para sync
-  const submitDraft = useCallback(async (data: CreateServiceReportDTO) => {
-    await saveNow(data);
-    const existing = await getDraft(localDraftId);
-    const type = existing?.supabaseId ? 'update' : 'create';
-    const payload = type === 'update'
-      ? { supabaseId: existing!.supabaseId, ...data }
-      : data;
+  const submitDraft = useCallback(async (
+    data: CreateServiceReportDTO,
+    checklistAnswers: Record<string, Partial<ReportChecklistItem>>,
+    attachments: EvidenceFile[],
+    technicianSignature: string | null,
+    clientSignature: string | null,
+    clientSignerName: string,
+  ) => {
+    await saveNow(data, checklistAnswers as Record<string, object>);
 
-    await enqueue({ type, localDraftId, payload, retries: 0, createdAt: Date.now() });
+    await savePendingBlobs({
+      draftId: localDraftId,
+      attachments: attachments.map(att => ({
+        blob: att.file,
+        name: att.file.name,
+        type: att.file.type,
+        caption: att.caption,
+      })),
+      technicianSignature,
+      clientSignature,
+      clientSignerName,
+      checklistAnswers: checklistAnswers as Record<string, unknown>,
+    });
+
+    const existing = await getDraft(localDraftId);
+    const type = existing?.supabaseId ? 'update' : 'create_full';
+    await enqueue({ type, localDraftId, payload: data, retries: 0, createdAt: Date.now() });
     setSyncStatus('pending');
   }, [localDraftId, saveNow]);
 
   const discardDraft = useCallback(async () => {
     await deleteDraft(localDraftId);
+    await deletePendingBlobs(localDraftId);
     setSyncStatus('local');
     setIsDirty(false);
     latestData.current = null;
@@ -88,8 +113,6 @@ export function useReportDraft(existingLocalDraftId?: string): UseReportDraftRet
     return getDraft(id);
   }, []);
 
-  // Expõe markDirty via efeito colateral — o componente chama saveNow diretamente
-  // quando o usuário clica em "salvar" ou o autosave dispara.
   void markDirty;
 
   return { localDraftId, syncStatus, isDirty, saveNow, submitDraft, discardDraft, loadDraft };
