@@ -9,6 +9,11 @@ export interface Client {
 let cache: Client[] | null = null;
 let fetchPromise: Promise<Client[]> | null = null;
 
+export function invalidateClientsCache(): void {
+  cache = null;
+  fetchPromise = null;
+}
+
 export function useClients(): Client[] {
   const [clients, setClients] = useState<Client[]>(cache ?? []);
 
@@ -22,6 +27,7 @@ export function useClients(): Client[] {
       fetchPromise = supabase
         .from('clients')
         .select('id, name')
+        .order('name')
         .then(({ data }) => {
           cache = data ?? [];
           fetchPromise = null;
