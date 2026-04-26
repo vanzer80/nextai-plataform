@@ -26,33 +26,33 @@ export function ProtectedRoute() {
 
   if (loading || hasEnvError) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-slate-50 gap-4 p-6">
+      <div className="flex h-screen flex-col items-center justify-center bg-background gap-4 p-6 text-foreground">
         
         {hasEnvError ? (
-          <div className="bg-red-50 border border-red-200 p-6 rounded-xl max-w-md w-full text-center shadow-sm z-50">
-            <AlertTriangle className="h-10 w-10 text-red-600 mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-red-900 mb-4">Erro Crítico de Configuração</h3>
+          <div className="bg-destructive/10 border border-destructive/30 p-6 rounded-xl max-w-md w-full text-center shadow-sm z-50">
+            <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-destructive mb-4">Erro Crítico de Configuração</h3>
             {isMissingUrl && (
-              <div className="bg-red-100 border border-red-300 text-red-800 p-2 rounded mb-2 font-mono text-xs font-bold text-left px-3">
+              <div className="bg-destructive/15 border border-destructive/40 text-destructive p-2 rounded mb-2 font-mono text-xs font-bold text-left px-3">
                 ERRO: VITE_SUPABASE_URL NÃO ENCONTRADA
               </div>
             )}
             {isMissingKey && (
-              <div className="bg-red-100 border border-red-300 text-red-800 p-2 rounded font-mono text-xs font-bold text-left px-3">
+              <div className="bg-destructive/15 border border-destructive/40 text-destructive p-2 rounded font-mono text-xs font-bold text-left px-3">
                 ERRO: VITE_SUPABASE_ANON_KEY NÃO ENCONTRADA
               </div>
             )}
-            <p className="text-sm text-red-700 mt-5 leading-relaxed font-medium">O aplicativo não pode conectar ao banco de dados Supabase.</p>
+            <p className="text-sm text-destructive mt-5 leading-relaxed font-medium">O aplicativo não pode conectar ao banco de dados Supabase.</p>
           </div>
         ) : (
           <>
-            <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
-            <p className="text-slate-500 font-medium">Autenticando sessão...</p>
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-muted-foreground font-medium">Autenticando sessão...</p>
           </>
         )}
 
         {(showTimeout && !hasEnvError) && (
-          <p className="text-xs text-amber-600 max-w-xs text-center mt-2 bg-amber-50 border border-amber-200 p-2 rounded transition-all animate-in zoom-in fade-in">
+          <p className="text-xs text-amber-700 dark:text-amber-300 max-w-xs text-center mt-2 bg-amber-100/70 dark:bg-amber-500/15 border border-amber-300 dark:border-amber-500/40 p-2 rounded transition-all animate-in zoom-in fade-in">
             A conexão com o servidor está demorando mais do que o normal.
           </p>
         )}
@@ -62,7 +62,7 @@ export function ProtectedRoute() {
           <Button 
             onClick={() => window.location.href = '/login'}
             variant="outline"
-            className="mt-2 border-slate-300 text-slate-700 hover:bg-slate-100 shadow-sm animate-in zoom-in fade-in"
+            className="mt-2 border-border text-foreground hover:bg-muted shadow-sm animate-in zoom-in fade-in"
           >
             Problemas no carregamento? Ir para o Login manual <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
@@ -85,9 +85,9 @@ export function RoleGuard({ allowedRoles }: { allowedRoles: string[] }) {
 
   if (!user?.role || !allowedRoles.includes(user.role)) {
     return (
-      <div className="flex h-full flex-col items-center justify-center p-6 text-center bg-slate-50 rounded-xl">
-        <h2 className="text-xl font-bold text-slate-900">Acesso Restrito</h2>
-        <p className="mt-2 text-sm text-slate-600">
+      <div className="flex h-full flex-col items-center justify-center p-6 text-center bg-card rounded-xl border border-border">
+        <h2 className="text-xl font-bold text-foreground">Acesso Restrito</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
           Seu nível de acesso atual ({user?.role || 'Desconhecido'}) não permite visualizar esta página.
         </p>
       </div>

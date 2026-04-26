@@ -204,13 +204,13 @@ export default function NewReport() {
           variant="ghost"
           size="icon"
           onClick={handleBack}
-          className="h-10 w-10 shrink-0 rounded-full hover:bg-slate-200"
+          className="h-10 w-10 shrink-0 rounded-full hover:bg-muted"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">Novo Relatório</h1>
-          <p className="text-xs text-slate-500">
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Novo Relatório</h1>
+          <p className="text-xs text-muted-foreground">
             Passo {currentStep} de {TOTAL_STEPS} — {STEP_LABELS[currentStep - 1]}
           </p>
         </div>
@@ -218,9 +218,9 @@ export default function NewReport() {
       </div>
 
       {/* Barra de progresso */}
-      <div className="w-full bg-slate-200 rounded-full h-1.5">
+      <div className="w-full bg-muted rounded-full h-1.5">
         <div
-          className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+          className="bg-primary h-1.5 rounded-full transition-all duration-300"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -234,14 +234,14 @@ export default function NewReport() {
           return (
             <div key={step} className="flex items-center gap-1 shrink-0">
               <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
-                isDone ? 'bg-blue-600 text-white' :
-                isCurrent ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-600' :
-                'bg-slate-200 text-slate-500'
+                isDone ? 'bg-primary text-primary-foreground' :
+                isCurrent ? 'bg-primary/15 text-primary ring-2 ring-primary' :
+                'bg-muted text-muted-foreground'
               }`}>
                 {isDone ? '✓' : step}
               </div>
               {i < STEP_LABELS.length - 1 && (
-                <div className={`h-0.5 w-4 ${isDone ? 'bg-blue-600' : 'bg-slate-200'}`} />
+                <div className={`h-0.5 w-4 ${isDone ? 'bg-primary' : 'bg-muted'}`} />
               )}
             </div>
           );
@@ -295,7 +295,7 @@ export default function NewReport() {
           type="button"
           variant="outline"
           onClick={handleBack}
-          className="flex-1 h-13 rounded-xl border-slate-300 text-slate-700 font-semibold"
+          className="flex-1 h-13 rounded-xl border-border text-foreground font-semibold"
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
           {currentStep === 1 ? 'Cancelar' : 'Voltar'}
@@ -306,7 +306,7 @@ export default function NewReport() {
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="flex-1 h-13 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+            className="flex-1 h-13 rounded-xl font-semibold"
           >
             {isSubmitting ? (
               <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
@@ -318,7 +318,7 @@ export default function NewReport() {
           <Button
             type="button"
             onClick={handleNext}
-            className="flex-1 h-13 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+            className="flex-1 h-13 rounded-xl font-semibold"
           >
             Próximo <ArrowRight className="h-4 w-4 ml-1" />
           </Button>

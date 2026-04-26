@@ -26,23 +26,23 @@ export default function Step4Diagnosis({ form, assetDescription }: Step4Props) {
   };
 
   return (
-    <Card className="shadow-sm border-slate-200">
-      <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+    <Card className="shadow-sm border-border">
+      <CardHeader className="pb-3 border-b border-border bg-muted/30 rounded-t-xl">
         <CardTitle className="text-base flex items-center gap-2">
-          <Stethoscope className="h-4 w-4 text-blue-600" />
+          <Stethoscope className="h-4 w-4 text-primary" />
           Diagnóstico Técnico
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-5 space-y-5">
 
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-700">
+          <Label className="text-sm font-semibold text-foreground">
             Problema relatado pelo cliente <span className="text-red-500">*</span>
           </Label>
           <Textarea
             {...register('reported_problem')}
             placeholder="Descreva o problema conforme relatado pelo cliente..."
-            className="min-h-[90px] resize-none rounded-xl bg-slate-50 border-slate-300 text-base focus-visible:ring-blue-600"
+            className="min-h-[90px] resize-none rounded-xl bg-muted border-border text-base focus-visible:ring-ring"
           />
           {form.formState.errors.reported_problem && (
             <p className="text-xs text-red-500">{form.formState.errors.reported_problem.message}</p>
@@ -50,20 +50,20 @@ export default function Step4Diagnosis({ form, assetDescription }: Step4Props) {
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-700">Diagnóstico preliminar</Label>
+          <Label className="text-sm font-semibold text-foreground">Diagnóstico preliminar</Label>
           <Textarea
             {...register('preliminary_diagnosis')}
             placeholder="Observações iniciais do técnico ao chegar no local..."
-            className="min-h-[90px] resize-none rounded-xl bg-slate-50 border-slate-300 text-base focus-visible:ring-blue-600"
+            className="min-h-[90px] resize-none rounded-xl bg-muted border-border text-base focus-visible:ring-ring"
           />
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-700">Diagnóstico final</Label>
+          <Label className="text-sm font-semibold text-foreground">Diagnóstico final</Label>
           <Textarea
             {...register('final_diagnosis')}
             placeholder="Diagnóstico técnico formal após análise completa..."
-            className="min-h-[110px] resize-none rounded-xl bg-slate-50 border-slate-300 text-base focus-visible:ring-blue-600"
+            className="min-h-[110px] resize-none rounded-xl bg-muted border-border text-base focus-visible:ring-ring"
           />
           <AiDiagnosticAssistant
             rawInput={preliminaryDiagnosis}
@@ -75,11 +75,11 @@ export default function Step4Diagnosis({ form, assetDescription }: Step4Props) {
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-700">Notas internas</Label>
+          <Label className="text-sm font-semibold text-foreground">Notas internas</Label>
           <Textarea
             {...register('internal_notes')}
             placeholder="Observações internas — não visíveis ao cliente..."
-            className="min-h-[80px] resize-none rounded-xl bg-slate-50 border-slate-300 text-base focus-visible:ring-blue-600"
+            className="min-h-[80px] resize-none rounded-xl bg-muted border-border text-base focus-visible:ring-ring"
           />
         </div>
 

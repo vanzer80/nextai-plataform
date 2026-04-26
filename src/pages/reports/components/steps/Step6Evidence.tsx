@@ -37,12 +37,12 @@ export default function Step6Evidence({ attachments, onChange }: Step6Props) {
   };
 
   return (
-    <Card className="shadow-sm border-slate-200">
-      <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+    <Card className="shadow-sm border-border">
+      <CardHeader className="pb-3 border-b border-border bg-muted/30 rounded-t-xl">
         <CardTitle className="text-base flex items-center gap-2">
-          <Camera className="h-4 w-4 text-blue-600" />
+          <Camera className="h-4 w-4 text-primary" />
           Evidências Fotográficas
-          <span className="ml-auto text-xs font-normal text-slate-400">{attachments.length}/4</span>
+          <span className="ml-auto text-xs font-normal text-muted-foreground">{attachments.length}/4</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-5 space-y-4">
@@ -52,7 +52,7 @@ export default function Step6Evidence({ attachments, onChange }: Step6Props) {
           <div className="grid grid-cols-2 gap-3">
             {attachments.map(att => (
               <div key={att.id} className="space-y-1.5">
-                <div className="relative rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-100">
+                <div className="relative rounded-xl overflow-hidden border border-border aspect-video bg-muted">
                   <img
                     src={att.preview}
                     alt="evidência"
@@ -71,7 +71,7 @@ export default function Step6Evidence({ attachments, onChange }: Step6Props) {
                   value={att.caption}
                   onChange={e => handleCaption(att.id, e.target.value)}
                   placeholder="Legenda (opcional)"
-                  className="h-8 text-xs rounded-lg border-slate-300 bg-slate-50"
+                  className="h-8 text-xs rounded-lg border-border bg-muted"
                 />
               </div>
             ))}
@@ -83,7 +83,7 @@ export default function Step6Evidence({ attachments, onChange }: Step6Props) {
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="w-full border-2 border-dashed border-slate-300 rounded-xl p-8 flex flex-col items-center gap-2 text-slate-400 hover:bg-slate-50 hover:border-blue-300 hover:text-blue-500 transition-colors"
+            className="w-full border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center gap-2 text-muted-foreground hover:bg-muted hover:border-primary/50 hover:text-primary transition-colors"
           >
             {attachments.length === 0 ? (
               <>
@@ -111,7 +111,7 @@ export default function Step6Evidence({ attachments, onChange }: Step6Props) {
         />
 
         {attachments.length === 0 && (
-          <p className="text-center text-xs text-slate-400">
+          <p className="text-center text-xs text-muted-foreground">
             As evidências são opcionais, mas ajudam na análise do gestor.
           </p>
         )}

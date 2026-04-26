@@ -43,8 +43,8 @@ function Field({ label, value }: { label: string; value: string | number | null 
   if (!value && value !== 0) return null;
   return (
     <div className="space-y-0.5">
-      <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{label}</p>
-      <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{value}</p>
+      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{label}</p>
+      <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{value}</p>
     </div>
   );
 }
@@ -60,19 +60,19 @@ function ChecklistItemRow({ item }: { item: ReportChecklistItem }) {
   })();
 
   return (
-    <div className="flex items-start justify-between gap-3 py-2 border-b border-slate-100 last:border-0">
-      <p className="text-sm text-slate-700 flex-1">{item.label}</p>
+    <div className="flex items-start justify-between gap-3 py-2 border-b border-border last:border-0">
+      <p className="text-sm text-foreground/90 flex-1">{item.label}</p>
       <div className="flex items-center gap-1.5 shrink-0">
         {item.is_conformant === true && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
         {item.is_conformant === false && <XCircle className="h-3.5 w-3.5 text-rose-500" />}
-        <span className="text-xs font-medium text-slate-600">{value ?? '—'}</span>
+        <span className="text-xs font-medium text-muted-foreground">{value ?? '—'}</span>
       </div>
     </div>
   );
 }
 
 const STATUS_HISTORY_COLOR: Record<string, string> = {
-  draft:          'bg-slate-400',
+  draft:          'bg-muted-foreground',
   pending_review: 'bg-amber-500',
   returned:       'bg-orange-500',
   approved:       'bg-emerald-500',
@@ -80,19 +80,19 @@ const STATUS_HISTORY_COLOR: Record<string, string> = {
 };
 
 function HistoryTimeline({ history }: { history: ReportStatusHistory[] }) {
-  if (history.length === 0) return <p className="text-sm text-slate-400 py-2">Sem histórico registrado.</p>;
+  if (history.length === 0) return <p className="text-sm text-muted-foreground py-2">Sem histórico registrado.</p>;
 
   return (
-    <ol className="relative border-l border-slate-200 space-y-5 pl-5">
+    <ol className="relative border-l border-border space-y-5 pl-5">
       {history.map(h => (
         <li key={h.id} className="relative">
-          <span className={`absolute -left-[22px] top-1 h-3 w-3 rounded-full ring-2 ring-white ${STATUS_HISTORY_COLOR[h.to_status] ?? 'bg-slate-400'}`} />
-          <p className="text-xs font-bold text-slate-700">
+          <span className={`absolute -left-[22px] top-1 h-3 w-3 rounded-full ring-2 ring-background ${STATUS_HISTORY_COLOR[h.to_status] ?? 'bg-muted-foreground'}`} />
+          <p className="text-xs font-bold text-foreground/90">
             {REPORT_STATUS_LABEL[h.to_status]}
           </p>
-          <p className="text-[11px] text-slate-500 mt-0.5">{fmtDateTime(h.created_at)}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{fmtDateTime(h.created_at)}</p>
           {h.comment && (
-            <p className="text-xs text-slate-600 mt-1 bg-slate-50 rounded-lg px-3 py-2 border border-slate-200">
+            <p className="text-xs text-muted-foreground mt-1 bg-muted rounded-lg px-3 py-2 border border-border">
               {h.comment}
             </p>
           )}
@@ -129,7 +129,7 @@ export default function ReportDetail() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-24 text-slate-400">
+      <div className="flex flex-col items-center justify-center gap-3 py-24 text-muted-foreground">
         <Loader2 className="h-8 w-8 animate-spin" />
         <p className="text-sm">Carregando relatório...</p>
       </div>
@@ -138,8 +138,8 @@ export default function ReportDetail() {
 
   if (error || !report) {
     return (
-      <div className="flex flex-col items-center gap-4 py-20 text-slate-400">
-        <AlertTriangle className="h-10 w-10 text-rose-400" />
+      <div className="flex flex-col items-center gap-4 py-20 text-muted-foreground">
+        <AlertTriangle className="h-10 w-10 text-destructive" />
         <p className="text-sm font-medium">{error ?? 'Relatório não encontrado.'}</p>
         <Button variant="outline" onClick={() => navigate('/reports')}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Voltar para lista
@@ -163,7 +163,7 @@ export default function ReportDetail() {
           variant="ghost"
           size="icon"
           onClick={() => navigate('/reports')}
-          className="h-10 w-10 shrink-0 rounded-full hover:bg-slate-200 mt-0.5"
+          className="h-10 w-10 shrink-0 rounded-full hover:bg-muted mt-0.5"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -171,13 +171,13 @@ export default function ReportDetail() {
           <div className="flex items-center gap-2 flex-wrap">
             <ReportStatusBadge status={report.status} />
             {report.service_type && (
-              <span className="text-xs text-slate-500 font-medium">{report.service_type}</span>
+              <span className="text-xs text-muted-foreground font-medium">{report.service_type}</span>
             )}
           </div>
-          <h1 className="text-xl font-bold text-slate-900 mt-1 leading-tight">
+          <h1 className="text-xl font-bold text-foreground mt-1 leading-tight">
             {report.os_number ? `OS ${report.os_number}` : 'Relatório sem OS'}
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">{fmtDate(report.service_date)}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{fmtDate(report.service_date)}</p>
         </div>
       </div>
 
@@ -188,20 +188,20 @@ export default function ReportDetail() {
 
       {/* Alerta de devolução */}
       {report.status === 'returned' && report.reviewer_comment && (
-        <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 flex gap-3">
-          <AlertTriangle className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+        <div className="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-100/70 dark:bg-amber-500/15 p-4 flex gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-700 dark:text-amber-300 shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-orange-800">Relatório devolvido para ajuste</p>
-            <p className="text-sm text-orange-700 mt-0.5">{report.reviewer_comment}</p>
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Relatório devolvido para ajuste</p>
+            <p className="text-sm text-amber-800 dark:text-amber-300 mt-0.5">{report.reviewer_comment}</p>
           </div>
         </div>
       )}
 
       {/* Identificação */}
-      <Card className="shadow-sm border-slate-200">
-        <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+      <Card className="shadow-sm border-border">
+        <CardHeader className="pb-3 border-b border-border bg-muted/30 rounded-t-xl">
           <CardTitle className="text-base flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-blue-600" />
+            <Calendar className="h-4 w-4 text-primary" />
             Identificação
           </CardTitle>
         </CardHeader>
@@ -228,17 +228,17 @@ export default function ReportDetail() {
           )}
           {report.geo_lat != null && report.geo_lng != null && (
             <div className="col-span-2 space-y-0.5">
-              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Geolocalização</p>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Geolocalização</p>
               <a
                 href={`https://maps.google.com/?q=${report.geo_lat},${report.geo_lng}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline font-medium"
+                className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-medium"
               >
                 <MapPin className="h-3.5 w-3.5" />
                 {report.geo_lat.toFixed(5)}, {report.geo_lng.toFixed(5)}
                 {report.geo_accuracy && (
-                  <span className="text-slate-400">(±{Math.round(report.geo_accuracy)}m)</span>
+                  <span className="text-muted-foreground">(±{Math.round(report.geo_accuracy)}m)</span>
                 )}
               </a>
             </div>
@@ -248,10 +248,10 @@ export default function ReportDetail() {
 
       {/* Diagnóstico */}
       {hasDiagnosis && (
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+        <Card className="shadow-sm border-border">
+          <CardHeader className="pb-3 border-b border-border bg-muted/30 rounded-t-xl">
             <CardTitle className="text-base flex items-center gap-2">
-              <Stethoscope className="h-4 w-4 text-blue-600" />
+              <Stethoscope className="h-4 w-4 text-primary" />
               Diagnóstico Técnico
             </CardTitle>
           </CardHeader>
@@ -266,10 +266,10 @@ export default function ReportDetail() {
 
       {/* Execução */}
       {hasExecution && (
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+        <Card className="shadow-sm border-border">
+          <CardHeader className="pb-3 border-b border-border bg-muted/30 rounded-t-xl">
             <CardTitle className="text-base flex items-center gap-2">
-              <Wrench className="h-4 w-4 text-blue-600" />
+              <Wrench className="h-4 w-4 text-primary" />
               Execução do Serviço
             </CardTitle>
           </CardHeader>
@@ -284,12 +284,12 @@ export default function ReportDetail() {
 
       {/* Checklist */}
       {checklistItems.length > 0 && (
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+        <Card className="shadow-sm border-border">
+          <CardHeader className="pb-3 border-b border-border bg-muted/30 rounded-t-xl">
             <CardTitle className="text-base flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-blue-600" />
+              <ClipboardList className="h-4 w-4 text-primary" />
               Checklist
-              <span className="ml-auto text-xs font-normal text-slate-400">{checklistItems.length} itens</span>
+              <span className="ml-auto text-xs font-normal text-muted-foreground">{checklistItems.length} itens</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-2 pb-2">
@@ -303,12 +303,12 @@ export default function ReportDetail() {
       )}
 
       {/* Evidências */}
-      <Card className="shadow-sm border-slate-200">
-        <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+      <Card className="shadow-sm border-border">
+        <CardHeader className="pb-3 border-b border-border bg-muted/30 rounded-t-xl">
           <CardTitle className="text-base flex items-center gap-2">
-            <Camera className="h-4 w-4 text-blue-600" />
+            <Camera className="h-4 w-4 text-primary" />
             Evidências Fotográficas
-            <span className="ml-auto text-xs font-normal text-slate-400">{attachments.length}/4</span>
+            <span className="ml-auto text-xs font-normal text-muted-foreground">{attachments.length}/4</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
@@ -318,22 +318,22 @@ export default function ReportDetail() {
 
       {/* Assinaturas */}
       {signatures.length > 0 && (
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+        <Card className="shadow-sm border-border">
+          <CardHeader className="pb-3 border-b border-border bg-muted/30 rounded-t-xl">
             <CardTitle className="text-base flex items-center gap-2">
-              <PenLine className="h-4 w-4 text-blue-600" />
+              <PenLine className="h-4 w-4 text-primary" />
               Assinaturas
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4 space-y-5">
             {signatures.map(sig => (
               <div key={sig.id} className="space-y-2">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   {sig.signature_type === 'technician' ? 'Técnico' :
                    sig.signature_type === 'client' ? 'Cliente' : 'Supervisor'}
                   {sig.signer_name && ` — ${sig.signer_name}`}
                 </p>
-                <div className="rounded-xl border border-slate-200 overflow-hidden bg-white">
+                <div className="rounded-xl border border-border overflow-hidden bg-card">
                   <img
                     src={sig.image_url}
                     alt={`Assinatura ${sig.signature_type}`}
@@ -341,7 +341,7 @@ export default function ReportDetail() {
                   />
                 </div>
                 {sig.signed_at && (
-                  <p className="text-[11px] text-slate-400">{fmtDateTime(sig.signed_at)}</p>
+                  <p className="text-[11px] text-muted-foreground">{fmtDateTime(sig.signed_at)}</p>
                 )}
               </div>
             ))}
@@ -350,10 +350,10 @@ export default function ReportDetail() {
       )}
 
       {/* Histórico de status */}
-      <Card className="shadow-sm border-slate-200">
-        <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+      <Card className="shadow-sm border-border">
+        <CardHeader className="pb-3 border-b border-border bg-muted/30 rounded-t-xl">
           <CardTitle className="text-base flex items-center gap-2">
-            <History className="h-4 w-4 text-blue-600" />
+            <History className="h-4 w-4 text-primary" />
             Histórico
           </CardTitle>
         </CardHeader>

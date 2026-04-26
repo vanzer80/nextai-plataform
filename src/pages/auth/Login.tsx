@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import ThemeToggle from '@/src/components/theme/ThemeToggle';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -54,14 +55,17 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 p-4 font-sans text-slate-900">
-      <Card className="w-full max-w-sm border-slate-200 shadow-md">
+    <div className="relative flex min-h-screen w-full items-center justify-center bg-background p-4 font-sans text-foreground">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
+      <Card className="w-full max-w-sm border-border shadow-md">
         <CardHeader className="space-y-2 pb-6 text-center">
           <div className="mb-4 flex justify-center text-2xl font-extrabold tracking-tight">
-            PORTAL<span className="text-blue-600">MOPAR</span>
+            PORTAL<span className="text-primary">MOPAR</span>
           </div>
           <CardTitle className="text-xl font-semibold">Acesso ao Sistema</CardTitle>
-          <CardDescription className="text-slate-600">
+          <CardDescription className="text-muted-foreground">
             Insira suas credenciais corporativas.
           </CardDescription>
         </CardHeader>
@@ -76,7 +80,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="focus-visible:ring-blue-600"
+                className="focus-visible:ring-ring"
                 disabled={loading}
               />
             </div>
@@ -88,20 +92,20 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="focus-visible:ring-blue-600"
+                className="focus-visible:ring-ring"
                 disabled={loading}
               />
             </div>
 
             {errorMsg && (
-              <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm font-medium text-rose-600 shadow-sm">
+              <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm font-medium text-destructive shadow-sm">
                 {errorMsg}
               </div>
             )}
 
             <Button 
               type="submit" 
-              className="w-full bg-blue-600 text-white transition-colors hover:bg-blue-700" 
+              className="w-full" 
               disabled={loading}
             >
               {loading ? (

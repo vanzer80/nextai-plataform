@@ -18,10 +18,10 @@ export default function Step1Identification({ form }: Step1Props) {
   const serviceType = watch('service_type');
 
   return (
-    <Card className="shadow-sm border-slate-200">
-      <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+    <Card className="shadow-sm border-border">
+      <CardHeader className="pb-3 border-b border-border bg-muted/30 rounded-t-xl">
         <CardTitle className="text-base flex items-center gap-2">
-          <ClipboardList className="h-4 w-4 text-blue-600" />
+          <ClipboardList className="h-4 w-4 text-primary" />
           Identificação do Serviço
         </CardTitle>
       </CardHeader>
@@ -29,14 +29,14 @@ export default function Step1Identification({ form }: Step1Props) {
 
         {/* Tipo de Serviço */}
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-700">
+          <Label className="text-sm font-semibold text-foreground">
             Tipo de Serviço <span className="text-rose-500">*</span>
           </Label>
           <Select
             value={serviceType ?? ''}
             onValueChange={val => setValue('service_type', val as ReportFormValues['service_type'], { shouldValidate: true })}
           >
-            <SelectTrigger className="h-12 text-base rounded-xl bg-slate-50 border-slate-300 focus:ring-blue-600">
+            <SelectTrigger className="h-12 text-base rounded-xl bg-muted border-border focus:ring-ring">
               <SelectValue placeholder="Selecione o tipo de serviço" />
             </SelectTrigger>
             <SelectContent>
@@ -52,23 +52,23 @@ export default function Step1Identification({ form }: Step1Props) {
 
         {/* Número da OS */}
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-700">Número da OS</Label>
+          <Label className="text-sm font-semibold text-foreground">Número da OS</Label>
           <Input
             {...register('os_number')}
             placeholder="Ex: OS-2024-001"
-            className="h-12 text-base rounded-xl bg-slate-50 border-slate-300 focus-visible:ring-blue-600"
+            className="h-12 text-base rounded-xl bg-muted border-border focus-visible:ring-ring"
           />
         </div>
 
         {/* Data do Serviço */}
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-700">
+          <Label className="text-sm font-semibold text-foreground">
             Data do Serviço <span className="text-rose-500">*</span>
           </Label>
           <Input
             {...register('service_date')}
             type="date"
-            className="h-12 text-base rounded-xl bg-slate-50 border-slate-300 focus-visible:ring-blue-600"
+            className="h-12 text-base rounded-xl bg-muted border-border focus-visible:ring-ring"
           />
           {errors.service_date && (
             <p className="text-sm text-rose-600">{errors.service_date.message}</p>
@@ -77,11 +77,11 @@ export default function Step1Identification({ form }: Step1Props) {
 
         {/* Hora de Início */}
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-700">Hora de Início</Label>
+          <Label className="text-sm font-semibold text-foreground">Hora de Início</Label>
           <Input
             {...register('started_at')}
             type="time"
-            className="h-12 text-base rounded-xl bg-slate-50 border-slate-300 focus-visible:ring-blue-600"
+            className="h-12 text-base rounded-xl bg-muted border-border focus-visible:ring-ring"
           />
         </div>
 

@@ -198,20 +198,20 @@ export default function CaptureStep({ mode, isProcessing, onAnalyzeImages, onAna
       <div className="flex flex-col gap-4 h-full w-full max-w-2xl mx-auto pb-10">
         <div className="flex items-center gap-3 mb-2">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">{labels.title}</h1>
-            <p className="text-xs text-slate-600">{labels.subtitle}</p>
+              <h1 className="text-xl font-bold tracking-tight text-foreground">{labels.title}</h1>
+              <p className="text-xs text-muted-foreground">{labels.subtitle}</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col items-center gap-5">
+          <div className="bg-card rounded-2xl border border-border shadow-sm p-6 flex flex-col items-center gap-5">
           {isRecording ? (
             <>
               <div className="flex items-center gap-2">
                 <span className="h-3 w-3 rounded-full bg-red-500 animate-pulse" />
                 <span className="text-sm font-semibold text-red-600">Ouvindo...</span>
               </div>
-              <div className="w-full min-h-[80px] bg-slate-50 rounded-xl border border-slate-200 p-4 text-slate-700 text-sm leading-relaxed">
-                {transcript || <span className="text-slate-400 italic">Fale agora...</span>}
+              <div className="w-full min-h-[80px] bg-muted rounded-xl border border-border p-4 text-foreground text-sm leading-relaxed">
+                {transcript || <span className="text-muted-foreground italic">Fale agora...</span>}
               </div>
               <Button
                 onClick={stopRecording}
@@ -222,15 +222,15 @@ export default function CaptureStep({ mode, isProcessing, onAnalyzeImages, onAna
             </>
           ) : (
             <>
-              <div className="w-full min-h-[80px] bg-blue-50 rounded-xl border border-blue-200 p-4 text-slate-700 text-sm leading-relaxed">
+              <div className="w-full min-h-[80px] bg-primary/10 rounded-xl border border-primary/30 p-4 text-foreground text-sm leading-relaxed">
                 {transcript}
               </div>
-              <p className="text-xs text-slate-500 text-center">Revise o que foi reconhecido. Se precisar, grave novamente.</p>
+              <p className="text-xs text-muted-foreground text-center">Revise o que foi reconhecido. Se precisar, grave novamente.</p>
               <div className="flex flex-col w-full gap-3">
                 <Button
                   onClick={handleVoiceAnalyze}
                   disabled={isProcessing}
-                  className="w-full h-14 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base"
+                  className="w-full h-14 rounded-xl font-semibold text-base"
                 >
                   {isProcessing
                     ? <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Analisando...</>
@@ -246,7 +246,7 @@ export default function CaptureStep({ mode, isProcessing, onAnalyzeImages, onAna
                 </Button>
                 <button
                   onClick={onSkip}
-                  className="text-sm text-slate-500 hover:text-slate-700 underline-offset-2 hover:underline text-center"
+                  className="text-sm text-muted-foreground hover:text-foreground underline-offset-2 hover:underline text-center"
                 >
                   Preencher manualmente
                 </button>
@@ -262,8 +262,8 @@ export default function CaptureStep({ mode, isProcessing, onAnalyzeImages, onAna
     <div className="flex flex-col gap-4 h-full w-full max-w-2xl mx-auto pb-10">
       <div className="flex items-center gap-3 mb-2">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">{labels.title}</h1>
-          <p className="text-xs text-slate-600">{labels.subtitle}</p>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">{labels.title}</h1>
+          <p className="text-xs text-muted-foreground">{labels.subtitle}</p>
         </div>
       </div>
 
@@ -279,19 +279,19 @@ export default function CaptureStep({ mode, isProcessing, onAnalyzeImages, onAna
       {/* Empty state */}
       {!hasImages && (
         <div
-          className="bg-white rounded-2xl border-2 border-dashed border-slate-300 shadow-sm p-8 flex flex-col items-center gap-4 cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-colors"
+          className="bg-card rounded-2xl border-2 border-dashed border-border shadow-sm p-8 flex flex-col items-center gap-4 cursor-pointer hover:border-primary/60 hover:bg-accent/30 transition-colors"
           onClick={() => fileInputRef.current?.click()}
         >
-          <div className="h-20 w-20 rounded-full bg-blue-100 flex items-center justify-center">
-            <Camera className="h-10 w-10 text-blue-600" />
+          <div className="h-20 w-20 rounded-full bg-primary/15 flex items-center justify-center">
+            <Camera className="h-10 w-10 text-primary" />
           </div>
           <div className="text-center">
-            <p className="font-semibold text-slate-800 text-base">Tirar foto ou selecionar arquivo</p>
-            <p className="text-xs text-slate-500 mt-1">{labels.hint}</p>
-            <p className="text-xs text-slate-400 mt-1">Você pode selecionar até {MAX_IMAGES} imagens</p>
+            <p className="font-semibold text-foreground text-base">Tirar foto ou selecionar arquivo</p>
+            <p className="text-xs text-muted-foreground mt-1">{labels.hint}</p>
+            <p className="text-xs text-muted-foreground/80 mt-1">Você pode selecionar até {MAX_IMAGES} imagens</p>
           </div>
           {isCompressing && (
-            <div className="flex items-center gap-2 text-blue-600 text-sm">
+            <div className="flex items-center gap-2 text-primary text-sm">
               <Loader2 className="h-4 w-4 animate-spin" /> Processando imagem...
             </div>
           )}
@@ -300,10 +300,10 @@ export default function CaptureStep({ mode, isProcessing, onAnalyzeImages, onAna
 
       {/* Image grid */}
       {hasImages && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+        <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
           <div className="grid grid-cols-2 gap-3">
             {images.map((img, i) => (
-              <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
+              <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border bg-muted">
                 <img
                   src={img.preview}
                   alt={`Imagem ${i + 1}`}
@@ -325,7 +325,7 @@ export default function CaptureStep({ mode, isProcessing, onAnalyzeImages, onAna
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isCompressing}
-                className="aspect-square rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/30 transition-colors"
+                className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary/60 hover:text-primary hover:bg-accent/30 transition-colors"
               >
                 {isCompressing
                   ? <Loader2 className="h-6 w-6 animate-spin" />
@@ -346,7 +346,7 @@ export default function CaptureStep({ mode, isProcessing, onAnalyzeImages, onAna
           <Button
             onClick={() => onAnalyzeImages(images)}
             disabled={isProcessing || isCompressing}
-            className="w-full h-14 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base shadow-sm"
+            className="w-full h-14 rounded-xl font-semibold text-base shadow-sm"
           >
             {isProcessing
               ? <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Analisando imagens...</>
@@ -360,19 +360,19 @@ export default function CaptureStep({ mode, isProcessing, onAnalyzeImages, onAna
             variant="outline"
             onClick={startRecording}
             disabled={isProcessing || isCompressing}
-            className="w-full h-12 rounded-xl border-slate-300 text-slate-700 hover:bg-slate-50 font-medium"
+            className="w-full h-12 rounded-xl border-border text-foreground hover:bg-muted font-medium"
           >
-            <Mic className="h-4 w-4 mr-2 text-indigo-500" /> Descrever por voz
+            <Mic className="h-4 w-4 mr-2 text-primary" /> Descrever por voz
           </Button>
         )}
 
         {!hasImages && hasSpeech && (
-          <p className="text-xs text-slate-400 text-center px-4">{labels.voiceHint}</p>
+          <p className="text-xs text-muted-foreground/80 text-center px-4">{labels.voiceHint}</p>
         )}
 
         <button
           onClick={onSkip}
-          className="flex items-center justify-center gap-1 text-sm text-slate-500 hover:text-slate-700 underline-offset-2 hover:underline py-2"
+          className="flex items-center justify-center gap-1 text-sm text-muted-foreground hover:text-foreground underline-offset-2 hover:underline py-2"
         >
           Preencher manualmente <ChevronRight className="h-3.5 w-3.5" />
         </button>

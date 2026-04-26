@@ -55,10 +55,10 @@ export default function Step2AssetContext({ form }: Step2Props) {
     : null;
 
   return (
-    <Card className="shadow-sm border-slate-200">
-      <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+    <Card className="shadow-sm border-border">
+      <CardHeader className="pb-3 border-b border-border bg-muted/30 rounded-t-xl">
         <CardTitle className="text-base flex items-center gap-2">
-          <Building2 className="h-4 w-4 text-blue-600" />
+          <Building2 className="h-4 w-4 text-primary" />
           Ativo e Contexto
         </CardTitle>
       </CardHeader>
@@ -66,7 +66,7 @@ export default function Step2AssetContext({ form }: Step2Props) {
 
         {/* Cliente */}
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-700">Cliente</Label>
+          <Label className="text-sm font-semibold text-foreground">Cliente</Label>
           <Select
             value={selectedClientId ?? ''}
             onValueChange={val => {
@@ -74,7 +74,7 @@ export default function Step2AssetContext({ form }: Step2Props) {
               setValue('asset_id', undefined);
             }}
           >
-            <SelectTrigger className="h-12 text-base rounded-xl bg-slate-50 border-slate-300 focus:ring-blue-600">
+            <SelectTrigger className="h-12 text-base rounded-xl bg-muted border-border focus:ring-ring">
               <SelectValue placeholder="Selecione o cliente" />
             </SelectTrigger>
             <SelectContent>
@@ -87,22 +87,22 @@ export default function Step2AssetContext({ form }: Step2Props) {
 
         {/* Unidade/Local */}
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-700">Unidade / Local</Label>
+          <Label className="text-sm font-semibold text-foreground">Unidade / Local</Label>
           <Input
             {...register('site_location')}
             placeholder="Ex: Planta 2 — Setor de Compressores"
-            className="h-12 text-base rounded-xl bg-slate-50 border-slate-300 focus-visible:ring-blue-600"
+            className="h-12 text-base rounded-xl bg-muted border-border focus-visible:ring-ring"
           />
         </div>
 
         {/* Equipamento */}
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-700">Equipamento / Ativo</Label>
+          <Label className="text-sm font-semibold text-foreground">Equipamento / Ativo</Label>
           <Select
             value={selectedAssetId ?? ''}
             onValueChange={val => setValue('asset_id', val || undefined)}
           >
-            <SelectTrigger className="h-12 text-base rounded-xl bg-slate-50 border-slate-300 focus:ring-blue-600">
+            <SelectTrigger className="h-12 text-base rounded-xl bg-muted border-border focus:ring-ring">
               <SelectValue placeholder={selectedClientId ? 'Selecione o equipamento' : 'Selecione o cliente primeiro'} />
             </SelectTrigger>
             <SelectContent>
@@ -115,7 +115,7 @@ export default function Step2AssetContext({ form }: Step2Props) {
 
         {/* Geolocalização */}
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-700">Localização GPS</Label>
+          <Label className="text-sm font-semibold text-foreground">Localização GPS</Label>
           <GeolocationCapture value={geoValue} onChange={handleGeoChange} />
         </div>
 

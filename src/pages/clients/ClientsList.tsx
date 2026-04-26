@@ -107,21 +107,21 @@ export default function ClientsList() {
     <div className="flex flex-col gap-6 h-full w-full max-w-7xl mx-auto pb-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-            <Building2 className="h-6 w-6 text-blue-600" /> 
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <Building2 className="h-6 w-6 text-primary" /> 
             Clientes
           </h1>
-          <p className="text-sm text-slate-600">Gerencie a base de clientes e locais de atuação.</p>
+          <p className="text-sm text-muted-foreground">Gerencie a base de clientes e locais de atuação.</p>
         </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-sm font-semibold h-11 px-6 rounded-xl w-full sm:w-auto transition-colors disabled:pointer-events-none disabled:opacity-50">
+          <DialogTrigger className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm font-semibold h-11 px-6 rounded-xl w-full sm:w-auto transition-colors disabled:pointer-events-none disabled:opacity-50">
             <Plus className="h-5 w-5 mr-1 -ml-1" />
             Novo Cliente
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden border-0 rounded-2xl">
-            <DialogHeader className="p-6 pb-2 border-b border-slate-100 bg-slate-50">
-              <DialogTitle className="text-xl font-bold text-slate-900">Cadastrar Cliente</DialogTitle>
+          <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden rounded-2xl">
+            <DialogHeader className="p-6 pb-2 border-b border-border bg-muted/40">
+              <DialogTitle className="text-xl font-bold text-foreground">Cadastrar Cliente</DialogTitle>
               <DialogDescription>
                 Insira as informações do novo cliente para cadastro no sistema.
               </DialogDescription>
@@ -129,26 +129,26 @@ export default function ClientsList() {
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="p-6 space-y-4">
                 <div className="space-y-1">
-                  <Label className="text-sm font-semibold text-slate-700">Razão Social / Nome</Label>
+                  <Label className="text-sm font-semibold text-foreground">Razão Social / Nome</Label>
                   <Input 
                     placeholder="Ex: Construtora X" 
-                    className="h-11 rounded-lg border-slate-300 bg-slate-50 focus-visible:ring-blue-600"
+                    className="h-11 rounded-lg focus-visible:ring-ring"
                     {...register('name')} 
                   />
                   {errors.name && <p className="text-xs text-rose-500 font-medium">{errors.name.message}</p>}
                 </div>
               </div>
-              <DialogFooter className="p-6 pt-4 border-t border-slate-100 bg-slate-50 sm:justify-end gap-2">
+              <DialogFooter className="p-6 pt-4 border-t border-border bg-muted/40 sm:justify-end gap-2">
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={() => setIsDialogOpen(false)}
-                  className="rounded-lg h-11 font-semibold text-slate-700 border-slate-300"
+                  className="rounded-lg h-11 font-semibold"
                   disabled={isSubmitting}
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" className="rounded-lg h-11 font-semibold bg-blue-600 hover:bg-blue-700 text-white" disabled={isSubmitting}>
+                <Button type="submit" className="rounded-lg h-11 font-semibold" disabled={isSubmitting}>
                    {isSubmitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin"/> : null}
                   Cadastrar Cliente
                 </Button>
@@ -158,38 +158,39 @@ export default function ClientsList() {
         </Dialog>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden min-h-[300px]">
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden min-h-[300px]">
         {loading ? (
              <div className="flex justify-center p-12">
-               <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+               <Loader2 className="h-8 w-8 animate-spin text-primary" />
              </div>
         ) : (
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-slate-50/80">
-              <TableRow className="hover:bg-transparent border-slate-200">
-                <TableHead className="font-semibold text-slate-900">Nome / Razão Social</TableHead>
-                <TableHead className="font-semibold text-slate-900">CNPJ (Referência)</TableHead>
-                <TableHead className="w-[80px] text-right font-semibold text-slate-900">Ações</TableHead>
+            <TableHeader className="bg-muted/40">
+              <TableRow className="hover:bg-transparent border-border">
+                <TableHead className="font-semibold text-foreground">Nome / Razão Social</TableHead>
+                <TableHead className="font-semibold text-foreground">CNPJ (Referência)</TableHead>
+                <TableHead className="w-[80px] text-right font-semibold text-foreground">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clients.map((c) => (
-                <TableRow key={c.id} className="hover:bg-slate-50 transition-colors border-slate-100">
-                  <TableCell className="font-semibold text-slate-900 text-sm whitespace-nowrap">{c.name}</TableCell>
-                  <TableCell className="text-slate-600 text-sm font-mono">-</TableCell>
+              {clients.map(c => (
+                <TableRow key={c.id} className="hover:bg-muted/50 transition-colors border-border">
+                  <TableCell className="font-semibold text-foreground text-sm whitespace-nowrap">{c.name}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm font-mono">-</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
-                      <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 p-0 text-slate-500 hover:bg-slate-100 hover:text-slate-900 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50">
+                      <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 p-0 text-muted-foreground hover:bg-muted hover:text-foreground rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
                         <MoreHorizontal className="h-4 w-4" />
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-40 rounded-xl border-slate-200">
-                        <DropdownMenuItem className="cursor-pointer font-medium text-slate-700 flex items-center" onClick={() => toast.info('Em desenvolvimento: Edição de Cliente')}>
+                      <DropdownMenuContent align="end" className="w-40 rounded-xl">
+                        <DropdownMenuItem className="cursor-pointer font-medium flex items-center" onClick={() => toast.info('Em desenvolvimento: Edição de Cliente')}>
                           <Edit className="mr-2 h-4 w-4" />
                           Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          className="cursor-pointer font-medium text-rose-600 focus:bg-rose-50 focus:text-rose-700 flex items-center"
+                          variant="destructive"
+                          className="cursor-pointer font-medium flex items-center"
                           onClick={() => handleDelete(c.id)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
@@ -202,7 +203,7 @@ export default function ClientsList() {
               ))}
               {clients.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={3} className="h-24 text-center text-slate-500 font-medium">
+                  <TableCell colSpan={3} className="h-24 text-center text-muted-foreground font-medium">
                     Nenhum cliente cadastrado.
                   </TableCell>
                 </TableRow>

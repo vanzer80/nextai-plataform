@@ -36,14 +36,14 @@ export default function OrcamentosList() {
     <div className="flex flex-col gap-4 w-full max-w-3xl mx-auto pb-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Orçamentos</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Orçamentos</h1>
+          <p className="text-sm text-muted-foreground">
             {isManager ? 'Todos os orçamentos da equipe' : 'Seus orçamentos técnicos'}
           </p>
         </div>
         <Link
           to="/orcamentos/novo"
-          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold h-10 px-4 rounded-xl shadow-sm transition-colors"
+          className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold h-10 px-4 rounded-xl shadow-sm transition-colors"
         >
           <Plus className="h-4 w-4" /> Novo
         </Link>
@@ -52,7 +52,7 @@ export default function OrcamentosList() {
       <OrcamentoFilters filter={filter} onChange={setFilter} onClear={() => setFilter(EMPTY_FILTER)} />
 
       {error && (
-        <div className="flex items-center gap-2 rounded-lg bg-orange-50 p-3 text-sm text-orange-800 border border-orange-200">
+        <div className="flex items-center gap-2 rounded-lg bg-amber-100/70 dark:bg-amber-500/15 p-3 text-sm text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <p>{error}</p>
         </div>
@@ -60,13 +60,13 @@ export default function OrcamentosList() {
 
       <div className="flex flex-col gap-3">
         {loading && orcamentos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-12 text-slate-500">
-            <Loader2 className="h-8 w-8 animate-spin mb-4 text-blue-600" />
+          <div className="flex flex-col items-center justify-center p-12 text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
             <p className="text-sm">Carregando orçamentos...</p>
           </div>
         ) : orcamentos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-12 text-slate-500 bg-white rounded-xl border border-dashed border-slate-300">
-            <FileText className="h-10 w-10 mb-4 text-slate-400" />
+          <div className="flex flex-col items-center justify-center p-12 text-muted-foreground bg-card rounded-xl border border-dashed border-border">
+            <FileText className="h-10 w-10 mb-4 text-muted-foreground/70" />
             <p className="text-sm font-medium">Nenhum orçamento encontrado.</p>
             <p className="text-xs mt-1">
               {isManager ? 'Aguarde que sua equipe crie orçamentos.' : 'Crie seu primeiro orçamento clicando em Novo.'}
@@ -82,7 +82,7 @@ export default function OrcamentosList() {
           <Button
             variant="outline"
             onClick={loadMore}
-            className="w-full rounded-xl border-slate-300 text-slate-700 h-11"
+            className="w-full rounded-xl h-11"
           >
             Carregar mais
           </Button>
@@ -90,7 +90,7 @@ export default function OrcamentosList() {
 
         {loading && orcamentos.length > 0 && (
           <div className="flex justify-center py-4">
-            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
           </div>
         )}
       </div>

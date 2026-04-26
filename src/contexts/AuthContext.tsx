@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/src/lib/supabase';
 import { toast } from 'sonner';
@@ -26,10 +26,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const absoluteSafetyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const finalizeLoading = () => {
+    if (absoluteSafetyTimeoutRef.current) {
+      clearTimeout(absoluteSafetyTimeoutRef.current);
+      absoluteSafetyTimeoutRef.current = null;
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
     // 3. Garantia de Ciclo (Rede de Segurança Absoluta)
-    const absoluteSafetyTimeout = setTimeout(() => {
+    absoluteSafetyTimeoutRef.current = setTimeout(() => {
       console.warn('⚠️ Absolute Safety Net Timeout: Destravando loading compulsoriamente após 10s');
       setLoading(false);
     }, 10000);
@@ -69,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           console.log('[AuthContext] Sem sessão ativa no listener. Resetando user.');
           setUser(null);
-          setLoading(false);
+          finalizeLoading();
         }
       }
     );
@@ -94,13 +103,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await fetchUserData(currentSession.user);
         } else {
           console.log('[AuthContext] Nenhum usuário logado. Pronto para Login.');
-          setLoading(false); // Liberar Loading
+          finalizeLoading(); // Liberar Loading
         }
       } catch (err) {
         console.error('[AuthContext] Erro Crítico Init:', err);
       } finally {
         // Garantia suprema (1): Independente da tragédia, a tela deve destravar
-        if (isMounted) setLoading(false); 
+        if (isMounted) finalizeLoading();
         console.log('[AuthContext] Initial Fetch Encerrado.');
       }
     };
@@ -110,7 +119,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       isMounted = false;
       subscription.unsubscribe();
-      clearTimeout(absoluteSafetyTimeout);
+      if (absoluteSafetyTimeoutRef.current) {
+        clearTimeout(absoluteSafetyTimeoutRef.current);
+        absoluteSafetyTimeoutRef.current = null;
+      }
     };
   }, []);
 
@@ -173,7 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       // 1. Garantia de Resiliência: O Spinner DEVE sumir
       console.log('[AuthContext] Finalizando loading do perfil.');
-      setLoading(false);
+      finalizeLoading();
     }
   };
 

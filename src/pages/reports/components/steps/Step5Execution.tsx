@@ -14,23 +14,23 @@ export default function Step5Execution({ form }: Step5Props) {
   const { register } = form;
 
   return (
-    <Card className="shadow-sm border-slate-200">
-      <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+    <Card className="shadow-sm border-border">
+      <CardHeader className="pb-3 border-b border-border bg-muted/30 rounded-t-xl">
         <CardTitle className="text-base flex items-center gap-2">
-          <Wrench className="h-4 w-4 text-blue-600" />
+          <Wrench className="h-4 w-4 text-primary" />
           Execução do Serviço
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-5 space-y-5">
 
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-700">
+          <Label className="text-sm font-semibold text-foreground">
             Serviços executados <span className="text-red-500">*</span>
           </Label>
           <Textarea
             {...register('services_performed')}
             placeholder="Descreva os procedimentos realizados durante o atendimento..."
-            className="min-h-[110px] resize-none rounded-xl bg-slate-50 border-slate-300 text-base focus-visible:ring-blue-600"
+            className="min-h-[110px] resize-none rounded-xl bg-muted border-border text-base focus-visible:ring-ring"
           />
           {form.formState.errors.services_performed && (
             <p className="text-xs text-red-500">{form.formState.errors.services_performed.message}</p>
@@ -38,38 +38,38 @@ export default function Step5Execution({ form }: Step5Props) {
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-700">Peças / Materiais utilizados</Label>
+          <Label className="text-sm font-semibold text-foreground">Peças / Materiais utilizados</Label>
           <Textarea
             {...register('parts_used')}
             placeholder="Liste as peças substituídas ou materiais consumidos..."
-            className="min-h-[90px] resize-none rounded-xl bg-slate-50 border-slate-300 text-base focus-visible:ring-blue-600"
+            className="min-h-[90px] resize-none rounded-xl bg-muted border-border text-base focus-visible:ring-ring"
           />
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-700">Pendências</Label>
+          <Label className="text-sm font-semibold text-foreground">Pendências</Label>
           <Textarea
             {...register('pending_issues')}
             placeholder="Itens que não puderam ser resolvidos nesta visita..."
-            className="min-h-[80px] resize-none rounded-xl bg-slate-50 border-slate-300 text-base focus-visible:ring-blue-600"
+            className="min-h-[80px] resize-none rounded-xl bg-muted border-border text-base focus-visible:ring-ring"
           />
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-700">Recomendação técnica</Label>
+          <Label className="text-sm font-semibold text-foreground">Recomendação técnica</Label>
           <Textarea
             {...register('technical_recommendation')}
             placeholder="Próximos passos recomendados para o cliente..."
-            className="min-h-[80px] resize-none rounded-xl bg-slate-50 border-slate-300 text-base focus-visible:ring-blue-600"
+            className="min-h-[80px] resize-none rounded-xl bg-muted border-border text-base focus-visible:ring-ring"
           />
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-700">Hora de término</Label>
+          <Label className="text-sm font-semibold text-foreground">Hora de término</Label>
           <Input
             {...register('finished_at')}
             type="time"
-            className="h-12 text-base rounded-xl bg-slate-50 border-slate-300 focus-visible:ring-blue-600"
+            className="h-12 text-base rounded-xl bg-muted border-border focus-visible:ring-ring"
           />
         </div>
 

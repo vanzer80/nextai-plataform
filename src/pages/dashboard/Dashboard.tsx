@@ -188,10 +188,10 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col gap-5 h-full w-full max-w-7xl mx-auto pb-6">
       <header className="mb-2">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
           Olá, {user?.full_name?.split(' ')[0] || 'Profissional'}!
         </h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-muted-foreground">
           {isManager 
             ? 'Monitoramento em tempo real da equipe e custos.' 
             : 'Resumo das suas atividades e solicitações de campo.'}
@@ -202,14 +202,15 @@ export default function Dashboard() {
       {!isManager && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 shrink-0 mb-2">
           <Button 
-            className="h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm font-semibold text-base justify-start px-5"
+            className="h-14 rounded-xl shadow-sm font-semibold text-base justify-start px-5"
             onClick={() => navigate('/reports/new')}
           >
             <ClipboardList className="mr-3 h-5 w-5 opacity-80" /> 
             Preencher Novo Relatório
           </Button>
           <Button 
-            className="h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm font-semibold text-base justify-start px-5"
+            variant="secondary"
+            className="h-14 rounded-xl shadow-sm font-semibold text-base justify-start px-5"
             onClick={() => navigate('/reimbursements/new')}
           >
             <Receipt className="mr-3 h-5 w-5 opacity-80" /> 
@@ -222,25 +223,25 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">
         
         {/* WIDGET 1: Relatórios */}
-        <Card className="shadow-sm border-slate-200">
+        <Card className="shadow-sm border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {isManager ? 'Relatórios Abertos (Geral)' : 'Meus Relatórios Pendentes'}
             </CardTitle>
-            <ClipboardList className="h-4 w-4 text-blue-500 opacity-80" />
+            <ClipboardList className="h-4 w-4 text-primary opacity-80" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <Skeleton className="h-8 w-16 mb-2 rounded-lg" />
             ) : (
-              <div className="text-3xl font-extrabold text-slate-900">
+              <div className="text-3xl font-extrabold text-foreground">
                 {reportsCount}
               </div>
             )}
             {isLoading ? (
               <Skeleton className="h-4 w-24 rounded" />
             ) : (
-              <p className="text-xs text-slate-500 font-medium flex items-center mt-1">
+              <p className="text-xs text-muted-foreground font-medium flex items-center mt-1">
                 <Clock className="mr-1 h-3 w-3" /> Atualizado agora
               </p>
             )}
@@ -248,29 +249,29 @@ export default function Dashboard() {
         </Card>
 
         {/* WIDGET 2: Reembolsos */}
-        <Card className="shadow-sm border-slate-200">
+        <Card className="shadow-sm border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {isManager ? 'Reembolsos Pendentes' : 'Meus Reembolsos Aprovados'}
             </CardTitle>
             {isManager ? (
-              <DollarSign className="h-4 w-4 text-emerald-500 opacity-80" />
+              <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400 opacity-80" />
             ) : (
-              <Receipt className="h-4 w-4 text-emerald-500 opacity-80" />
+              <Receipt className="h-4 w-4 text-emerald-600 dark:text-emerald-400 opacity-80" />
             )}
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <Skeleton className="h-8 w-24 mb-2 rounded-lg" />
             ) : (
-              <div className="text-3xl font-extrabold text-slate-900">
+              <div className="text-3xl font-extrabold text-foreground">
                 R$ {reimbursementSum.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </div>
             )}
             {isLoading ? (
                <Skeleton className="h-4 w-32 rounded" />
             ) : (
-              <p className={`text-xs font-medium flex items-center mt-1 rounded-md px-2 py-0.5 w-fit ${isManager ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
+              <p className={`text-xs font-medium flex items-center mt-1 rounded-md px-2 py-0.5 w-fit ${isManager ? 'bg-amber-100/70 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300' : 'bg-emerald-100/70 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'}`}>
                 {isManager ? 'Aguardando aprovação' : 'Pronto para pagamento'}
               </p>
             )}
@@ -278,25 +279,25 @@ export default function Dashboard() {
         </Card>
 
         {/* WIDGET 3: Produtividade */}
-        <Card className="shadow-sm border-slate-200">
+        <Card className="shadow-sm border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {isManager ? 'Índice da Equipe (Semana)' : 'Minha Produtividade'}
             </CardTitle>
-            <TrendingUp className="h-4 w-4 text-indigo-500 opacity-80" />
+            <TrendingUp className="h-4 w-4 text-primary opacity-80" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
                <Skeleton className="h-8 w-20 mb-2 rounded-lg" />
             ) : (
-              <div className="text-3xl font-extrabold text-slate-900">
+              <div className="text-3xl font-extrabold text-foreground">
                 {productivity}%
               </div>
             )}
             {isLoading ? (
               <Skeleton className="h-4 w-28 rounded" />
             ) : (
-              <p className="text-xs text-emerald-600 font-medium flex items-center mt-1">
+              <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium flex items-center mt-1">
                 <TrendingUp className="mr-1 h-3 w-3" /> Produtividade base estimada
               </p>
             )}
@@ -305,43 +306,43 @@ export default function Dashboard() {
 
         {/* WIDGET 4: Ticket Medio (Visivel para gestor) */}
         {isManager && (
-          <Card className="shadow-sm border-slate-200">
+          <Card className="shadow-sm border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Ticket Médio (Aprovados 30d)
               </CardTitle>
-              <TrendingUp className="h-4 w-4 text-blue-500 opacity-80" />
+              <TrendingUp className="h-4 w-4 text-primary opacity-80" />
             </CardHeader>
             <CardContent>
               {isLoading ? (
                 <Skeleton className="h-8 w-24 mb-2 rounded-lg" />
               ) : (
-                <div className="text-3xl font-extrabold text-slate-900">
+                <div className="text-3xl font-extrabold text-foreground">
                   R$ {avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </div>
               )}
-              <p className="text-xs text-slate-500 mt-1 font-medium">Por solicitação aprovada</p>
+              <p className="text-xs text-muted-foreground mt-1 font-medium">Por solicitação aprovada</p>
             </CardContent>
           </Card>
         )}
 
         {/* WIDGET 5: Taxa de Aaprovacao */}
-        <Card className="shadow-sm border-slate-200">
+        <Card className="shadow-sm border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Taxa de Aprovação
             </CardTitle>
-            <CheckCircle className="h-4 w-4 text-emerald-500 opacity-80" />
+            <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400 opacity-80" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
                 <Skeleton className="h-8 w-20 mb-2 rounded-lg" />
             ) : (
-              <div className="text-3xl font-extrabold text-slate-900">
+              <div className="text-3xl font-extrabold text-foreground">
                 {approvalRate === null ? '—' : `${approvalRate.toFixed(1)}%`}
               </div>
             )}
-            <p className="text-xs text-slate-500 mt-1 font-medium">Eficiência do faturamento (30d)</p>
+            <p className="text-xs text-muted-foreground mt-1 font-medium">Eficiência do faturamento (30d)</p>
           </CardContent>
         </Card>
       </div>
@@ -350,16 +351,16 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-2 min-h-0">
         
         {/* GRÁFICO 1: Barras (Relatórios Criados vs Concluídos) */}
-        <Card className="shadow-sm border-slate-200 lg:col-span-2 flex flex-col">
+        <Card className="shadow-sm border-border lg:col-span-2 flex flex-col min-w-0">
           <CardHeader className="pb-2 shrink-0">
-            <CardTitle className="text-base font-semibold text-slate-900 flex items-center justify-between">
+            <CardTitle className="text-base font-semibold text-foreground flex items-center justify-between">
               Balanço de Relatórios (Últimos 7 dias)
-              <Button variant="ghost" size="sm" className="h-8 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => navigate('/reports')}>
+              <Button variant="ghost" size="sm" className="h-8 text-xs text-primary hover:bg-accent" onClick={() => navigate('/reports')}>
                 Ver todos <ArrowRight className="ml-1 h-3 w-3" />
               </Button>
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 min-h-[300px] w-full pt-4">
+          <CardContent className="flex-1 min-h-[300px] w-full min-w-0 pt-4">
             {isLoading ? (
                <div className="w-full h-full flex items-end gap-2 pb-6">
                  {[...Array(7)].map((_, i) => (
@@ -370,18 +371,18 @@ export default function Dashboard() {
                  ))}
                </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={320}>
                 <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} allowDecimals={false} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
                   <Tooltip 
-                    cursor={{ fill: '#f1f5f9' }}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
+                    cursor={{ fill: 'var(--accent)' }}
+                    contentStyle={{ borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--popover)', color: 'var(--popover-foreground)', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}
                   />
                   <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} />
-                  <Bar dataKey="criados" name="Criados" fill="#cbd5e1" radius={[4, 4, 0, 0]} barSize={isManager ? 24 : 32} />
-                  <Bar dataKey="concluidos" name="Concluídos" fill="#2563eb" radius={[4, 4, 0, 0]} barSize={isManager ? 24 : 32} />
+                  <Bar dataKey="criados" name="Criados" fill="var(--muted)" radius={[4, 4, 0, 0]} barSize={isManager ? 24 : 32} />
+                  <Bar dataKey="concluidos" name="Concluídos" fill="var(--primary)" radius={[4, 4, 0, 0]} barSize={isManager ? 24 : 32} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -389,19 +390,19 @@ export default function Dashboard() {
         </Card>
 
         {/* GRÁFICO 2: Pizza (Despesas por Categoria) */}
-        <Card className="shadow-sm border-slate-200 flex flex-col">
+        <Card className="shadow-sm border-border flex flex-col min-w-0">
           <CardHeader className="pb-2 shrink-0">
-            <CardTitle className="text-base font-semibold text-slate-900 flex items-center justify-between">
+            <CardTitle className="text-base font-semibold text-foreground flex items-center justify-between">
               {isManager ? 'Despesas por Categoria (30d)' : 'Meus Gastos por Categoria (30d)'}
-              <Briefcase className="h-4 w-4 text-slate-400" />
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 w-full min-h-[300px] flex flex-col items-center justify-center p-0">
+          <CardContent className="flex-1 w-full min-h-[300px] min-w-0 flex flex-col items-center justify-center p-0">
              {isLoading ? (
                 <div className="w-full h-full flex items-center justify-center relative">
                   <Skeleton className="h-48 w-48 rounded-full" />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="h-24 w-24 bg-white rounded-full"></div>
+                    <div className="h-24 w-24 bg-card rounded-full"></div>
                   </div>
                 </div>
              ) : (
@@ -419,9 +420,9 @@ export default function Dashboard() {
                         <Cell key={`cell-${index}`} fill={entry.fill} />
                       ))}
                     </Pie>
-                    <Tooltip 
+                    <Tooltip
                       formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Volume']}
-                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--popover)', color: 'var(--popover-foreground)', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -431,7 +432,7 @@ export default function Dashboard() {
              {!isLoading && (
                <div className="grid grid-cols-2 gap-x-2 gap-y-3 w-full px-6 mb-4">
                  {pieData.map((item, i) => (
-                   <div key={i} className="flex items-center text-xs text-slate-600">
+                   <div key={i} className="flex items-center text-xs text-muted-foreground">
                      <span className="w-2.5 h-2.5 rounded-full mr-2 shrink-0" style={{ backgroundColor: item.fill }}></span>
                      <span className="truncate">{item.name}</span>
                    </div>
