@@ -5,7 +5,6 @@ import * as z from 'zod';
 import { Plus, MoreHorizontal, Edit, Trash2, Shield, User as UserIcon, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
-import { createClient } from '@supabase/supabase-js';
 
 import { 
   Table, 
@@ -100,53 +99,17 @@ export default function UserManagement() {
   const onSubmit = async (data: UserFormValues) => {
     setIsSubmitting(true);
     try {
-      // 1. Instanciar um Client Secundário ("Isolado") para registrar o novo usuário
-      // Usa 'storageKey' customizada para DEV impedir que o Login do Supabase no browser sobreescreva a sessão atual do Gestor
-      const authClient = createClient(
-        import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_ANON_KEY,
-        { 
-          auth: { 
-            persistSession: true, 
-            autoRefreshToken: false,
-            storageKey: 'supabase-isolated-registration-key'
-          } 
-        }
-      );
-
-      // 2. Criar a conta diretamente no auth.users do Supabase
-      const { data: authData, error: authError } = await authClient.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            full_name: data.full_name,
-          }
-        }
-      });
-
-      if (authError) {
-        throw new Error(`Erro no motor Auth: ${authError.message}`);
-      }
-
-      if (!authData.user) {
-        throw new Error('Falha misteriosa: Usuário não retornado pelo Auth.');
-      }
-
-      // 3. Atualizar o perfil na tabela 'public.users'
-      // O trigger nativo do seu banco já deve ter criado a linha em public.users vinculada ao UUID real.
-      // Então fazemos apenas um UPDATE para gravar a Role gerencial escolhida.
-      const { error: dbError } = await supabase
-        .from('users')
-        .update({
+      const { data: result, error } = await supabase.functions.invoke('admin-create-user', {
+        body: {
+          email: data.email,
+          password: data.password,
           full_name: data.full_name,
           role: data.role,
-        })
-        .eq('id', authData.user.id);
+        },
+      });
 
-      if (dbError) {
-        throw new Error(`Auth criado, mas erro no RLS/Update público: ${dbError.message}`);
-      }
+      if (error) throw new Error(error.message);
+      if (result?.error) throw new Error(result.error);
 
       toast.success('Usuário convidado com sucesso!', {
         description: `O acesso para ${data.full_name} (${data.role}) foi habilitado.`
@@ -155,8 +118,8 @@ export default function UserManagement() {
       setIsDialogOpen(false);
       reset();
     } catch (err: any) {
-      toast.error('Erro ao injetar usuário', { description: err.message });
-      console.warn("User Setup Flow Error:", err);
+      toast.error('Erro ao criar usuário', { description: err.message });
+      console.warn('[UserManagement] onSubmit error:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -268,7 +231,7 @@ export default function UserManagement() {
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Tecnico">Técnico de Campo</SelectItem>
+                        <SelectItem value="Tecnico de Campo">Técnico de Campo</SelectItem>
                         <SelectItem value="Administrativo">Administrativo</SelectItem>
                         <SelectItem value="Financeiro">Financeiro</SelectItem>
                         <SelectItem value="Comprador">Comprador</SelectItem>
