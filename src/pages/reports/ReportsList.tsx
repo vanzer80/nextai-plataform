@@ -1,11 +1,11 @@
 import { useState, useEffect, Fragment } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { Plus, ClipboardList, AlertCircle, Loader2, Wifi, WifiOff } from 'lucide-react';
 import { supabase } from '@/src/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { useReports } from '@/src/hooks/useReports';
-import { useOfflineSync } from '@/src/hooks/useOfflineSync';
 import { useAuth } from '@/src/contexts/AuthContext';
+import type { AppLayoutOutletContext } from '@/src/components/layout/AppLayout';
 import ReportCard from './components/ReportCard';
 import ReportFilters from './components/ReportFilters';
 import type { ReportsFilter } from '@/src/hooks/useReports';
@@ -17,7 +17,7 @@ export default function ReportsList() {
   const { user } = useAuth();
   const [filter, setFilter] = useState<ReportsFilter>(EMPTY_FILTER);
   const { reports, loading, error, hasMore, loadMore, refresh, updateItem } = useReports(filter);
-  const { isOnline, isSyncing, pendingCount } = useOfflineSync();
+  const { isOnline, isSyncing, pendingCount } = useOutletContext<AppLayoutOutletContext>();
 
   // Realtime: atualiza o item afetado na lista sem refetch completo
   useEffect(() => {
