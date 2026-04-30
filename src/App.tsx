@@ -1,3 +1,4 @@
+import { lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/src/contexts/AuthContext';
 import { ProtectedRoute, RoleGuard } from '@/src/components/auth/ProtectedRoute';
@@ -5,20 +6,22 @@ import AppLayout from '@/src/components/layout/AppLayout';
 import Login from '@/src/pages/auth/Login';
 import Dashboard from '@/src/pages/dashboard/Dashboard';
 import ReportsList from '@/src/pages/reports/ReportsList';
-import NewReport from '@/src/pages/reports/NewReport';
-import ReportDetail from '@/src/pages/reports/ReportDetail';
 import ChecklistTemplates from '@/src/pages/reports/admin/ChecklistTemplates';
 import TemplateEditor from '@/src/pages/reports/admin/TemplateEditor';
-import ReimbursementsList from '@/src/pages/reimbursements/ReimbursementsList';
 import NewReimbursement from '@/src/pages/reimbursements/NewReimbursement';
 import UserManagement from '@/src/pages/admin/UserManagement';
 import ClientsList from '@/src/pages/clients/ClientsList';
 import MaterialsList from '@/src/pages/materials/MaterialsList';
 import NewMaterialRequest from '@/src/pages/materials/NewMaterialRequest';
 import OrcamentosList from '@/src/pages/orcamentos/OrcamentosList';
-import NovoOrcamento from '@/src/pages/orcamentos/NovoOrcamento';
-import OrcamentoDetail from '@/src/pages/orcamentos/OrcamentoDetail';
 import { Toaster } from '@/components/ui/sonner';
+
+// Heavy routes — downloaded only when first accessed
+const NewReport          = lazy(() => import('@/src/pages/reports/NewReport'));
+const ReportDetail       = lazy(() => import('@/src/pages/reports/ReportDetail'));
+const ReimbursementsList = lazy(() => import('@/src/pages/reimbursements/ReimbursementsList'));
+const NovoOrcamento      = lazy(() => import('@/src/pages/orcamentos/NovoOrcamento'));
+const OrcamentoDetail    = lazy(() => import('@/src/pages/orcamentos/OrcamentoDetail'));
 
 export default function App() {
   return (

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -11,6 +11,7 @@ import {
   FileText,
   Menu,
   LogOut,
+  Loader2,
   User as UserIcon,
   Home,
   Bell
@@ -355,7 +356,9 @@ export default function AppLayout() {
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col relative w-full h-full pt-[64px] pb-[72px] lg:pt-0 lg:pb-0 overflow-hidden bg-background">
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <Outlet context={outletCtx} />
+          <Suspense fallback={<div className="flex items-center justify-center h-48"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+            <Outlet context={outletCtx} />
+          </Suspense>
         </div>
       </main>
     </div>
