@@ -1,4 +1,5 @@
 import { supabase } from '@/src/lib/supabase';
+import { generateUUID } from '@/src/lib/uuid';
 import {
   getAllQueueItems,
   dequeue,
@@ -23,7 +24,7 @@ async function processItem(item: QueueItem): Promise<boolean> {
       const blobs = await getPendingBlobs(item.localDraftId);
 
       const attachments: EvidenceFile[] = (blobs?.attachments ?? []).map(att => ({
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         file: new File([att.blob], att.name, { type: att.type }),
         preview: '',
         caption: att.caption,

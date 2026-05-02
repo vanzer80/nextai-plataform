@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { generateUUID } from '@/src/lib/uuid';
 import type { ChangeEvent } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,7 @@ export default function Step6Evidence({ attachments, onChange }: Step6Props) {
     const remaining = 4 - attachments.length;
     const toAdd = files.slice(0, remaining);
     const newItems: EvidenceFile[] = toAdd.map(file => ({
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       file,
       preview: URL.createObjectURL(file),
       caption: '',

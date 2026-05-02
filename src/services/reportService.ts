@@ -1,6 +1,7 @@
 import { supabase } from '@/src/lib/supabase';
 import type { ReportFormValues } from '@/src/pages/reports/NewReport';
 import type { EvidenceFile, ReportChecklistItem } from '@/src/types/reports';
+import { generateUUID } from '@/src/lib/uuid';
 
 export interface SubmitReportPayload {
   formValues: ReportFormValues;
@@ -84,7 +85,7 @@ export async function submitReport(payload: SubmitReportPayload): Promise<string
   } = payload;
 
   // Pre-generate report ID so Storage paths are known before the DB transaction
-  const reportId = crypto.randomUUID();
+  const reportId = generateUUID();
 
   // 1. Upload all Storage files in parallel (outside the DB transaction)
   const [signatureRows, attachmentRows] = await Promise.all([

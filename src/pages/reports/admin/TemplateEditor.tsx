@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { generateUUID } from '@/src/lib/uuid';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Pencil, Trash2, ChevronUp, ChevronDown,
@@ -193,7 +194,7 @@ export default function TemplateEditor() {
       });
       setItems(
         data.checklist_template_items.map(i => ({
-          localId:     crypto.randomUUID(),
+          localId:     generateUUID(),
           dbId:        i.id,
           label:       i.label,
           description: i.description ?? '',

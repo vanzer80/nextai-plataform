@@ -1,10 +1,11 @@
 import { supabase } from '@/src/lib/supabase';
 import type { ChecklistTemplate, ChecklistTemplateItem, ChecklistItemType, ServiceType } from '@/src/types/reports';
+import { generateUUID } from '@/src/lib/uuid';
 
 // ── Draft item (local state antes de salvar) ──────────────────
 
 export interface DraftItem {
-  localId: string;          // crypto.randomUUID() — usado como key React
+  localId: string;          // generateUUID() — usado como key React
   dbId?: string;            // undefined = novo item
   label: string;
   description: string;
@@ -15,7 +16,7 @@ export interface DraftItem {
 
 export function blankDraftItem(): DraftItem {
   return {
-    localId: crypto.randomUUID(),
+    localId: generateUUID(),
     label: '',
     description: '',
     item_type: 'boolean',

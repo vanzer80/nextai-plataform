@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { generateUUID } from '@/src/lib/uuid';
 import {
   saveDraft,
   getDraft,
@@ -31,7 +32,7 @@ export interface UseReportDraftReturn {
 }
 
 export function useReportDraft(existingLocalDraftId?: string): UseReportDraftReturn {
-  const [localDraftId] = useState<string>(existingLocalDraftId ?? crypto.randomUUID());
+  const [localDraftId] = useState<string>(existingLocalDraftId ?? generateUUID());
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('local');
   const [isDirty, setIsDirty] = useState(false);
   const latestData = useRef<CreateServiceReportDTO | null>(null);
