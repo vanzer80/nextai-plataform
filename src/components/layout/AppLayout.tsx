@@ -12,10 +12,13 @@ import {
   Menu,
   LogOut,
   Loader2,
-  User as UserIcon,
   Home,
-  Bell
+  Bell,
+  Sun,
+  Moon,
+  Laptop,
 } from 'lucide-react';
+import { useTheme } from 'next-themes';
 
 import { supabase } from '@/src/lib/supabase';
 import { useAuth, type AuthUser } from '@/src/contexts/AuthContext';
@@ -65,52 +68,107 @@ function getInitials(name?: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-// ─── UserProfileDropdown ──────────────────────────────────────────────────────
-// Defined at module level so React sees a stable component type across
-// AppLayout re-renders (which happen on every navigation via location change).
+// ─── UserProfileSheet ─────────────────────────────────────────────────────────
+// Sheet replaces DropdownMenu for the profile trigger.
+// DropdownMenu (Base UI portal) caused error #31 when multiple SIGNED_IN events
+// fired concurrently during auth init, crashing React mid-render.
 interface UserProfileDropdownProps {
   user: AuthUser | null;
   userRole: string;
   onSignOut: () => void;
 }
 
+const THEME_OPTIONS = [
+  { value: 'light',  label: 'Claro',   Icon: Sun    },
+  { value: 'dark',   label: 'Escuro',  Icon: Moon   },
+  { value: 'system', label: 'Sistema', Icon: Laptop },
+] as const;
+
 function UserProfileDropdown({ user, userRole, onSignOut }: UserProfileDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const { theme = 'light', setTheme } = useTheme();
+  const activeTheme = (theme === 'light' || theme === 'dark' || theme === 'system') ? theme : 'light';
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center gap-3 text-left w-full p-2 rounded-xl transition-colors hover:bg-sidebar-accent outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer">
-        <Avatar className="h-10 w-10 border-2 border-sidebar-border">
-          <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-sm font-bold">
-            {getInitials(user?.full_name)}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1 overflow-hidden hidden lg:block">
-          <p className="text-sm font-semibold text-sidebar-foreground truncate w-full">
-            {user?.full_name || user?.email?.split('@')[0] || 'Usuário'}
-          </p>
-          <p className="text-xs text-sidebar-foreground/70 truncate w-full">
-            {userRole}
-          </p>
-        </div>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56" sideOffset={8}>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user?.full_name}</p>
-            <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <button className="flex items-center gap-3 text-left w-full p-2 rounded-xl transition-colors hover:bg-sidebar-accent outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer">
+          <Avatar className="h-10 w-10 border-2 border-sidebar-border shrink-0">
+            <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-sm font-bold">
+              {getInitials(user?.full_name)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 overflow-hidden hidden lg:block">
+            <p className="text-sm font-semibold text-sidebar-foreground truncate">
+              {user?.full_name || user?.email?.split('@')[0] || 'Usuário'}
+            </p>
+            <p className="text-xs text-sidebar-foreground/70 truncate">{userRole}</p>
           </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="cursor-pointer">
-          <UserIcon className="mr-2 h-4 w-4" />
-          <span>Minha Conta</span>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onSignOut} variant="destructive" className="cursor-pointer">
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Sair</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </button>
+      </SheetTrigger>
+
+      <SheetContent side="right" className="w-[300px] sm:w-[340px] p-0 flex flex-col">
+        <SheetHeader className="px-6 py-5 border-b border-border shrink-0">
+          <SheetTitle className="text-base font-semibold">Minha Conta</SheetTitle>
+        </SheetHeader>
+
+        {/* ── Profile info ── */}
+        <div className="flex flex-col items-center px-6 pt-8 pb-6 gap-4">
+          <Avatar className="h-20 w-20 border-2 border-border shadow-sm">
+            <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-bold">
+              {getInitials(user?.full_name)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="text-center space-y-1">
+            <p className="text-xl font-bold text-foreground leading-tight">
+              {user?.full_name || 'Usuário'}
+            </p>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
+              {userRole}
+            </span>
+            <p className="text-sm text-muted-foreground pt-1 break-all">{user?.email}</p>
+          </div>
+        </div>
+
+        <div className="border-t border-border" />
+
+        {/* ── Theme picker ── */}
+        <div className="px-6 py-5">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Aparência</p>
+          <div className="grid grid-cols-3 gap-2">
+            {THEME_OPTIONS.map(({ value, label, Icon }) => (
+              <button
+                key={value}
+                onClick={() => setTheme(value)}
+                className={clsx(
+                  'flex flex-col items-center gap-1.5 py-3 px-2 rounded-lg border text-xs font-medium transition-all',
+                  activeTheme === value
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="border-t border-border" />
+
+        {/* ── Sign out ── */}
+        <div className="px-6 py-5 mt-auto">
+          <Button
+            onClick={() => { setOpen(false); onSignOut(); }}
+            variant="outline"
+            className="w-full justify-start text-muted-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-colors h-11"
+          >
+            <LogOut className="mr-3 h-5 w-5" />
+            Sair da Conta
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -268,24 +326,13 @@ export default function AppLayout() {
           {renderNavLinks()}
         </div>
 
-        <div className="p-4 border-t border-sidebar-border flex flex-col gap-3">
-          <div className="flex items-center justify-between w-full gap-2">
-            <div className="flex-1 min-w-0 pr-2">
+        <div className="p-4 border-t border-sidebar-border">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 min-w-0">
               <UserProfileDropdown user={user} userRole={userRole} onSignOut={handleSignOut} />
             </div>
-            <div className="shrink-0 flex items-center gap-1">
-              <ThemeToggle compact className="border-sidebar-border bg-sidebar-accent text-sidebar-foreground hover:bg-sidebar-accent/80" />
-              <NotificationsDropdown notifications={notifications} unreadCount={unreadCount} onMarkAsRead={markAsRead} />
-            </div>
+            <NotificationsDropdown notifications={notifications} unreadCount={unreadCount} onMarkAsRead={markAsRead} />
           </div>
-          <Button
-            onClick={handleSignOut}
-            variant="outline"
-            className="w-full justify-start bg-sidebar text-sidebar-foreground border-sidebar-border hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-colors h-11"
-          >
-            <LogOut className="mr-3 h-5 w-5" />
-            Sair da Conta
-          </Button>
         </div>
       </aside>
 

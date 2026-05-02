@@ -27,6 +27,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const absoluteSafetyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guards: prevent concurrent fetches and duplicate SIGNED_IN re-fetches.
+  // Supabase fires SIGNED_IN on every tab-focus / storage-event after load.
+  const isFetchingRef   = useRef(false);
+  const fetchedUserIdRef = useRef<string | null>(null);
 
   const finalizeLoading = () => {
     if (absoluteSafetyTimeoutRef.current) {
@@ -74,9 +78,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (currentSession?.user) {
+          // Skip if this exact user was already fetched successfully.
+          // Supabase re-fires SIGNED_IN on tab-focus / storage-events — without
+          // this guard every focus causes a fetchUserData + potential timeout cascade.
+          if (fetchedUserIdRef.current === currentSession.user.id) return;
+          // Skip if a fetch is already in flight (prevents concurrent calls).
+          if (isFetchingRef.current) return;
           await fetchUserData(currentSession.user);
         } else {
           console.log('[AuthContext] Sem sessão ativa no listener. Resetando user.');
+          fetchedUserIdRef.current = null; // allow re-fetch on next login
           setUser(null);
           finalizeLoading();
         }
@@ -127,6 +138,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const fetchUserData = async (authUser: User) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     console.log('[AuthContext] [fetchUserData] Iniciando...', authUser.id);
     
     // Safety fallback - 2. Fallback de Cadastro
@@ -161,12 +174,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(defaultProfile);
       } else {
         console.log(`[AuthContext] Perfil localizado: Role: ${data.role}`);
-        
-        let actualRole = data.role;
+        fetchedUserIdRef.current = authUser.id; // mark as successfully loaded
 
         setUser({
           ...authUser,
-          role: actualRole as UserRole,
+          role: data.role as UserRole,
           full_name: data.full_name || defaultProfile.full_name,
           team_id: data.team_id,
           setup_pending: false
@@ -183,7 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null); // Conforme sua ordem, forçamos um reset do profile (volta para o login) no caso de falhas letais diferentes de timeout
       }
     } finally {
-      // 1. Garantia de Resiliência: O Spinner DEVE sumir
+      isFetchingRef.current = false;
       console.log('[AuthContext] Finalizando loading do perfil.');
       finalizeLoading();
     }
