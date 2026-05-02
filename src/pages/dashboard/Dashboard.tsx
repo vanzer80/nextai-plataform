@@ -7,7 +7,6 @@ import {
   ClipboardList, 
   Receipt, 
   Clock, 
-  PlusCircle, 
   ArrowRight,
   DollarSign,
   Briefcase,
@@ -199,27 +198,6 @@ export default function Dashboard() {
             : 'Resumo das suas atividades e solicitações de campo.'}
         </p>
       </header>
-
-      {/* AÇÕES RÁPIDAS - APENAS PARA TÉCNICOS */}
-      {!isManager && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 shrink-0 mb-2">
-          <Button 
-            className="h-14 rounded-xl shadow-sm font-semibold text-base justify-start px-5"
-            onClick={() => navigate('/reports/new')}
-          >
-            <ClipboardList className="mr-3 h-5 w-5 opacity-80" /> 
-            Preencher Novo Relatório
-          </Button>
-          <Button 
-            variant="secondary"
-            className="h-14 rounded-xl shadow-sm font-semibold text-base justify-start px-5"
-            onClick={() => navigate('/reimbursements/new')}
-          >
-            <Receipt className="mr-3 h-5 w-5 opacity-80" /> 
-            Adicionar Nota de Reembolso
-          </Button>
-        </div>
-      )}
 
       {/* WIDGETS (KPI CARDS) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">
