@@ -35,9 +35,20 @@ No diretório `/c/dev/portal-mopar`:
 3. `git commit` com mensagem no padrão convencional do projeto (`feat:`, `fix:`, `perf:`, `refactor:`, etc.)
 4. `git push`
 
-## Passo 4 — Relatório final
+## Passo 4 — Registrar hash do vault sync
+
+Após o push bem-sucedido, execute em `/c/dev/portal-mopar`:
+
+```
+git rev-parse HEAD | Out-File -FilePath .claude\last-vault-sync -Encoding utf8 -NoNewline
+```
+
+Isso registra que o vault está sincronizado com o HEAD atual. O hook `Stop` do Claude Code compara esse arquivo com o HEAD a cada resposta e avisa quando estiver desatualizado.
+
+## Passo 5 — Relatório final
 
 Informe ao usuário:
 - Hash do commit gerado
 - Arquivos do vault atualizados
 - Confirmação do push
+- Confirmação: "vault-sync registrado ✅"

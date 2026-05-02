@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -File \"C:\\dev\\portal-mopar\\.claude\\scripts\\check-vault-sync.ps1\""
+          }
+        ]
+      }
+    ]
+  }
+}
