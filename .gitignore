@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Vault sync marker — local only, managed by /fechar-sessao
+.claude/last-vault-sync
