@@ -4,22 +4,22 @@ import { AuthProvider } from '@/src/contexts/AuthContext';
 import { ProtectedRoute, RoleGuard } from '@/src/components/auth/ProtectedRoute';
 import AppLayout from '@/src/components/layout/AppLayout';
 import Login from '@/src/pages/auth/Login';
-import Dashboard from '@/src/pages/dashboard/Dashboard';
-import ReportsList from '@/src/pages/reports/ReportsList';
-import ChecklistTemplates from '@/src/pages/reports/admin/ChecklistTemplates';
-import TemplateEditor from '@/src/pages/reports/admin/TemplateEditor';
-import NewReimbursement from '@/src/pages/reimbursements/NewReimbursement';
-import UserManagement from '@/src/pages/admin/UserManagement';
-import ClientsList from '@/src/pages/clients/ClientsList';
-import MaterialsList from '@/src/pages/materials/MaterialsList';
-import NewMaterialRequest from '@/src/pages/materials/NewMaterialRequest';
-import OrcamentosList from '@/src/pages/orcamentos/OrcamentosList';
 import { Toaster } from '@/components/ui/sonner';
 
-// Heavy routes — downloaded only when first accessed
+// All routes are lazy — only the shell (Login + AppLayout) is in the initial bundle
+const Dashboard          = lazy(() => import('@/src/pages/dashboard/Dashboard'));
+const ReportsList        = lazy(() => import('@/src/pages/reports/ReportsList'));
 const NewReport          = lazy(() => import('@/src/pages/reports/NewReport'));
 const ReportDetail       = lazy(() => import('@/src/pages/reports/ReportDetail'));
+const ChecklistTemplates = lazy(() => import('@/src/pages/reports/admin/ChecklistTemplates'));
+const TemplateEditor     = lazy(() => import('@/src/pages/reports/admin/TemplateEditor'));
 const ReimbursementsList = lazy(() => import('@/src/pages/reimbursements/ReimbursementsList'));
+const NewReimbursement   = lazy(() => import('@/src/pages/reimbursements/NewReimbursement'));
+const UserManagement     = lazy(() => import('@/src/pages/admin/UserManagement'));
+const ClientsList        = lazy(() => import('@/src/pages/clients/ClientsList'));
+const MaterialsList      = lazy(() => import('@/src/pages/materials/MaterialsList'));
+const NewMaterialRequest = lazy(() => import('@/src/pages/materials/NewMaterialRequest'));
+const OrcamentosList     = lazy(() => import('@/src/pages/orcamentos/OrcamentosList'));
 const NovoOrcamento      = lazy(() => import('@/src/pages/orcamentos/NovoOrcamento'));
 const OrcamentoDetail    = lazy(() => import('@/src/pages/orcamentos/OrcamentoDetail'));
 

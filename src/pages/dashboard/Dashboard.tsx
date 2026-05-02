@@ -71,13 +71,15 @@ export default function Dashboard() {
       let barQry = supabase
         .from('service_reports')
         .select('created_at, status')
-        .gte('created_at', startDate.toISOString());
+        .gte('created_at', startDate.toISOString())
+        .limit(500);
       if (!isManager) barQry = barQry.eq('technician_id', user?.id);
 
       let pieQry = supabase
         .from('reimbursements')
         .select('category, amount')
-        .gte('created_at', thirtyDaysAgo);
+        .gte('created_at', thirtyDaysAgo)
+        .limit(500);
       if (!isManager) pieQry = pieQry.eq('user_id', user?.id);
 
       // Executar em paralelo

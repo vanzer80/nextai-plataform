@@ -52,10 +52,13 @@ export function useOfflineSync(): OfflineSyncState {
     // Conta inicial de itens pendentes
     refreshPendingCount();
 
-    // Se já estiver online na montagem, tenta sync
-    if (navigator.onLine) triggerSync();
+    // Aguarda 5s antes do primeiro sync para não competir com a carga inicial do Dashboard
+    const initialSyncTimer = setTimeout(() => {
+      if (navigator.onLine) triggerSync();
+    }, 5000);
 
     return () => {
+      clearTimeout(initialSyncTimer);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };

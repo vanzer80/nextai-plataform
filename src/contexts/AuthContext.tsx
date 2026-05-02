@@ -145,8 +145,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .select('role, full_name, team_id')
           .eq('id', authUser.id)
           .maybeSingle(),
-        30000
-      ); 
+        8000
+      );
       
       const { data, error } = response;
         
