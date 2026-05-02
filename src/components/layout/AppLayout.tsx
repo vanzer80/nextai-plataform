@@ -286,7 +286,7 @@ export default function AppLayout() {
 
   const userRole = user?.role || 'Tecnico';
   const authorizedLinks = NAV_LINKS.filter(link =>
-    link.roles.some(allowedRole => userRole.toLowerCase().includes(allowedRole.toLowerCase())) ||
+    link.roles.some(allowedRole => allowedRole.toLowerCase() === userRole.toLowerCase()) ||
     user?.email === 'vanzer80@gmail.com'
   );
 
