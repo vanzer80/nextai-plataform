@@ -87,7 +87,7 @@ export default function ReimbursementDetailModal({
         <div className="bg-card rounded-2xl flex flex-col lg:flex-row overflow-hidden max-h-[92vh]">
 
           {/* Esquerda: Foto */}
-          <div className="w-full lg:w-5/12 bg-slate-900 relative h-44 lg:h-auto overflow-hidden shrink-0">
+          <div className="w-full lg:w-5/12 bg-slate-900 relative h-52 lg:h-auto overflow-hidden shrink-0">
              <img
                src={item.receipt_url || "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&auto=format&fit=crop&q=60"}
                alt="Cupom Fiscal"
@@ -102,76 +102,76 @@ export default function ReimbursementDetailModal({
 
           {/* Direita: Conteúdo */}
           <div className="w-full lg:w-7/12 bg-card flex flex-col min-h-0">
-            <DialogHeader className="p-6 pb-4 border-b border-border shrink-0 text-left">
-              <DialogTitle className="text-2xl font-bold flex items-center justify-between">
-                Solicitação #{item.id?.slice(0,6)}
+            <DialogHeader className="px-5 py-4 border-b border-border shrink-0 text-left">
+              <DialogTitle className="text-xl font-bold flex items-center justify-between gap-2">
+                <span>Solicitação #{item.id?.slice(0,6)}</span>
                 {getStatusBadge(item.status)}
               </DialogTitle>
               <DialogDescription>
-                Enviado em {item.created_at ? new Date(item.created_at).toLocaleDateString() : ''}
+                Enviado em {item.created_at ? new Date(item.created_at).toLocaleDateString('pt-BR') : ''}
               </DialogDescription>
             </DialogHeader>
 
-            <div className="p-6 space-y-6 flex-1 overflow-y-auto">
-              
-              {/* Abas Simples: Informações / Histórico */}
-              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 gap-4">
-                <div className="bg-muted/40 p-4 rounded-xl border border-border">
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Categoria</h4>
-                  <p className="font-bold text-foreground">{item.category}</p>
+            <div className="px-5 py-4 space-y-4 flex-1 overflow-y-auto">
+
+              {/* Categoria + Valor */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-muted/40 p-3 rounded-xl border border-border">
+                  <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Categoria</h4>
+                  <p className="font-bold text-foreground text-sm">{item.category}</p>
                 </div>
-                <div className="bg-muted/40 p-4 rounded-xl border border-border">
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Valor</h4>
-                  <p className="font-extrabold text-blue-600 text-xl">
+                <div className="bg-muted/40 p-3 rounded-xl border border-border">
+                  <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Valor</h4>
+                  <p className="font-extrabold text-blue-600 text-lg leading-tight">
                     R$ {Number(item.amount).toFixed(2).replace('.', ',')}
                   </p>
                 </div>
               </div>
 
-              {/* Informações Auxiliares */}
-              <div className="grid grid-cols-2 gap-4 bg-muted/40 p-4 rounded-xl border border-border">
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Colaborador</h4>
-                  <p className="font-bold text-foreground flex items-center gap-1.5">
-                    <UserIcon className="h-3 w-3 text-blue-500" />
+              {/* Informações Auxiliares — cada campo em linha própria no mobile */}
+              <div className="bg-muted/40 rounded-xl border border-border divide-y divide-border">
+                <div className="px-4 py-3">
+                  <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Colaborador</h4>
+                  <p className="font-bold text-foreground text-sm flex items-center gap-1.5">
+                    <UserIcon className="h-3.5 w-3.5 text-blue-500 shrink-0" />
                     {item.users?.full_name || 'Usuário'}
                   </p>
                 </div>
                 {item.maintenance_type && (
-                  <div>
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Manutenção</h4>
-                    <p className="font-semibold text-foreground">{item.maintenance_type}</p>
+                  <div className="px-4 py-3">
+                    <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Tipo de Manutenção</h4>
+                    <p className="font-semibold text-foreground text-sm">{item.maintenance_type}</p>
                   </div>
                 )}
                 {item.clients?.name && (
-                  <div className="col-span-2 mt-1">
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Cliente / Filial</h4>
-                    <p className="font-semibold text-foreground">{item.clients.name} {item.branch ? `(${item.branch})` : ''}</p>
+                  <div className="px-4 py-3">
+                    <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Cliente / Filial</h4>
+                    <p className="font-semibold text-foreground text-sm">{item.clients.name}{item.branch ? ` (${item.branch})` : ''}</p>
                   </div>
                 )}
               </div>
 
               {/* Descrição */}
               <div>
-                 <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-1">Descrição</h4>
-                 <div className="bg-muted/40 p-4 rounded-xl border border-border text-foreground font-medium">
-                   {item.description || 'Nenhuma descrição informada.'}
-                 </div>
+                <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">Descrição</h4>
+                <div className="bg-muted/40 px-4 py-3 rounded-xl border border-border text-foreground text-sm font-medium">
+                  {item.description || 'Nenhuma descrição informada.'}
+                </div>
               </div>
 
               {/* Dados de Pagamento */}
               {(item.favorecido || item.pix_key) && (
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Pagamento</h4>
-                  <div className="grid grid-cols-1 gap-3">
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Pagamento</h4>
+                  <div className="bg-muted/40 rounded-xl border border-border divide-y divide-border">
                     {item.favorecido && (
-                      <div className="bg-muted/40 p-4 rounded-xl border border-border">
+                      <div className="px-4 py-3">
                         <Label className="text-[10px] font-bold text-muted-foreground uppercase">Favorecido</Label>
-                        <p className="font-bold text-foreground">{item.favorecido}</p>
+                        <p className="font-bold text-foreground text-sm">{item.favorecido}</p>
                       </div>
                     )}
                     {item.pix_key && (
-                      <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 flex items-center justify-between gap-3">
+                      <div className="px-4 py-3 flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <Label className="text-[10px] font-bold text-emerald-600 uppercase">Chave PIX</Label>
                           <p className="font-bold text-emerald-900 font-mono text-sm break-all">{item.pix_key}</p>
@@ -198,10 +198,10 @@ export default function ReimbursementDetailModal({
               )}
 
               {/* HISTÓRICO DE AUDITORIA */}
-              <div className="space-y-4 pt-4">
+              <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <History className="h-4 w-4 text-muted-foreground" />
-                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Histórico de Alterações</h4>
+                  <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Histórico de Alterações</h4>
                 </div>
                 
                 <div className="space-y-3">
@@ -238,7 +238,7 @@ export default function ReimbursementDetailModal({
             </div>
 
             {/* AÇÕES (Rodapé) */}
-            <div className="p-6 border-t border-border bg-muted/40 shrink-0">
+            <div className="px-5 py-4 border-t border-border bg-muted/40 shrink-0">
               {isManager && (item.status === 'Pendente' || item.status === 'Revisao') ? (
                 isRejecting ? (
                   <div className="space-y-3">
