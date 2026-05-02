@@ -11,7 +11,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   return (
     <Provider
       attribute="class"
-      defaultTheme="system"
+      defaultTheme="light"
       enableSystem
       storageKey="portal-theme"
       disableTransitionOnChange

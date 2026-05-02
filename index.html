@@ -25,7 +25,7 @@
         var theme =
           storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system'
             ? storedTheme
-            : 'system';
+            : 'light';
         var resolvedTheme = theme === 'system' ? (prefersDark ? 'dark' : 'light') : theme;
         var root = document.documentElement;
 
