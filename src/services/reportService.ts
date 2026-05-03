@@ -123,6 +123,7 @@ export async function submitReport(payload: SubmitReportPayload): Promise<string
       client_id: formValues.client_id || null,
       site_location: formValues.site_location || null,
       asset_id: formValues.asset_id || null,
+      asset_name_manual: formValues.asset_name_manual || null,
       geo_lat: formValues.geo_lat ?? null,
       geo_lng: formValues.geo_lng ?? null,
       geo_accuracy: formValues.geo_accuracy ?? null,

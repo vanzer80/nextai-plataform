@@ -150,7 +150,7 @@ export default function ReportDetail() {
 
   const clientName = report.clients?.name ?? null;
   const techName = report.users?.full_name ?? null;
-  const assetName = report.equipments?.name ?? null;
+  const assetName = report.equipments?.name ?? report.asset_name_manual ?? null;
   const hasDiagnosis = report.reported_problem || report.preliminary_diagnosis || report.final_diagnosis || report.internal_notes;
   const hasExecution = report.services_performed || report.parts_used || report.pending_issues || report.technical_recommendation;
 

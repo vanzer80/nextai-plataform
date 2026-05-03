@@ -34,9 +34,10 @@ export const reportSchema = z.object({
   started_at:   z.string().optional(),
 
   // Step 2
-  client_id:       z.string().optional(),
-  site_location:   z.string().optional(),
-  asset_id:        z.string().optional(),
+  client_id:         z.string().optional(),
+  site_location:     z.string().optional(),
+  asset_id:          z.string().optional(),
+  asset_name_manual: z.string().optional(),
   geo_lat:         z.number().optional(),
   geo_lng:         z.number().optional(),
   geo_accuracy:    z.number().optional(),
@@ -103,6 +104,7 @@ export default function NewReport() {
       client_id: undefined,
       site_location: '',
       asset_id: undefined,
+      asset_name_manual: '',
     },
   });
 

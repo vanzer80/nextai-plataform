@@ -17,6 +17,7 @@ export interface ServiceReport {
   technician_id: string;
   client_id: string | null;
   asset_id: string | null;
+  asset_name_manual: string | null;
   site_location: string | null;
 
   service_date: string | null;        // DATE → YYYY-MM-DD string

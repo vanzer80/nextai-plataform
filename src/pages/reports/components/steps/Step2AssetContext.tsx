@@ -6,12 +6,14 @@ import { Label } from '@/components/ui/label';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Building2 } from 'lucide-react';
+import { Building2, PencilLine } from 'lucide-react';
 import { supabase } from '@/src/lib/supabase';
 import { useClients } from '@/src/hooks/useClients';
 import GeolocationCapture from '../GeolocationCapture';
 import type { ReportFormValues } from '@/src/pages/reports/NewReport';
 import type { GeolocationData } from '@/src/hooks/useGeolocation';
+
+const MANUAL_SENTINEL = '__manual__';
 
 interface Equipment {
   id: string;
@@ -26,17 +28,44 @@ export default function Step2AssetContext({ form }: Step2Props) {
   const { register, setValue, watch } = form;
   const clients = useClients();
   const [equipments, setEquipments] = useState<Equipment[]>([]);
-  const selectedClientId = watch('client_id');
-  const selectedAssetId = watch('asset_id');
+  const [loadingEquipments, setLoadingEquipments] = useState(true);
+
+  const selectedClientId   = watch('client_id');
+  const selectedAssetId    = watch('asset_id');
+  const assetNameManual    = watch('asset_name_manual');
+
+  // Manual mode: active when user explicitly chose "digitar manualmente"
+  // OR when no equipments exist in the DB
+  const [manualMode, setManualMode] = useState(false);
+  const showManualInput = manualMode || (loadingEquipments === false && equipments.length === 0);
 
   useEffect(() => {
+    setLoadingEquipments(true);
     supabase
       .from('equipments')
       .select('id, name')
-      .then(({ data }) => setEquipments(data ?? []));
+      .then(({ data }) => {
+        setEquipments(data ?? []);
+        setLoadingEquipments(false);
+      });
   }, []);
 
-  const filteredEquipments = equipments;
+  // When switching to manual mode, clear the FK selection
+  const enterManualMode = () => {
+    setValue('asset_id', undefined);
+    setManualMode(true);
+  };
+
+  // When picking from the dropdown (including going back from manual)
+  const handleSelectChange = (val: string) => {
+    if (val === MANUAL_SENTINEL) {
+      enterManualMode();
+      return;
+    }
+    setManualMode(false);
+    setValue('asset_name_manual', '');
+    setValue('asset_id', val || undefined);
+  };
 
   const handleGeoChange = (geo: GeolocationData | null) => {
     setValue('geo_lat', geo?.lat ?? undefined);
@@ -53,6 +82,9 @@ export default function Step2AssetContext({ form }: Step2Props) {
         capturedAt: watch('geo_captured_at') as string,
       }
     : null;
+
+  // Determine the Select display value
+  const selectValue = manualMode ? MANUAL_SENTINEL : (selectedAssetId ?? '');
 
   return (
     <Card className="shadow-sm border-border">
@@ -98,19 +130,53 @@ export default function Step2AssetContext({ form }: Step2Props) {
         {/* Equipamento */}
         <div className="space-y-2">
           <Label className="text-sm font-semibold text-foreground">Equipamento / Ativo</Label>
-          <Select
-            value={selectedAssetId ?? ''}
-            onValueChange={val => setValue('asset_id', val || undefined)}
-          >
-            <SelectTrigger className="h-12 text-base rounded-xl bg-muted border-border focus:ring-ring">
-              <SelectValue placeholder={selectedClientId ? 'Selecione o equipamento' : 'Selecione o cliente primeiro'} />
-            </SelectTrigger>
-            <SelectContent>
-              {filteredEquipments.map(eq => (
-                <SelectItem key={eq.id} value={eq.id} className="py-3 text-base">{eq.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+
+          {/* Dropdown — só exibe quando há equipamentos cadastrados */}
+          {!loadingEquipments && equipments.length > 0 && (
+            <Select value={selectValue} onValueChange={handleSelectChange}>
+              <SelectTrigger className="h-12 text-base rounded-xl bg-muted border-border focus:ring-ring">
+                <SelectValue placeholder="Selecione o equipamento" />
+              </SelectTrigger>
+              <SelectContent>
+                {equipments.map(eq => (
+                  <SelectItem key={eq.id} value={eq.id} className="py-3 text-base">
+                    {eq.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value={MANUAL_SENTINEL} className="py-3 text-base text-muted-foreground">
+                  <span className="flex items-center gap-2">
+                    <PencilLine className="h-4 w-4" />
+                    Digitar manualmente
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+
+          {/* Input manual — quando não há equipamentos cadastrados OU usuário escolheu digitar */}
+          {showManualInput && (
+            <div className="space-y-1">
+              <Input
+                {...register('asset_name_manual')}
+                placeholder="Digite o nome do equipamento / ativo"
+                className="h-12 text-base rounded-xl bg-muted border-border focus-visible:ring-ring"
+                autoFocus={manualMode}
+              />
+              {/* Voltar para o dropdown se houver equipamentos cadastrados */}
+              {equipments.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setManualMode(false);
+                    setValue('asset_name_manual', '');
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+                >
+                  Selecionar da lista
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Geolocalização */}
