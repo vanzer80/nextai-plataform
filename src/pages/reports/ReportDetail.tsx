@@ -1,11 +1,11 @@
-import { Fragment, useEffect } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   ArrowLeft, AlertTriangle, Calendar, MapPin, Wrench,
   Stethoscope, ClipboardList, Camera, PenLine, History,
-  CheckCircle2, XCircle, Loader2,
+  CheckCircle2, XCircle, Loader2, FileDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,7 @@ import AttachmentGrid from './components/AttachmentGrid';
 import ApprovalPanel from './components/ApprovalPanel';
 import type { ReportChecklistItem, ReportStatusHistory } from '@/src/types/reports';
 import { REPORT_STATUS_LABEL } from '@/src/types/reports';
+import { gerarPdfRelatorio } from '@/src/utils/gerarPdfRelatorio';
 
 const REVIEWER_ROLES = ['Gestor', 'Supervisor', 'Admin', 'Master'] as const;
 
@@ -112,6 +113,17 @@ export default function ReportDetail() {
     useReportDetail(id);
 
   const isReviewer = REVIEWER_ROLES.includes(user?.role as typeof REVIEWER_ROLES[number]);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
+
+  const handleExportPdf = async () => {
+    if (!report) return;
+    setIsPdfLoading(true);
+    try {
+      await gerarPdfRelatorio({ report, checklistItems, signatures });
+    } finally {
+      setIsPdfLoading(false);
+    }
+  };
 
   // Realtime: recarrega quando o status do relatório muda
   useEffect(() => {
@@ -179,6 +191,20 @@ export default function ReportDetail() {
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">{fmtDate(report.service_date)}</p>
         </div>
+        {report.status === 'approved' && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportPdf}
+            disabled={isPdfLoading}
+            className="shrink-0 gap-1.5 rounded-xl border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700/60 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
+          >
+            {isPdfLoading
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <FileDown className="h-4 w-4" />}
+            <span className="hidden sm:inline">Exportar PDF</span>
+          </Button>
+        )}
       </div>
 
       {/* Painel de aprovação — visível apenas para gestores */}
