@@ -39,7 +39,7 @@ async function uploadSignature(
   const path = `signatures/${reportId}/${signerType}_${Date.now()}.png`;
   const blob = dataUrlToBlob(dataUrl);
   const { error } = await supabase.storage
-    .from('service_reports_media')
+    .from('reports_media')
     .upload(path, blob, { contentType: 'image/png', upsert: false });
   if (error) throw error;
   return path;
@@ -49,7 +49,7 @@ async function uploadAttachment(reportId: string, evidence: EvidenceFile): Promi
   const ext = evidence.file.name.split('.').pop() ?? 'jpg';
   const path = `attachments/${reportId}/${evidence.id}.${ext}`;
   const { error } = await supabase.storage
-    .from('service_reports_media')
+    .from('reports_media')
     .upload(path, evidence.file, { contentType: evidence.file.type, upsert: false });
   if (error) throw error;
   return path;

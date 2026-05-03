@@ -22,7 +22,7 @@ export interface ReportDetailData {
 async function signedUrls(paths: string[]): Promise<string[]> {
   if (paths.length === 0) return [];
   const { data } = await supabase.storage
-    .from('service_reports_media')
+    .from('reports_media')
     .createSignedUrls(paths, 3600);
   return (data ?? []).map(d => d.signedUrl ?? '');
 }
