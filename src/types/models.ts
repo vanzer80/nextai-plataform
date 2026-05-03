@@ -72,7 +72,7 @@ export interface ServiceReport {
   client_id: string;
   equipment_id: string | null;
   description: string;
-  status: 'Pendente' | 'Aprovado' | 'Revisao';
+  status: 'draft' | 'pending_review' | 'returned' | 'approved' | 'rejected';
   photo_url: string | null;
 }
 

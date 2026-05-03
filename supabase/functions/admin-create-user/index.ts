@@ -8,6 +8,12 @@ const corsHeaders = {
 
 const ALLOWED_ROLES = ["Master", "Admin", "Gestor"];
 
+// Numeric rank — caller can only create roles strictly below their own rank
+const ROLE_RANK: Record<string, number> = {
+  Master: 5, Admin: 4, Gestor: 3, Supervisor: 2,
+  Financeiro: 2, Comprador: 2, Administrativo: 2, Tecnico: 1,
+};
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -81,10 +87,20 @@ Deno.serve(async (req: Request) => {
   }
 
   // 4. Validar que o role solicitado é um valor permitido no sistema
-  const VALID_APP_ROLES = ["Master", "Admin", "Gestor", "Supervisor", "Financeiro", "Comprador", "Administrativo", "Tecnico de Campo"];
+  const VALID_APP_ROLES = ["Master", "Admin", "Gestor", "Supervisor", "Financeiro", "Comprador", "Administrativo", "Tecnico"];
   if (!VALID_APP_ROLES.includes(role)) {
     return new Response(JSON.stringify({ error: `Role invalido: ${role}` }), {
       status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // 4b. Prevenir escalada de privilégio: caller não pode criar role de nível >= ao seu
+  const callerRank = ROLE_RANK[profile.role] ?? 0;
+  const targetRank = ROLE_RANK[role] ?? 0;
+  if (targetRank >= callerRank) {
+    return new Response(JSON.stringify({ error: "Permissao negada. Voce nao pode criar um perfil com nivel igual ou superior ao seu." }), {
+      status: 403,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

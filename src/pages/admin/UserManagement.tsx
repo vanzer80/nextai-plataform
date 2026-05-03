@@ -231,7 +231,7 @@ export default function UserManagement() {
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Tecnico de Campo">Técnico de Campo</SelectItem>
+                        <SelectItem value="Tecnico">Técnico de Campo</SelectItem>
                         <SelectItem value="Administrativo">Administrativo</SelectItem>
                         <SelectItem value="Financeiro">Financeiro</SelectItem>
                         <SelectItem value="Comprador">Comprador</SelectItem>
