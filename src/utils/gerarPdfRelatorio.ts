@@ -2,12 +2,13 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { ServiceReport, ReportChecklistItem, ReportSignature } from '@/src/types/reports';
+import type { ServiceReport, ReportChecklistItem, ReportSignature, ReportAttachment } from '@/src/types/reports';
 
 export interface PdfReportData {
   report: ServiceReport;
   checklistItems: ReportChecklistItem[];
   signatures: ReportSignature[];
+  attachments: ReportAttachment[];
 }
 
 // ── Formatters ────────────────────────────────────────────────────────────────
@@ -43,6 +44,14 @@ async function urlToDataUrl(url: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+function detectImageFormat(mimeType: string | null, dataUrl: string): string {
+  if (mimeType?.includes('png'))  return 'PNG';
+  if (mimeType?.includes('webp')) return 'WEBP';
+  if (dataUrl.startsWith('data:image/png'))  return 'PNG';
+  if (dataUrl.startsWith('data:image/webp')) return 'WEBP';
+  return 'JPEG';
 }
 
 // ── Layout helpers ────────────────────────────────────────────────────────────
@@ -92,14 +101,33 @@ function drawField(
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export async function gerarPdfRelatorio({ report, checklistItems, signatures }: PdfReportData): Promise<void> {
-  // Pre-fetch signature images in parallel (must be data URLs for jsPDF)
+export async function gerarPdfRelatorio({
+  report,
+  checklistItems,
+  signatures,
+  attachments,
+}: PdfReportData): Promise<void> {
+
+  // Fotos válidas (somente imagens)
+  const photoAttachments = attachments.filter(
+    a => !a.mime_type || a.mime_type.startsWith('image/'),
+  );
+
+  // Pre-fetch ALL images in parallel before drawing anything
   const sigImageMap = new Map<string, string | null>();
-  await Promise.all(
-    signatures.map(async (sig) => {
+  const attImageMap = new Map<string, string | null>();
+
+  await Promise.all([
+    ...signatures.map(async sig => {
       sigImageMap.set(sig.id, await urlToDataUrl(sig.image_url));
     }),
-  );
+    ...photoAttachments.map(async att => {
+      attImageMap.set(att.id, await urlToDataUrl(att.url));
+    }),
+  ]);
+
+  // Apenas fotos que carregaram com sucesso
+  const photosToShow = photoAttachments.filter(att => attImageMap.get(att.id) !== null);
 
   // ── Init ─────────────────────────────────────────────────────────────────────
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -143,36 +171,25 @@ export async function gerarPdfRelatorio({ report, checklistItems, signatures }: 
   doc.setTextColor(100, 116, 139);
   doc.text(`Emitido em: ${hoje}`, pageW - marginR, 26, { align: 'right' });
 
-  // Badge APROVADO
-  doc.setFillColor(16, 122, 87);
-  doc.roundedRect(pageW - marginR - 30, 29, 30, 7, 2, 2, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(255, 255, 255);
-  doc.text('✓ APROVADO', pageW - marginR - 15, 34, { align: 'center' });
-
   doc.setDrawColor(226, 232, 240);
   doc.setLineWidth(0.4);
-  doc.line(marginL, 40, pageW - marginR, 40);
+  doc.line(marginL, 36, pageW - marginR, 36);
 
-  let y = 48;
+  let y = 44;
 
   // ── Identificação ─────────────────────────────────────────────────────────────
   y = drawSectionHeader(doc, 'IDENTIFICAÇÃO', y, marginL, pageW, marginR);
 
-  // Linha 1 — 2 colunas: tipo + data
   let y1 = y; let y2 = y;
   y1 = drawField(doc, 'Tipo de Serviço', report.service_type, col1X, y1, colW);
   y2 = drawField(doc, 'Data do Serviço', fmtDate(report.service_date), col2X, y2, colW);
   y = Math.max(y1, y2);
 
-  // Linha 2 — OS + Técnico
   y1 = y; y2 = y;
   if (report.os_number) y1 = drawField(doc, 'Número OS', report.os_number, col1X, y1, colW);
   if (techName)         y2 = drawField(doc, 'Técnico Responsável', techName, col2X, y2, colW);
   y = Math.max(y1, y2);
 
-  // Linha 3 — horários
   if (report.started_at || report.finished_at) {
     y1 = y; y2 = y;
     if (report.started_at)  y1 = drawField(doc, 'Hora Início', fmtTime(report.started_at), col1X, y1, colW);
@@ -184,7 +201,7 @@ export async function gerarPdfRelatorio({ report, checklistItems, signatures }: 
     y = drawField(doc, 'Duração Total', `${report.total_minutes} minutos`, col1X, y, colW);
   }
 
-  if (clientName)          y = drawField(doc, 'Cliente', clientName, col1X, y, fullW);
+  if (clientName)           y = drawField(doc, 'Cliente', clientName, col1X, y, fullW);
   if (report.site_location) y = drawField(doc, 'Unidade / Local', report.site_location, col1X, y, fullW);
   if (assetName)            y = drawField(doc, 'Equipamento / Ativo', assetName, col1X, y, fullW);
 
@@ -199,10 +216,10 @@ export async function gerarPdfRelatorio({ report, checklistItems, signatures }: 
     y = checkPageBreak(doc, y, 30);
     y = drawSectionHeader(doc, 'DIAGNÓSTICO TÉCNICO', y, marginL, pageW, marginR);
 
-    if (report.reported_problem)       y = drawField(doc, 'Problema Relatado pelo Cliente', report.reported_problem, col1X, y, fullW);
-    if (report.preliminary_diagnosis)  y = drawField(doc, 'Diagnóstico Preliminar', report.preliminary_diagnosis, col1X, y, fullW);
-    if (report.final_diagnosis)        y = drawField(doc, 'Diagnóstico Final', report.final_diagnosis, col1X, y, fullW);
-    if (report.internal_notes)         y = drawField(doc, 'Notas Internas', report.internal_notes, col1X, y, fullW);
+    if (report.reported_problem)      y = drawField(doc, 'Problema Relatado pelo Cliente', report.reported_problem, col1X, y, fullW);
+    if (report.preliminary_diagnosis) y = drawField(doc, 'Diagnóstico Preliminar', report.preliminary_diagnosis, col1X, y, fullW);
+    if (report.final_diagnosis)       y = drawField(doc, 'Diagnóstico Final', report.final_diagnosis, col1X, y, fullW);
+    if (report.internal_notes)        y = drawField(doc, 'Notas Internas', report.internal_notes, col1X, y, fullW);
 
     y += 2;
   }
@@ -216,10 +233,10 @@ export async function gerarPdfRelatorio({ report, checklistItems, signatures }: 
     y = checkPageBreak(doc, y, 30);
     y = drawSectionHeader(doc, 'EXECUÇÃO DO SERVIÇO', y, marginL, pageW, marginR);
 
-    if (report.services_performed)        y = drawField(doc, 'Serviços Executados', report.services_performed, col1X, y, fullW);
-    if (report.parts_used)                y = drawField(doc, 'Peças / Materiais Utilizados', report.parts_used, col1X, y, fullW);
-    if (report.pending_issues)            y = drawField(doc, 'Pendências', report.pending_issues, col1X, y, fullW);
-    if (report.technical_recommendation)  y = drawField(doc, 'Recomendação Técnica', report.technical_recommendation, col1X, y, fullW);
+    if (report.services_performed)       y = drawField(doc, 'Serviços Executados', report.services_performed, col1X, y, fullW);
+    if (report.parts_used)               y = drawField(doc, 'Peças / Materiais Utilizados', report.parts_used, col1X, y, fullW);
+    if (report.pending_issues)           y = drawField(doc, 'Pendências', report.pending_issues, col1X, y, fullW);
+    if (report.technical_recommendation) y = drawField(doc, 'Recomendação Técnica', report.technical_recommendation, col1X, y, fullW);
 
     y += 2;
   }
@@ -232,10 +249,10 @@ export async function gerarPdfRelatorio({ report, checklistItems, signatures }: 
     const checklistRows = checklistItems.map(item => {
       const value = (() => {
         if (item.item_type === 'boolean') return item.value_boolean == null ? '—' : item.value_boolean ? 'Sim' : 'Não';
-        if (item.item_type === 'text')   return item.value_text   ?? '—';
-        if (item.item_type === 'number') return item.value_number?.toString() ?? '—';
-        if (item.item_type === 'select') return item.value_option ?? '—';
-        if (item.item_type === 'photo')  return item.attachment_url ? 'Foto anexada' : '—';
+        if (item.item_type === 'text')    return item.value_text   ?? '—';
+        if (item.item_type === 'number')  return item.value_number?.toString() ?? '—';
+        if (item.item_type === 'select')  return item.value_option ?? '—';
+        if (item.item_type === 'photo')   return item.attachment_url ? 'Foto anexada' : '—';
         return '—';
       })();
       const conf = item.is_conformant === true ? '✓' : item.is_conformant === false ? '✗' : '—';
@@ -268,10 +285,76 @@ export async function gerarPdfRelatorio({ report, checklistItems, signatures }: 
     y = ((doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? y) + 6;
   }
 
+  // ── Evidências Fotográficas ───────────────────────────────────────────────────
+  if (photosToShow.length > 0) {
+    const photoGap  = 4;   // gap entre colunas
+    const photoH    = 55;  // altura fixa de cada foto (mm)
+    const captionH  = 8;   // espaço reservado para legenda
+    const rowH      = photoH + captionH + 3;
+    const photoW    = (contentW - photoGap) / 2;
+
+    y = checkPageBreak(doc, y, rowH + 20); // header + pelo menos 1 linha de fotos
+    y = drawSectionHeader(
+      doc,
+      `EVIDÊNCIAS FOTOGRÁFICAS (${photosToShow.length} foto${photosToShow.length > 1 ? 's' : ''})`,
+      y, marginL, pageW, marginR,
+    );
+
+    for (let i = 0; i < photosToShow.length; i++) {
+      const col   = i % 2;
+      const att   = photosToShow[i];
+      const photoX = marginL + col * (photoW + photoGap);
+
+      // Início de nova linha → verificar quebra de página
+      if (col === 0) {
+        y = checkPageBreak(doc, y, rowH);
+      }
+
+      const dataUrl = attImageMap.get(att.id)!;
+      const fmt     = detectImageFormat(att.mime_type, dataUrl);
+
+      // Borda do frame
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.3);
+      doc.rect(photoX, y, photoW, photoH);
+
+      // Imagem dentro do frame
+      try {
+        doc.addImage(dataUrl, fmt, photoX + 1, y + 1, photoW - 2, photoH - 2);
+      } catch {
+        // Formato não suportado — tenta JPEG como fallback
+        try {
+          doc.addImage(dataUrl, 'JPEG', photoX + 1, y + 1, photoW - 2, photoH - 2);
+        } catch {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7);
+          doc.setTextColor(150, 150, 150);
+          doc.text('Foto indisponível', photoX + photoW / 2, y + photoH / 2, { align: 'center' });
+        }
+      }
+
+      // Legenda (primeira linha apenas)
+      if (att.caption) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(100, 116, 139);
+        const captionLines = doc.splitTextToSize(att.caption, photoW) as string[];
+        doc.text(captionLines[0], photoX, y + photoH + 5);
+      }
+
+      // Avança y ao final de cada linha (coluna 1 ou último item)
+      if (col === 1 || i === photosToShow.length - 1) {
+        y += rowH;
+      }
+    }
+
+    y += 2;
+  }
+
   // ── Assinaturas ───────────────────────────────────────────────────────────────
   if (signatures.length > 0) {
-    const sigCount = Math.min(signatures.length, 3);
-    const sigImgH  = 30;
+    const sigCount  = Math.min(signatures.length, 3);
+    const sigImgH   = 30;
     const sigNeeded = 7 + sigImgH + 12;
 
     y = checkPageBreak(doc, y, sigNeeded);
@@ -310,7 +393,7 @@ export async function gerarPdfRelatorio({ report, checklistItems, signatures }: 
         try {
           doc.addImage(dataUrl, 'PNG', sigX + 1, imgY + 1, sigW - 2, sigImgH - 2);
         } catch {
-          // Failed to embed — box already drawn, leave empty
+          // Embed falhou — box já desenhada, deixa vazia
         }
       }
 

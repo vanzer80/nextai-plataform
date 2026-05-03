@@ -119,7 +119,7 @@ export default function ReportDetail() {
     if (!report) return;
     setIsPdfLoading(true);
     try {
-      await gerarPdfRelatorio({ report, checklistItems, signatures });
+      await gerarPdfRelatorio({ report, checklistItems, signatures, attachments });
     } finally {
       setIsPdfLoading(false);
     }
