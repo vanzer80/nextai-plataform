@@ -60,7 +60,7 @@ export function useReportDetail(id: string | undefined): ReportDetailData {
           await Promise.all([
             supabase
               .from('service_reports')
-              .select('*, clients(name), users(full_name), equipments(name)')
+              .select('*, clients(name), users:technician_id(full_name), equipments(name)')
               .eq('id', id)
               .single(),
             supabase

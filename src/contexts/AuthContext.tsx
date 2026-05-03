@@ -84,7 +84,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (fetchedUserIdRef.current === currentSession.user.id) return;
           // Skip if a fetch is already in flight (prevents concurrent calls).
           if (isFetchingRef.current) return;
-          await fetchUserData(currentSession.user);
+          // Don't finalize loading here — initializeAuth() owns that responsibility.
+          await fetchUserData(currentSession.user, false);
         } else {
           console.log('[AuthContext] Sem sessão ativa no listener. Resetando user.');
           fetchedUserIdRef.current = null; // allow re-fetch on next login
@@ -137,7 +138,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const fetchUserData = async (authUser: User) => {
+  // shouldFinalizeLoading=false when called from the onAuthStateChange listener:
+  // initializeAuth() (getSession path) is the authoritative source and always
+  // calls finalizeLoading() in its own finally block. Calling it here too would
+  // unlock the UI ~8s early with a fallback role on cold DB starts.
+  const fetchUserData = async (authUser: User, shouldFinalizeLoading = true) => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
     console.log('[AuthContext] [fetchUserData] Iniciando...', authUser.id);
@@ -197,7 +202,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       isFetchingRef.current = false;
       console.log('[AuthContext] Finalizando loading do perfil.');
-      finalizeLoading();
+      if (shouldFinalizeLoading) finalizeLoading();
     }
   };
 
