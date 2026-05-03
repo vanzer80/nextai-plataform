@@ -228,8 +228,7 @@ export default function NewReimbursement() {
         ) as { data: unknown; error: { message: string } | null };
         if (uploadError) throw new Error('Falha no upload: ' + uploadError.message);
 
-        const { data: publicData } = supabase.storage.from('reimbursements_media').getPublicUrl(filePath);
-        receiptUrl = publicData.publicUrl;
+        receiptUrl = filePath;
       }
 
       toast.loading("Salvando dados...", { id: toastId });

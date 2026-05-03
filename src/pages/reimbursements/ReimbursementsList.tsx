@@ -4,6 +4,7 @@ import { Plus, Download, FileText, Loader2 } from 'lucide-react';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
+import { extractStoragePath, batchSignedUrls } from '@/src/lib/storage';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -67,9 +68,24 @@ export default function ReimbursementsList() {
       if (error) throw error;
 
       if (result) {
-        const processed = result.map(item => ({
+        const rawItems = result.map(item => ({
           ...item,
-          users: Array.isArray(item.users) ? item.users[0] : item.users
+          users: Array.isArray(item.users) ? item.users[0] : item.users,
+        }));
+
+        // Batch-resolve signed URLs for all receipt_url values (handles both old full URLs and new paths)
+        const uniquePaths: string[] = [...new Set<string>(
+          rawItems
+            .filter(item => typeof item.receipt_url === 'string')
+            .map(item => extractStoragePath(item.receipt_url as string, 'reimbursements_media'))
+        )];
+        const signedMap = await batchSignedUrls(uniquePaths, 'reimbursements_media');
+
+        const processed = rawItems.map(item => ({
+          ...item,
+          receipt_url: item.receipt_url
+            ? (signedMap[extractStoragePath(item.receipt_url, 'reimbursements_media')] || item.receipt_url)
+            : null,
         }));
 
         if (page === 0) {
