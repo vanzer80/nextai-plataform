@@ -11,7 +11,7 @@ function formatDate(iso: string | null | undefined): string {
   return `${d}/${m}/${y}`;
 }
 
-export function gerarPdfOrcamento(orcamento: OrcamentoComItens): void {
+export function gerarPdfOrcamento(orcamento: OrcamentoComItens, tenantName: string): void {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const marginL = 15;
   const marginR = 15;
@@ -39,7 +39,7 @@ export function gerarPdfOrcamento(orcamento: OrcamentoComItens): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(30, 58, 95);
-  doc.text('PORTAL MOPAR', marginL, 22);
+  doc.text(tenantName.toUpperCase(), marginL, 22);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);

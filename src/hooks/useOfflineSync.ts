@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { processQueue } from '@/src/services/offlineQueue';
-import { getQueueSize } from '@/src/lib/reportIndexedDB';
+import { getQueueSize, initDBName } from '@/src/lib/reportIndexedDB';
+import { useTenant } from '@/src/contexts/TenantContext';
 
 export interface OfflineSyncState {
   isOnline: boolean;
@@ -16,6 +17,11 @@ export function useOfflineSync(): OfflineSyncState {
   const [pendingCount, setPendingCount] = useState(0);
   const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
   const syncInProgress = useRef(false);
+  const { tenant } = useTenant();
+
+  useEffect(() => {
+    if (tenant?.slug) initDBName(tenant.slug);
+  }, [tenant?.slug]);
 
   const refreshPendingCount = useCallback(async () => {
     const count = await getQueueSize();

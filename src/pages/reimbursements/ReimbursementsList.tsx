@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import { Plus, Download, FileText, Loader2 } from 'lucide-react';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { useTenant } from '@/src/contexts/TenantContext';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
 import { extractStoragePath, batchSignedUrls } from '@/src/lib/storage';
@@ -27,6 +28,7 @@ import ReimbursementDetailModal from './components/ReimbursementDetailModal';
 
 export default function ReimbursementsList() {
   const { user } = useAuth();
+  const { tenant } = useTenant();
   const isManager = ['Gestor', 'Admin', 'Financeiro', 'Master', 'Supervisor'].some(r => user?.role?.includes(r));
 
   const [data, setData] = useState<any[]>([]);
@@ -290,7 +292,7 @@ export default function ReimbursementsList() {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text('Mopar Engenharia', 14, 10);
+      doc.text(tenant?.name ?? 'Portal Mopar', 14, 10);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       doc.text('Relatorio de Reembolsos e Despesas', 14, 17);
@@ -403,7 +405,7 @@ export default function ReimbursementsList() {
         doc.setPage(i);
         doc.setFontSize(7);
         doc.setTextColor(150, 150, 150);
-        doc.text(`Pagina ${i} de ${totalPages}  |  Mopar Engenharia`, pageW / 2, doc.internal.pageSize.getHeight() - 5, { align: 'center' });
+        doc.text(`Pagina ${i} de ${totalPages}  |  ${tenant?.name ?? 'Portal Mopar'}`, pageW / 2, doc.internal.pageSize.getHeight() - 5, { align: 'center' });
       }
 
       const filename = `Reembolsos_${now.toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;

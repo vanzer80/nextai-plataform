@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { useTenant } from '@/src/contexts/TenantContext';
 import { useReportDetail } from '@/src/hooks/useReportDetail';
 import ReportStatusBadge from './components/ReportStatusBadge';
 import AttachmentGrid from './components/AttachmentGrid';
@@ -109,6 +110,7 @@ export default function ReportDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { tenant } = useTenant();
   const { report, history, attachments, signatures, checklistItems, loading, error, refresh } =
     useReportDetail(id);
 
@@ -119,7 +121,7 @@ export default function ReportDetail() {
     if (!report) return;
     setIsPdfLoading(true);
     try {
-      await gerarPdfRelatorio({ report, checklistItems, signatures, attachments });
+      await gerarPdfRelatorio({ report, checklistItems, signatures, attachments, tenantName: tenant?.name ?? 'Portal Mopar' });
     } finally {
       setIsPdfLoading(false);
     }

@@ -52,14 +52,22 @@ export interface PendingBlob {
 
 // ── Schema do banco ───────────────────────────────────────────
 
-const DB_NAME = 'portal-mopar-reports';
 const DB_VERSION = 2;
 
+let dbName = 'portal-mopar-reports';
 let dbPromise: Promise<IDBPDatabase> | null = null;
+
+export function initDBName(tenantSlug: string): void {
+  const newName = `${tenantSlug}-reports`;
+  if (newName !== dbName) {
+    dbName = newName;
+    dbPromise = null;
+  }
+}
 
 export function getDB(): Promise<IDBPDatabase> {
   if (!dbPromise) {
-    dbPromise = openDB(DB_NAME, DB_VERSION, {
+    dbPromise = openDB(dbName, DB_VERSION, {
       upgrade(db, oldVersion) {
         if (oldVersion < 1) {
           db.createObjectStore('reportDrafts', { keyPath: 'localDraftId' });

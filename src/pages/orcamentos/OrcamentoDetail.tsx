@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 
 import { useAuth } from '@/src/contexts/AuthContext';
+import { useTenant } from '@/src/contexts/TenantContext';
 import { buscarOrcamento, atualizarStatus, excluirOrcamento } from '@/src/services/orcamentoService';
 import { gerarPdfOrcamento } from '@/src/utils/gerarPdfOrcamento';
 import { OrcamentoStatusBadge } from './components/OrcamentoStatusBadge';
@@ -35,6 +36,7 @@ export default function OrcamentoDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { tenant } = useTenant();
 
   const [orcamento, setOrcamento] = useState<OrcamentoComItens | null>(null);
   const [loading, setLoading] = useState(true);
@@ -177,7 +179,7 @@ export default function OrcamentoDetail() {
             variant="outline"
             size="sm"
             className="gap-1.5"
-            onClick={() => gerarPdfOrcamento(orcamento)}
+            onClick={() => gerarPdfOrcamento(orcamento, tenant?.name ?? 'Portal Mopar')}
           >
             <FileDown className="h-4 w-4" /> PDF
           </Button>

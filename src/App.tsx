@@ -1,6 +1,7 @@
 import { lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/src/contexts/AuthContext';
+import { TenantProvider } from '@/src/contexts/TenantContext';
 import { ProtectedRoute, RoleGuard } from '@/src/components/auth/ProtectedRoute';
 import AppLayout from '@/src/components/layout/AppLayout';
 import Login from '@/src/pages/auth/Login';
@@ -26,6 +27,7 @@ const OrcamentoDetail    = lazy(() => import('@/src/pages/orcamentos/OrcamentoDe
 export default function App() {
   return (
     <AuthProvider>
+      <TenantProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -72,6 +74,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
+      </TenantProvider>
       <Toaster />
     </AuthProvider>
   );

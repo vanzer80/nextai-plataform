@@ -9,6 +9,7 @@ export interface PdfReportData {
   checklistItems: ReportChecklistItem[];
   signatures: ReportSignature[];
   attachments: ReportAttachment[];
+  tenantName: string;
 }
 
 // ── Formatters ────────────────────────────────────────────────────────────────
@@ -106,6 +107,7 @@ export async function gerarPdfRelatorio({
   checklistItems,
   signatures,
   attachments,
+  tenantName,
 }: PdfReportData): Promise<void> {
 
   // Fotos válidas (somente imagens)
@@ -154,7 +156,7 @@ export async function gerarPdfRelatorio({
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(30, 58, 95);
-  doc.text('PORTAL MOPAR', marginL, 22);
+  doc.text(tenantName.toUpperCase(), marginL, 22);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
@@ -419,7 +421,7 @@ export async function gerarPdfRelatorio({
     doc.setFontSize(7);
     doc.setTextColor(150, 150, 150);
     doc.text(
-      `Página ${p} de ${totalPages}  ·  ${refNum}  ·  Portal Mopar  ·  Gerado em ${hoje}`,
+      `Página ${p} de ${totalPages}  ·  ${refNum}  ·  ${tenantName}  ·  Gerado em ${hoje}`,
       pageW / 2, pageH - 9, { align: 'center' },
     );
   }
