@@ -48,7 +48,7 @@ Deno.serve(async (req: Request) => {
   // 2. Verificar se o chamador tem role autorizado
   const { data: profile, error: profileError } = await callerClient
     .from("users")
-    .select("role")
+    .select("role, team_id")
     .eq("id", callerUser.id)
     .maybeSingle();
 
@@ -67,7 +67,9 @@ Deno.serve(async (req: Request) => {
   }
 
   // 3. Validar body da requisição
-  let body: { email?: string; password?: string; full_name?: string; role?: string };
+  // team_id é aceito no body mas ignorado em favor do team_id do caller —
+  // evita que um Gestor crie usuários em outro tenant.
+  let body: { email?: string; password?: string; full_name?: string; role?: string; team_id?: string };
   try {
     body = await req.json();
   } catch {
@@ -125,20 +127,22 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // 6. Aguardar trigger e então atualizar role + full_name
+  // 6. Aguardar trigger e então atualizar role + full_name + team_id
   // O trigger handle_new_user cria a linha em public.users automaticamente.
   // Aguardamos até 2s para o trigger propagar antes do UPDATE.
+  // team_id vem sempre do perfil do caller — garante que o novo usuário
+  // pertence ao mesmo tenant de quem está criando, sem aceitar valor externo.
   await new Promise(resolve => setTimeout(resolve, 2000));
 
   const { error: updateError } = await supabaseAdmin
     .from("users")
-    .update({ full_name, role })
+    .update({ full_name, role, team_id: profile.team_id ?? null })
     .eq("id", newUser.user.id);
 
   if (updateError) {
     console.error(`[admin-create-user] Auth criado (${newUser.user.id}) mas UPDATE falhou:`, updateError.message);
     return new Response(JSON.stringify({
-      error: `Usuario criado no Auth, mas role nao gravado: ${updateError.message}`,
+      error: `Usuario criado no Auth, mas role/team_id nao gravado: ${updateError.message}`,
       userId: newUser.user.id,
     }), {
       status: 500,
@@ -146,7 +150,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  console.log(`[admin-create-user] Usuario ${newUser.user.id} (${role}) criado por ${callerUser.id} (${profile.role})`);
+  console.log(`[admin-create-user] Usuario ${newUser.user.id} (${role}, team:${profile.team_id}) criado por ${callerUser.id} (${profile.role})`);
 
   return new Response(JSON.stringify({ success: true, userId: newUser.user.id }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
