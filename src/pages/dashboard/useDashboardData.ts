@@ -23,7 +23,7 @@ export interface DashboardData {
 }
 
 const PIE_COLORS: Record<string, string> = {
-  Transporte: '#3b82f6', Alimentação: '#10b981', Hospedagem: '#f59e0b', Outros: '#64748b',
+  Transporte: 'var(--chart-1)', Alimentação: 'var(--chart-2)', Hospedagem: 'var(--chart-3)', Outros: 'var(--chart-4)',
 };
 
 function neededFor(widgetIds: WidgetId[]): Set<QueryKey> {

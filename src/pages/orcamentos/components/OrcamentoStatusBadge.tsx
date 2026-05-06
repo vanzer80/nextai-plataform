@@ -4,7 +4,7 @@ import type { OrcamentoStatus } from '@/src/types/orcamento';
 
 export function OrcamentoStatusBadge({ status }: { status: OrcamentoStatus }) {
   return (
-    <Badge className={`${ORCAMENTO_STATUS_COLOR[status]} uppercase tracking-wide text-[10px] font-bold border-0`}>
+    <Badge className={`${ORCAMENTO_STATUS_COLOR[status]} text-xs font-semibold border-0`}>
       {ORCAMENTO_STATUS_LABEL[status]}
     </Badge>
   );

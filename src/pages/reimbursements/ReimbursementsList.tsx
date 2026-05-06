@@ -142,13 +142,13 @@ export default function ReimbursementsList() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Aprovado':
-        return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-0 uppercase tracking-wide text-[10px] font-bold">Aprovado</Badge>;
+        return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 border-0 text-xs font-semibold">Aprovado</Badge>;
       case 'Rejeitado':
-        return <Badge className="bg-rose-100 text-rose-800 hover:bg-rose-200 border-0 uppercase tracking-wide text-[10px] font-bold">Rejeitado</Badge>;
+        return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-300 border-0 text-xs font-semibold">Rejeitado</Badge>;
       case 'Revisao':
-        return <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200 border-0 uppercase tracking-wide text-[10px] font-bold">Em Revisão</Badge>;
+        return <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300 border-0 text-xs font-semibold">Em Revisão</Badge>;
       default:
-        return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200 border-0 uppercase tracking-wide text-[10px] font-bold">Pendente</Badge>;
+        return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 border-0 text-xs font-semibold">Pendente</Badge>;
     }
   };
 

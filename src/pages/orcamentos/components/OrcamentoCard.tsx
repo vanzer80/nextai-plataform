@@ -49,7 +49,7 @@ export function OrcamentoCard({ orcamento }: { orcamento: Orcamento }) {
           {formatDate(orcamento.created_at)}
         </span>
         {orcamento.validade && (
-          <span className={`flex items-center gap-1 ${expired ? 'text-rose-600 font-medium' : ''}`}>
+          <span className={`flex items-center gap-1 ${expired ? 'text-destructive font-medium' : ''}`}>
             {expired && <AlertTriangle className="h-3.5 w-3.5" />}
             Válido até {formatDate(orcamento.validade)}
           </span>

@@ -41,15 +41,15 @@ export function ReportsBarWidget({ isLoading, barData, isTeamReports }: Props) {
           <ResponsiveContainer width="100%" height={320}>
             <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} dy={10} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-muted-foreground)' }} dy={10} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-muted-foreground)' }} allowDecimals={false} />
               <Tooltip
                 cursor={{ fill: 'var(--accent)' }}
                 contentStyle={{ borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--popover)', color: 'var(--popover-foreground)', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}
               />
               <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} />
-              <Bar dataKey="criados" name="Criados" fill="var(--muted)" radius={[4, 4, 0, 0]} barSize={isTeamReports ? 24 : 32} />
-              <Bar dataKey="concluidos" name="Concluídos" fill="var(--primary)" radius={[4, 4, 0, 0]} barSize={isTeamReports ? 24 : 32} />
+              <Bar dataKey="criados" name="Criados" fill="var(--chart-2)" radius={[4, 4, 0, 0]} barSize={isTeamReports ? 24 : 32} />
+              <Bar dataKey="concluidos" name="Concluídos" fill="var(--chart-1)" radius={[4, 4, 0, 0]} barSize={isTeamReports ? 24 : 32} />
             </BarChart>
           </ResponsiveContainer>
         )}

@@ -29,17 +29,17 @@ export default function ReportCard({ report, localSyncStatus }: ReportCardProps)
     : format(parseISO(report.created_at), "dd 'de' MMM, yyyy", { locale: ptBR });
 
   return (
-    <Card className="overflow-hidden shadow-sm border-slate-200 hover:shadow-md transition-shadow">
+    <Card className="overflow-hidden shadow-sm border-border hover:shadow-md transition-shadow">
       <CardContent className="p-4">
         {/* Status + Data */}
         <div className="flex items-start justify-between mb-3 gap-2">
           <div className="flex items-center gap-2 flex-wrap">
             <ReportStatusBadge status={report.status} />
             {report.service_type && (
-              <span className="text-xs text-slate-500 font-medium">{report.service_type}</span>
+              <span className="text-xs text-muted-foreground font-medium">{report.service_type}</span>
             )}
           </div>
-          <div className="flex items-center text-slate-400 text-xs shrink-0 gap-1">
+          <div className="flex items-center text-muted-foreground text-xs shrink-0 gap-1">
             <Clock className="h-3.5 w-3.5" />
             {dateLabel}
           </div>
@@ -48,19 +48,19 @@ export default function ReportCard({ report, localSyncStatus }: ReportCardProps)
         {/* OS + Local */}
         <div className="space-y-1.5 mb-3">
           <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-blue-600 shrink-0" />
-            <span className="text-sm font-bold text-slate-900 leading-tight">
+            <MapPin className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-sm font-bold text-foreground leading-tight">
               {clientName}
               {report.site_location && (
-                <span className="font-normal text-slate-500"> — {report.site_location}</span>
+                <span className="font-normal text-muted-foreground"> — {report.site_location}</span>
               )}
             </span>
           </div>
 
           {(assetName || report.os_number) && (
             <div className="flex items-center gap-2 pl-6">
-              <Wrench className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-              <span className="text-xs text-slate-600">
+              <Wrench className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="text-xs text-muted-foreground">
                 {assetName ?? ''}
                 {assetName && report.os_number ? ' · ' : ''}
                 {report.os_number ? `OS ${report.os_number}` : ''}
@@ -69,21 +69,21 @@ export default function ReportCard({ report, localSyncStatus }: ReportCardProps)
           )}
 
           {report.reported_problem && (
-            <p className="text-xs text-slate-500 line-clamp-2 pl-6 mt-1">
+            <p className="text-xs text-muted-foreground line-clamp-2 pl-6 mt-1">
               "{report.reported_problem}"
             </p>
           )}
         </div>
 
         {/* Rodapé: técnico + sync + link */}
-        <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+        <div className="flex items-center justify-between border-t border-border pt-3">
           <div className="flex items-center gap-2">
             <Avatar className="h-6 w-6">
-              <AvatarFallback className="text-[10px] bg-slate-200 text-slate-700 font-bold">
+              <AvatarFallback className="text-[10px] bg-muted text-muted-foreground font-bold">
                 {initials(techName)}
               </AvatarFallback>
             </Avatar>
-            <span className="text-xs text-slate-600 font-medium">{techName}</span>
+            <span className="text-xs text-muted-foreground font-medium">{techName}</span>
             {localSyncStatus && localSyncStatus !== 'synced' && (
               <SyncStatusIndicator status={localSyncStatus} />
             )}
@@ -91,7 +91,7 @@ export default function ReportCard({ report, localSyncStatus }: ReportCardProps)
 
           <Link
             to={`/reports/${report.id}`}
-            className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700"
+            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
           >
             Detalhes <ChevronRight className="h-3.5 w-3.5" />
           </Link>
