@@ -35,7 +35,7 @@ export function useOfflineSync(): OfflineSyncState {
     setIsSyncing(true);
 
     try {
-      await processQueue();
+      await processQueue(tenant?.id ?? '');
       setLastSyncAt(new Date());
     } finally {
       syncInProgress.current = false;

@@ -6,6 +6,7 @@ import { generateUUID } from '@/src/lib/uuid';
 export interface SubmitReportPayload {
   formValues: ReportFormValues;
   technicianId: string;
+  teamId: string;
   localDraftId: string;
   checklistAnswers: Record<string, Partial<ReportChecklistItem>>;
   attachments: EvidenceFile[];
@@ -32,11 +33,12 @@ function dataUrlToBlob(dataUrl: string): Blob {
 }
 
 async function uploadSignature(
+  teamId: string,
   reportId: string,
   signerType: 'technician' | 'client',
   dataUrl: string,
 ): Promise<string> {
-  const path = `signatures/${reportId}/${signerType}_${Date.now()}.png`;
+  const path = `${teamId}/reports/${reportId}/signatures/${signerType}_${Date.now()}.png`;
   const blob = dataUrlToBlob(dataUrl);
   const { error } = await supabase.storage
     .from('reports_media')
@@ -45,9 +47,9 @@ async function uploadSignature(
   return path;
 }
 
-async function uploadAttachment(reportId: string, evidence: EvidenceFile): Promise<string> {
+async function uploadAttachment(teamId: string, reportId: string, evidence: EvidenceFile): Promise<string> {
   const ext = evidence.file.name.split('.').pop() ?? 'jpg';
-  const path = `attachments/${reportId}/${evidence.id}.${ext}`;
+  const path = `${teamId}/reports/${reportId}/attachments/${evidence.id}.${ext}`;
   const { error } = await supabase.storage
     .from('reports_media')
     .upload(path, evidence.file, { contentType: evidence.file.type, upsert: false });
@@ -76,6 +78,7 @@ export async function submitReport(payload: SubmitReportPayload): Promise<string
   const {
     formValues,
     technicianId,
+    teamId,
     localDraftId,
     checklistAnswers,
     attachments,
@@ -89,8 +92,8 @@ export async function submitReport(payload: SubmitReportPayload): Promise<string
 
   // 1. Upload all Storage files in parallel (outside the DB transaction)
   const [signatureRows, attachmentRows] = await Promise.all([
-    uploadSignatures(reportId, technicianSignature, clientSignature, clientSignerName),
-    uploadAttachments(reportId, technicianId, attachments),
+    uploadSignatures(teamId, reportId, technicianSignature, clientSignature, clientSignerName),
+    uploadAttachments(teamId, reportId, technicianId, attachments),
   ]);
 
   // 2. Build checklist payload
@@ -149,6 +152,7 @@ export async function submitReport(payload: SubmitReportPayload): Promise<string
 }
 
 async function uploadSignatures(
+  teamId: string,
   reportId: string,
   technicianSig: string | null,
   clientSig: string | null,
@@ -157,11 +161,11 @@ async function uploadSignatures(
   const rows: object[] = [];
 
   if (technicianSig) {
-    const path = await uploadSignature(reportId, 'technician', technicianSig);
+    const path = await uploadSignature(teamId, reportId, 'technician', technicianSig);
     rows.push({ signature_type: 'technician', image_url: path, signer_name: null });
   }
   if (clientSig) {
-    const path = await uploadSignature(reportId, 'client', clientSig);
+    const path = await uploadSignature(teamId, reportId, 'client', clientSig);
     rows.push({ signature_type: 'client', image_url: path, signer_name: clientSignerName || null });
   }
 
@@ -169,13 +173,14 @@ async function uploadSignatures(
 }
 
 async function uploadAttachments(
+  teamId: string,
   reportId: string,
   technicianId: string,
   attachments: EvidenceFile[],
 ): Promise<object[]> {
   if (attachments.length === 0) return [];
 
-  const paths = await Promise.all(attachments.map(att => uploadAttachment(reportId, att)));
+  const paths = await Promise.all(attachments.map(att => uploadAttachment(teamId, reportId, att)));
 
   return paths.map((path, i) => ({
     uploaded_by: technicianId,

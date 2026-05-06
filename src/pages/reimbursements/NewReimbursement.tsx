@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2, ArrowLeft, Receipt, Upload, Sparkles } from 'lucide-react';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { useTenant } from '@/src/contexts/TenantContext';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
 import { extractReceiptFromImages, extractReceiptFromVoice } from '@/src/services/aiService';
@@ -53,6 +54,7 @@ export default function NewReimbursement() {
   const isEditMode = !!id;
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { tenant } = useTenant();
 
   const [step, setStep] = useState<'capture' | 'form'>(isEditMode ? 'form' : 'capture');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -220,7 +222,7 @@ export default function NewReimbursement() {
         toast.loading("Enviando comprovante...", { id: toastId });
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-        const filePath = `${user.id}/${fileName}`;
+        const filePath = `${tenant?.id ?? user.id}/reimbursements/${user.id}/${fileName}`;
 
         const { error: uploadError } = await withTimeout(
           supabase.storage.from('reimbursements_media').upload(filePath, file),

@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { useTenant } from '@/src/contexts/TenantContext';
 import { useReportDraft } from '@/src/hooks/useReportDraft';
 import { useChecklistTemplate } from '@/src/hooks/useChecklistTemplate';
 import SyncStatusIndicator from './components/SyncStatusIndicator';
@@ -86,6 +87,7 @@ const TOTAL_STEPS = 7;
 export default function NewReport() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { tenant } = useTenant();
   const [currentStep, setCurrentStep] = useState(1);
   const [checklistAnswers, setChecklistAnswers] = useState<Record<string, Partial<ReportChecklistItem>>>({});
   const [attachments, setAttachments] = useState<EvidenceFile[]>([]);
@@ -162,6 +164,7 @@ export default function NewReport() {
       const reportId = await submitReport({
         formValues: form.getValues(),
         technicianId: user?.id ?? '',
+        teamId: tenant?.id ?? '',
         localDraftId: draft.localDraftId,
         checklistAnswers,
         attachments,

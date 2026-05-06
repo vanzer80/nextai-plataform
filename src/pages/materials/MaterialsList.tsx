@@ -8,6 +8,7 @@ import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { supabase } from '@/src/lib/supabase';
+import { extractStoragePath, batchSignedUrls } from '@/src/lib/storage';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -79,7 +80,24 @@ export default function MaterialsList() {
 
       if (error) throw error;
       console.log('[MaterialsList] fetchRequests result:', data?.length, 'records | userRole:', userRole, '| userId:', userId);
-      setRequests((data as PurchaseRequest[]) || []);
+
+      // Resolve foto_url paths to signed URLs (handles full public URLs from legacy data and raw paths)
+      const rawItems = (data as PurchaseRequest[]) || [];
+      const fotoPaths = [...new Set(
+        rawItems
+          .filter(r => typeof r.foto_url === 'string')
+          .map(r => extractStoragePath(r.foto_url as string, 'materials_media'))
+          .filter(Boolean),
+      )];
+      const signedMap = fotoPaths.length > 0
+        ? await batchSignedUrls(fotoPaths, 'materials_media')
+        : {};
+      setRequests(rawItems.map(r => ({
+        ...r,
+        foto_url: r.foto_url
+          ? (signedMap[extractStoragePath(r.foto_url, 'materials_media')] || r.foto_url)
+          : r.foto_url,
+      })));
     } catch (err: any) {
       console.error('[MaterialsList] fetchRequests error:', err);
       toast.error('Erro ao buscar solicitações.');

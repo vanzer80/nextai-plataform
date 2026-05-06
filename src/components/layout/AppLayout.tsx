@@ -9,6 +9,7 @@ import {
   ShieldAlert,
   ListChecks,
   FileText,
+  Globe,
   Menu,
   LogOut,
   Loader2,
@@ -42,6 +43,7 @@ const NAV_LINKS = [
   { name: 'Clientes', path: '/clients', icon: Building2, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
   { name: 'Checklists', path: '/admin/checklist-templates', icon: ListChecks, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'Administrador', path: '/admin/usuarios', icon: ShieldAlert, roles: ['Gestor', 'Admin', 'Master'] },
+  { name: 'Tenants', path: '/admin/tenants', icon: Globe, roles: ['Master'] },
 ];
 
 // All possible bottom nav options (mobile quick-access bar)

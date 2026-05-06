@@ -1,5 +1,9 @@
 import { supabase } from '@/src/lib/supabase';
 
+export function tenantPath(teamId: string, ...segments: string[]): string {
+  return [teamId, ...segments].join('/');
+}
+
 // Extracts the storage path from a full Supabase public URL or returns the input as-is.
 // Handles both old records (full URL) and new records (path only).
 // URL format: https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path>

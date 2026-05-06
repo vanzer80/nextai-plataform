@@ -1,0 +1,269 @@
+import React, { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Plus, Globe, Loader2, Palette } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/src/lib/supabase';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+import {
+  Table, TableBody, TableCell, TableHead,
+  TableHeader, TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog, DialogContent, DialogDescription,
+  DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+
+const tenantSchema = z.object({
+  tenant_name:    z.string().min(3, 'Nome deve ter no mínimo 3 caracteres').max(100),
+  tenant_slug:    z.string().regex(/^[a-z][a-z0-9-]{2,49}$/, 'Apenas lowercase, letras/números/hífens, 3–50 chars, deve iniciar com letra'),
+  primary_color:  z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#0066CC'),
+  admin_name:     z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
+  admin_email:    z.string().email('E-mail inválido'),
+  admin_password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres'),
+});
+
+type TenantFormValues = z.infer<typeof tenantSchema>;
+
+interface TenantRow {
+  id: string;
+  name: string;
+  slug: string;
+  primary_color: string;
+  created_at: string;
+  users: { count: number }[];
+}
+
+export default function TenantManagement() {
+  const [tenants, setTenants] = useState<TenantRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fetchTenants = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('tenants')
+        .select('id, name, slug, primary_color, created_at, users!users_team_id_fkey(count)')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTenants((data ?? []) as TenantRow[]);
+    } catch (err: any) {
+      toast.error('Erro ao buscar tenants', { description: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchTenants(); }, []);
+
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<TenantFormValues>({
+    resolver: zodResolver(tenantSchema),
+    defaultValues: {
+      tenant_name: '', tenant_slug: '', primary_color: '#0066CC',
+      admin_name: '', admin_email: '', admin_password: '',
+    },
+  });
+
+  const colorValue = watch('primary_color');
+
+  const onSubmit = async (data: TenantFormValues) => {
+    setIsSubmitting(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke('admin-provision-tenant', {
+        body: {
+          tenant: { name: data.tenant_name, slug: data.tenant_slug, primary_color: data.primary_color },
+          admin:  { full_name: data.admin_name, email: data.admin_email, password: data.admin_password },
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      if (result?.error) throw new Error(result.error);
+
+      if (result?.warning) {
+        toast.warning('Tenant criado com aviso', { description: result.warning });
+      } else {
+        toast.success('Tenant provisionado!', {
+          description: `"${data.tenant_name}" (${data.tenant_slug}) está pronto.`,
+        });
+      }
+      fetchTenants();
+      setIsDialogOpen(false);
+      reset();
+    } catch (err: any) {
+      toast.error('Erro ao provisionar tenant', { description: err.message });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-6 h-full w-full max-w-7xl mx-auto pb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <Globe className="h-6 w-6 text-primary" />
+            Tenants
+          </h1>
+          <p className="text-sm text-muted-foreground">Gerencie as empresas clientes do portal.</p>
+        </div>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm font-semibold h-11 px-6 rounded-xl w-full sm:w-auto transition-colors disabled:pointer-events-none disabled:opacity-50">
+            <Plus className="h-5 w-5 mr-1 -ml-1" />
+            Novo Tenant
+          </DialogTrigger>
+
+          <DialogContent className="sm:max-w-[520px] p-0 overflow-hidden rounded-2xl">
+            <DialogHeader className="p-6 pb-2 border-b border-border bg-muted/40">
+              <DialogTitle className="text-xl font-bold text-foreground">Provisionar Novo Tenant</DialogTitle>
+              <DialogDescription>
+                Cria a empresa e o primeiro usuário Master. O acesso estará disponível imediatamente.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <div className="p-6 space-y-5">
+
+                {/* Tenant info */}
+                <div className="space-y-1">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Empresa</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label className="text-sm font-semibold text-foreground">Nome da empresa</Label>
+                    <Input placeholder="Ex: ACME Engenharia" className="h-11 rounded-lg" {...register('tenant_name')} />
+                    {errors.tenant_name && <p className="text-xs text-destructive font-medium">{errors.tenant_name.message}</p>}
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-sm font-semibold text-foreground">Slug</Label>
+                    <Input placeholder="acme-eng" className="h-11 rounded-lg font-mono" {...register('tenant_slug')} />
+                    {errors.tenant_slug && <p className="text-xs text-destructive font-medium">{errors.tenant_slug.message}</p>}
+                    <p className="text-xs text-muted-foreground">Identificador único: lowercase, hífens, sem espaços.</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <Palette className="h-4 w-4" /> Cor primária
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        className="h-11 w-14 rounded-lg cursor-pointer border border-input bg-background p-1"
+                        {...register('primary_color')}
+                      />
+                      <Input
+                        placeholder="#0066CC"
+                        className="h-11 rounded-lg font-mono flex-1"
+                        value={colorValue}
+                        {...register('primary_color')}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-border pt-4 space-y-1">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Administrador Master</p>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-sm font-semibold text-foreground">Nome completo</Label>
+                  <Input placeholder="Ex: Ana Souza" className="h-11 rounded-lg" {...register('admin_name')} />
+                  {errors.admin_name && <p className="text-xs text-destructive font-medium">{errors.admin_name.message}</p>}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-semibold text-foreground">E-mail</Label>
+                    <Input placeholder="ana@acme.com" className="h-11 rounded-lg" {...register('admin_email')} />
+                    {errors.admin_email && <p className="text-xs text-destructive font-medium">{errors.admin_email.message}</p>}
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-sm font-semibold text-foreground">Senha</Label>
+                    <Input type="password" placeholder="Mín. 8 caracteres" className="h-11 rounded-lg" {...register('admin_password')} />
+                    {errors.admin_password && <p className="text-xs text-destructive font-medium">{errors.admin_password.message}</p>}
+                  </div>
+                </div>
+
+              </div>
+
+              <DialogFooter className="p-6 pt-4 border-t border-border bg-muted/40 sm:justify-end gap-2">
+                <Button type="button" variant="outline" className="rounded-lg h-11 font-semibold" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>
+                  Cancelar
+                </Button>
+                <Button type="submit" className="rounded-lg h-11 font-semibold" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  Provisionar Tenant
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden min-h-[300px]">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center p-12 text-muted-foreground h-64">
+            <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+            <p className="text-sm">Carregando tenants...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-muted/40">
+                <TableRow className="hover:bg-transparent border-border">
+                  <TableHead className="font-semibold text-foreground">Empresa</TableHead>
+                  <TableHead className="font-semibold text-foreground">Slug</TableHead>
+                  <TableHead className="font-semibold text-foreground">Cor</TableHead>
+                  <TableHead className="font-semibold text-foreground text-center">Usuários</TableHead>
+                  <TableHead className="font-semibold text-foreground">Criado em</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tenants.map((t) => (
+                  <TableRow key={t.id} className="hover:bg-muted/50 transition-colors border-border">
+                    <TableCell className="font-semibold text-foreground text-sm">{t.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-mono text-xs">{t.slug}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="inline-block h-5 w-5 rounded-full border border-border shadow-sm"
+                          style={{ backgroundColor: t.primary_color }}
+                        />
+                        <span className="font-mono text-xs text-muted-foreground">{t.primary_color}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="secondary">{t.users?.[0]?.count ?? 0}</Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {format(new Date(t.created_at), "dd MMM yyyy", { locale: ptBR })}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {tenants.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground font-medium">
+                      Nenhum tenant encontrado.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

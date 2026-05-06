@@ -16,7 +16,7 @@ import type { EvidenceFile } from '@/src/types/reports';
 
 const MAX_RETRIES = 3;
 
-async function processItem(item: QueueItem): Promise<boolean> {
+async function processItem(item: QueueItem, teamId: string): Promise<boolean> {
   try {
     if (item.type === 'create_full') {
       const draft = await getDraft(item.localDraftId);
@@ -33,6 +33,7 @@ async function processItem(item: QueueItem): Promise<boolean> {
       const reportId = await submitReport({
         formValues: draft.data as unknown as SubmitReportPayload['formValues'],
         technicianId: draft.data.technician_id,
+        teamId,
         localDraftId: item.localDraftId,
         checklistAnswers: (blobs?.checklistAnswers ?? {}) as SubmitReportPayload['checklistAnswers'],
         attachments,
@@ -85,7 +86,7 @@ async function processItem(item: QueueItem): Promise<boolean> {
   }
 }
 
-export async function processQueue(): Promise<{ processed: number; failed: number }> {
+export async function processQueue(teamId: string): Promise<{ processed: number; failed: number }> {
   const items = await getAllQueueItems();
   let processed = 0;
   let failed = 0;
@@ -99,7 +100,7 @@ export async function processQueue(): Promise<{ processed: number; failed: numbe
     }
 
     await updateDraftStatus(item.localDraftId, 'syncing');
-    const success = await processItem(item);
+    const success = await processItem(item, teamId);
 
     if (success) {
       await dequeue(item.id!);

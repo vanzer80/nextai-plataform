@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { ArrowLeft, Package, MapPin, Wrench, Upload, Loader2, Sparkles } from 'lucide-react';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { useTenant } from '@/src/contexts/TenantContext';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
 import { withTimeout } from '@/src/lib/withTimeout';
@@ -40,6 +41,7 @@ export default function NewMaterialRequest() {
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
   const { user } = useAuth();
+  const { tenant } = useTenant();
 
   const [step, setStep] = useState<'capture' | 'form'>(isEditMode ? 'form' : 'capture');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -174,14 +176,13 @@ export default function NewMaterialRequest() {
       if (foto) {
         toast.loading('Enviando foto...', { id: toastId });
         const ext = foto.name.split('.').pop();
-        const path = `${user.id}/${Date.now()}.${ext}`;
+        const path = `${tenant?.id ?? user.id}/materials/${user.id}/${Date.now()}.${ext}`;
         const { error: uploadError } = await withTimeout(
           supabase.storage.from('materials_media').upload(path, foto),
           30000
         ) as { data: unknown; error: { message: string } | null };
         if (uploadError) throw new Error('Erro no upload da foto: ' + uploadError.message);
-        const { data: pub } = supabase.storage.from('materials_media').getPublicUrl(path);
-        foto_url = pub.publicUrl;
+        foto_url = path;
       }
 
       const payload = {
