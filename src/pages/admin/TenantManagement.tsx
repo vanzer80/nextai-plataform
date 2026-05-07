@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useTenant } from '@/src/contexts/TenantContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -42,6 +44,7 @@ interface TenantRow {
 }
 
 export default function TenantManagement() {
+  const { tenant, loading: tenantLoading } = useTenant();
   const [tenants, setTenants] = useState<TenantRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -132,6 +135,10 @@ export default function TenantManagement() {
       setIsBackfilling(false);
     }
   };
+
+  if (!tenantLoading && !tenant?.isPlatform) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div className="flex flex-col gap-6 h-full w-full max-w-7xl mx-auto pb-6">

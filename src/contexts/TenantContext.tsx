@@ -8,6 +8,7 @@ export interface TenantData {
   name: string;
   logoUrl: string | null;
   primaryColor: string;
+  isPlatform: boolean;
 }
 
 interface TenantContextType {
@@ -36,7 +37,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     supabase
       .from('tenants')
-      .select('id, slug, name, logo_url, primary_color')
+      .select('id, slug, name, logo_url, primary_color, is_platform')
       .eq('id', user.team_id)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -50,6 +51,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             name: data.name,
             logoUrl: data.logo_url,
             primaryColor: data.primary_color,
+            isPlatform: data.is_platform ?? false,
           });
         }
         setLoading(false);

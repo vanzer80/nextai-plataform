@@ -26,7 +26,7 @@ Deno.serve(async (req: Request) => {
   const anonKey    = Deno.env.get("SUPABASE_ANON_KEY")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-  // 1. Validate caller JWT
+  // 1. Validar JWT do caller
   const callerClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
     auth: { autoRefreshToken: false, persistSession: false },
@@ -35,17 +35,31 @@ Deno.serve(async (req: Request) => {
   const { data: { user: caller }, error: authErr } = await callerClient.auth.getUser();
   if (authErr || !caller) return json({ error: "Token inválido." }, 401);
 
-  // 2. Only Master can provision tenants
+  // 2. Verificar role Master
   const { data: profile, error: profileErr } = await callerClient
     .from("users")
-    .select("role")
+    .select("role, team_id")
     .eq("id", caller.id)
     .maybeSingle();
 
   if (profileErr || !profile) return json({ error: "Perfil não encontrado." }, 401);
   if (profile.role !== "Master") return json({ error: "Permissão negada. Apenas Master pode criar tenants." }, 403);
 
-  // 3. Parse + validate body
+  // 3. Verificar que o caller pertence ao tenant plataforma (is_platform = true)
+  const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const { data: callerTenant, error: tenantCheckErr } = await supabaseAdmin
+    .from("tenants")
+    .select("is_platform")
+    .eq("id", profile.team_id)
+    .maybeSingle();
+
+  if (tenantCheckErr || !callerTenant) return json({ error: "Tenant do caller não encontrado." }, 403);
+  if (!callerTenant.is_platform) return json({ error: "Permissão negada. Apenas usuários do tenant plataforma podem criar tenants." }, 403);
+
+  // 4. Parse + validar body
   let body: {
     tenant?: { name?: string; slug?: string; primary_color?: string };
     admin?: { email?: string; password?: string; full_name?: string };
@@ -71,11 +85,7 @@ Deno.serve(async (req: Request) => {
   if (admin.password.length < 8)
     return json({ error: "admin.password deve ter pelo menos 8 caracteres." }, 400);
 
-  const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-
-  // 4. Check slug uniqueness
+  // 5. Verificar unicidade do slug
   const { data: existing } = await supabaseAdmin
     .from("tenants")
     .select("id")
@@ -84,7 +94,7 @@ Deno.serve(async (req: Request) => {
 
   if (existing) return json({ error: `Slug "${tenant.slug}" já está em uso.` }, 409);
 
-  // 5. Create tenant row
+  // 6. Criar tenant
   const { data: newTenant, error: tenantErr } = await supabaseAdmin
     .from("tenants")
     .insert({ name: tenant.name.trim(), slug: tenant.slug, primary_color: primaryColor })
@@ -96,7 +106,7 @@ Deno.serve(async (req: Request) => {
 
   const tenantId = newTenant.id;
 
-  // 6. Create auth user — on failure, rollback tenant row
+  // 7. Criar auth user — em caso de falha, faz rollback do tenant
   const { data: newUser, error: userErr } = await supabaseAdmin.auth.admin.createUser({
     email: admin.email,
     password: admin.password,
@@ -109,7 +119,7 @@ Deno.serve(async (req: Request) => {
     return json({ error: `Erro ao criar usuário: ${userErr?.message ?? "falha no Auth"}` }, 400);
   }
 
-  // 7. Wait for handle_new_user trigger then set role + team_id
+  // 8. Aguardar trigger handle_new_user e atualizar role + team_id
   await new Promise(resolve => setTimeout(resolve, 2000));
 
   const { error: updateErr } = await supabaseAdmin

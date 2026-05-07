@@ -24,6 +24,7 @@ import { useTheme } from 'next-themes';
 
 import { supabase } from '@/src/lib/supabase';
 import { useAuth, type AuthUser } from '@/src/contexts/AuthContext';
+import { useTenant } from '@/src/contexts/TenantContext';
 import { useOfflineSync } from '@/src/hooks/useOfflineSync';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet';
@@ -282,14 +283,17 @@ function NotificationsDropdown({ notifications, unreadCount, onMarkAsRead }: Not
 // ─── AppLayout ────────────────────────────────────────────────────────────────
 export default function AppLayout() {
   const { user, signOut } = useAuth();
+  const { tenant } = useTenant();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { isOnline, isSyncing, pendingCount } = useOfflineSync();
 
   const userRole = user?.role || 'Tecnico';
-  const authorizedLinks = NAV_LINKS.filter(link =>
-    link.roles.some(allowedRole => allowedRole.toLowerCase() === userRole.toLowerCase())
-  );
+  const authorizedLinks = NAV_LINKS.filter(link => {
+    if (!link.roles.some(r => r.toLowerCase() === userRole.toLowerCase())) return false;
+    if (link.path === '/admin/tenants' && !tenant?.isPlatform) return false;
+    return true;
+  });
 
   const handleSignOut = async () => {
     await signOut();
