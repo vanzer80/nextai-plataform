@@ -396,9 +396,15 @@ export default function AppLayout() {
       {/* DESKTOP SIDEBAR (Hidden on mobile) */}
       <aside className="hidden lg:flex w-[260px] flex-col bg-sidebar text-sidebar-foreground shrink-0 border-r border-sidebar-border z-50">
         <div className="flex items-center px-6 py-6 h-[80px]">
-          <div className="text-2xl font-extrabold tracking-tight">
-            PORTAL<span className="text-primary">MOPAR</span>
-          </div>
+          {tenant?.isPlatform ? (
+            <div className="text-2xl font-extrabold tracking-tight text-sidebar-foreground">
+              Next<span className="opacity-50">AI</span>
+            </div>
+          ) : (
+            <div className="text-2xl font-extrabold tracking-tight">
+              PORTAL<span className="text-primary">MOPAR</span>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
@@ -417,9 +423,15 @@ export default function AppLayout() {
 
       {/* MOBILE TOP HEADER */}
       <header className="lg:hidden fixed top-0 w-full h-[64px] bg-sidebar text-sidebar-foreground z-40 flex items-center justify-between px-4 border-b border-sidebar-border">
-        <div className="text-xl font-extrabold tracking-tight">
-          P<span className="text-primary">MOPAR</span>
-        </div>
+        {tenant?.isPlatform ? (
+          <div className="text-xl font-extrabold tracking-tight text-sidebar-foreground">
+            NextAI
+          </div>
+        ) : (
+          <div className="text-xl font-extrabold tracking-tight">
+            P<span className="text-primary">MOPAR</span>
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
           {/* Mobile Profile & Notifications in TopBar */}

@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useTenant } from '@/src/contexts/TenantContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Plus, Globe, Loader2, Palette, HardDrive, CheckCircle2, AlertTriangle } from 'lucide-react';
+import {
+  Plus, Globe, Loader2, Palette, HardDrive,
+  CheckCircle2, AlertTriangle, Pencil, Image as ImageIcon,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
 import { format } from 'date-fns';
@@ -23,44 +26,133 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 
+// ── Schemas ───────────────────────────────────────────────────────────────────
+
 const tenantSchema = z.object({
   tenant_name:    z.string().min(3, 'Nome deve ter no mínimo 3 caracteres').max(100),
   tenant_slug:    z.string().regex(/^[a-z][a-z0-9-]{2,49}$/, 'Apenas lowercase, letras/números/hífens, 3–50 chars, deve iniciar com letra'),
-  primary_color:  z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#0066CC'),
+  primary_color:  z.string().regex(/^#[0-9a-fA-F]{6}$/),
   admin_name:     z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
   admin_email:    z.string().email('E-mail inválido'),
   admin_password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres'),
 });
-
 type TenantFormValues = z.infer<typeof tenantSchema>;
+
+const editTenantSchema = z.object({
+  tenant_name:   z.string().min(3, 'Nome deve ter no mínimo 3 caracteres').max(100),
+  primary_color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+});
+type EditTenantFormValues = z.infer<typeof editTenantSchema>;
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface TenantRow {
   id: string;
   name: string;
   slug: string;
   primary_color: string;
+  logo_url: string | null;
   created_at: string;
   users: { count: number }[];
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const MAX_LOGO_SIZE = 2 * 1024 * 1024;
+const LOGO_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+async function uploadLogo(file: File, slug: string): Promise<string> {
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+  const path = `${slug}/logo.${ext}`;
+  const { error } = await supabase.storage
+    .from('tenant-assets')
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw new Error(`Erro ao fazer upload do logo: ${error.message}`);
+  const { data } = supabase.storage.from('tenant-assets').getPublicUrl(path);
+  return data.publicUrl;
+}
+
+function validateLogoFile(file: File): string | null {
+  if (!LOGO_MIME_TYPES.includes(file.type)) return 'Use PNG, JPEG ou WebP.';
+  if (file.size > MAX_LOGO_SIZE) return 'Arquivo muito grande. Máximo 2 MB.';
+  return null;
+}
+
+// ── LogoPreview ───────────────────────────────────────────────────────────────
+
+function LogoPreview({ previewUrl }: { previewUrl: string | null }) {
+  return previewUrl ? (
+    <img
+      src={previewUrl}
+      alt="Logo preview"
+      className="h-10 w-10 rounded-lg object-cover border border-border shrink-0"
+    />
+  ) : (
+    <div className="h-10 w-10 rounded-lg border border-dashed border-border flex items-center justify-center bg-muted shrink-0">
+      <ImageIcon className="h-4 w-4 text-muted-foreground" />
+    </div>
+  );
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function TenantManagement() {
   const { tenant, loading: tenantLoading } = useTenant();
+
+  // List
   const [tenants, setTenants] = useState<TenantRow[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Create dialog
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createLogoFile, setCreateLogoFile] = useState<File | null>(null);
+  const [createLogoPreview, setCreateLogoPreview] = useState<string | null>(null);
+  const createLogoInputRef = useRef<HTMLInputElement>(null);
+
+  // Edit dialog
+  const [editingTenant, setEditingTenant] = useState<TenantRow | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+  const [editLogoFile, setEditLogoFile] = useState<File | null>(null);
+  const [editLogoPreview, setEditLogoPreview] = useState<string | null>(null);
+  const editLogoInputRef = useRef<HTMLInputElement>(null);
+
+  // Backfill
   const [isBackfilling, setIsBackfilling] = useState(false);
-  const [backfillResult, setBackfillResult] = useState<{ success: boolean; summary: { totalMoved: number; totalFailed: number }; db: Record<string, number> } | null>(null);
+  const [backfillResult, setBackfillResult] = useState<{
+    success: boolean;
+    summary: { totalMoved: number; totalFailed: number };
+    db: Record<string, number>;
+  } | null>(null);
   const [showBackfillConfirm, setShowBackfillConfirm] = useState(false);
+
+  // Create form
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<TenantFormValues>({
+    resolver: zodResolver(tenantSchema),
+    defaultValues: {
+      tenant_name: '', tenant_slug: '', primary_color: '#0066CC',
+      admin_name: '', admin_email: '', admin_password: '',
+    },
+  });
+  const colorValue = watch('primary_color');
+
+  // Edit form
+  const editForm = useForm<EditTenantFormValues>({
+    resolver: zodResolver(editTenantSchema),
+    defaultValues: { tenant_name: '', primary_color: '#0066CC' },
+  });
+  const editColorValue = editForm.watch('primary_color');
+
+  // ── Data ──────────────────────────────────────────────────────────────────
 
   const fetchTenants = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('tenants')
-        .select('id, name, slug, primary_color, created_at, users!users_team_id_fkey(count)')
+        .select('id, name, slug, primary_color, logo_url, created_at, users!users_team_id_fkey(count)')
         .order('created_at', { ascending: false });
-
       if (error) throw error;
       setTenants((data ?? []) as TenantRow[]);
     } catch (err: any) {
@@ -72,23 +164,71 @@ export default function TenantManagement() {
 
   useEffect(() => { fetchTenants(); }, []);
 
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<TenantFormValues>({
-    resolver: zodResolver(tenantSchema),
-    defaultValues: {
-      tenant_name: '', tenant_slug: '', primary_color: '#0066CC',
-      admin_name: '', admin_email: '', admin_password: '',
-    },
-  });
+  // ── Logo handlers ─────────────────────────────────────────────────────────
 
-  const colorValue = watch('primary_color');
+  const handleCreateLogoSelect = (file: File | undefined) => {
+    if (!file) return;
+    const err = validateLogoFile(file);
+    if (err) { toast.error('Arquivo inválido', { description: err }); return; }
+    if (createLogoPreview) URL.revokeObjectURL(createLogoPreview);
+    setCreateLogoFile(file);
+    setCreateLogoPreview(URL.createObjectURL(file));
+  };
+
+  const handleEditLogoSelect = (file: File | undefined) => {
+    if (!file) return;
+    const err = validateLogoFile(file);
+    if (err) { toast.error('Arquivo inválido', { description: err }); return; }
+    if (editLogoPreview?.startsWith('blob:')) URL.revokeObjectURL(editLogoPreview);
+    setEditLogoFile(file);
+    setEditLogoPreview(URL.createObjectURL(file));
+  };
+
+  // ── Dialog lifecycle ──────────────────────────────────────────────────────
+
+  const closeCreateDialog = () => {
+    setIsDialogOpen(false);
+    reset();
+    setCreateLogoFile(null);
+    if (createLogoPreview) URL.revokeObjectURL(createLogoPreview);
+    setCreateLogoPreview(null);
+  };
+
+  const openEditDialog = (t: TenantRow) => {
+    setEditingTenant(t);
+    editForm.reset({ tenant_name: t.name, primary_color: t.primary_color });
+    setEditLogoFile(null);
+    setEditLogoPreview(t.logo_url);
+    setIsEditOpen(true);
+  };
+
+  const closeEditDialog = () => {
+    setIsEditOpen(false);
+    setEditingTenant(null);
+    setEditLogoFile(null);
+    if (editLogoPreview?.startsWith('blob:')) URL.revokeObjectURL(editLogoPreview);
+    setEditLogoPreview(null);
+  };
+
+  // ── Submit handlers ───────────────────────────────────────────────────────
 
   const onSubmit = async (data: TenantFormValues) => {
     setIsSubmitting(true);
     try {
+      let logoUrl: string | null = null;
+      if (createLogoFile) {
+        logoUrl = await uploadLogo(createLogoFile, data.tenant_slug);
+      }
+
       const { data: result, error } = await supabase.functions.invoke('admin-provision-tenant', {
         body: {
-          tenant: { name: data.tenant_name, slug: data.tenant_slug, primary_color: data.primary_color },
-          admin:  { full_name: data.admin_name, email: data.admin_email, password: data.admin_password },
+          tenant: {
+            name: data.tenant_name,
+            slug: data.tenant_slug,
+            primary_color: data.primary_color,
+            logo_url: logoUrl,
+          },
+          admin: { full_name: data.admin_name, email: data.admin_email, password: data.admin_password },
         },
       });
 
@@ -103,14 +243,45 @@ export default function TenantManagement() {
         });
       }
       fetchTenants();
-      setIsDialogOpen(false);
-      reset();
+      closeCreateDialog();
     } catch (err: any) {
       toast.error('Erro ao provisionar tenant', { description: err.message });
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const onEditSubmit = async (data: EditTenantFormValues) => {
+    if (!editingTenant) return;
+    setIsEditSubmitting(true);
+    try {
+      const updates: { name: string; primary_color: string; logo_url?: string } = {
+        name: data.tenant_name,
+        primary_color: data.primary_color,
+      };
+
+      if (editLogoFile) {
+        updates.logo_url = await uploadLogo(editLogoFile, editingTenant.slug);
+      }
+
+      const { error } = await supabase
+        .from('tenants')
+        .update(updates)
+        .eq('id', editingTenant.id);
+
+      if (error) throw error;
+
+      toast.success('Tenant atualizado!', { description: `"${data.tenant_name}" salvo com sucesso.` });
+      closeEditDialog();
+      fetchTenants();
+    } catch (err: any) {
+      toast.error('Erro ao atualizar tenant', { description: err.message });
+    } finally {
+      setIsEditSubmitting(false);
+    }
+  };
+
+  // ── Backfill ──────────────────────────────────────────────────────────────
 
   const runBackfill = async () => {
     setShowBackfillConfirm(false);
@@ -136,9 +307,13 @@ export default function TenantManagement() {
     }
   };
 
+  // ── Guard ─────────────────────────────────────────────────────────────────
+
   if (!tenantLoading && !tenant?.isPlatform) {
     return <Navigate to="/dashboard" replace />;
   }
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col gap-6 h-full w-full max-w-7xl mx-auto pb-6">
@@ -151,7 +326,11 @@ export default function TenantManagement() {
           <p className="text-sm text-muted-foreground">Gerencie as empresas clientes do portal.</p>
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        {/* ── Create Dialog ── */}
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(open) => { if (!open) closeCreateDialog(); else setIsDialogOpen(true); }}
+        >
           <DialogTrigger className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm font-semibold h-11 px-6 rounded-xl w-full sm:w-auto transition-colors disabled:pointer-events-none disabled:opacity-50">
             <Plus className="h-5 w-5 mr-1 -ml-1" />
             Novo Tenant
@@ -167,8 +346,6 @@ export default function TenantManagement() {
 
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="p-6 space-y-5">
-
-                {/* Tenant info */}
                 <div className="space-y-1">
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Empresa</p>
                 </div>
@@ -179,12 +356,43 @@ export default function TenantManagement() {
                     <Input placeholder="Ex: ACME Engenharia" className="h-11 rounded-lg" {...register('tenant_name')} />
                     {errors.tenant_name && <p className="text-xs text-destructive font-medium">{errors.tenant_name.message}</p>}
                   </div>
+
+                  {/* Logo — antes da cor primária */}
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4" /> Logo (opcional)
+                    </Label>
+                    <div className="flex items-center gap-3">
+                      <LogoPreview previewUrl={createLogoPreview} />
+                      <div className="flex-1">
+                        <input
+                          ref={createLogoInputRef}
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          className="hidden"
+                          onChange={(e) => handleCreateLogoSelect(e.target.files?.[0])}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-9 rounded-lg text-xs font-semibold"
+                          onClick={() => createLogoInputRef.current?.click()}
+                        >
+                          {createLogoPreview ? 'Trocar imagem' : 'Selecionar imagem'}
+                        </Button>
+                        <p className="text-xs text-muted-foreground mt-1">PNG, JPEG ou WebP · máx. 2 MB</p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="space-y-1">
                     <Label className="text-sm font-semibold text-foreground">Slug</Label>
                     <Input placeholder="acme-eng" className="h-11 rounded-lg font-mono" {...register('tenant_slug')} />
                     {errors.tenant_slug && <p className="text-xs text-destructive font-medium">{errors.tenant_slug.message}</p>}
                     <p className="text-xs text-muted-foreground">Identificador único: lowercase, hífens, sem espaços.</p>
                   </div>
+
                   <div className="space-y-1">
                     <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
                       <Palette className="h-4 w-4" /> Cor primária
@@ -227,11 +435,10 @@ export default function TenantManagement() {
                     {errors.admin_password && <p className="text-xs text-destructive font-medium">{errors.admin_password.message}</p>}
                   </div>
                 </div>
-
               </div>
 
               <DialogFooter className="p-6 pt-4 border-t border-border bg-muted/40 sm:justify-end gap-2">
-                <Button type="button" variant="outline" className="rounded-lg h-11 font-semibold" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>
+                <Button type="button" variant="outline" className="rounded-lg h-11 font-semibold" onClick={closeCreateDialog} disabled={isSubmitting}>
                   Cancelar
                 </Button>
                 <Button type="submit" className="rounded-lg h-11 font-semibold" disabled={isSubmitting}>
@@ -244,6 +451,7 @@ export default function TenantManagement() {
         </Dialog>
       </div>
 
+      {/* ── Tenants table ── */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden min-h-[300px]">
         {loading ? (
           <div className="flex flex-col items-center justify-center p-12 text-muted-foreground h-64">
@@ -260,12 +468,20 @@ export default function TenantManagement() {
                   <TableHead className="font-semibold text-foreground">Cor</TableHead>
                   <TableHead className="font-semibold text-foreground text-center">Usuários</TableHead>
                   <TableHead className="font-semibold text-foreground">Criado em</TableHead>
+                  <TableHead className="w-12" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tenants.map((t) => (
                   <TableRow key={t.id} className="hover:bg-muted/50 transition-colors border-border">
-                    <TableCell className="font-semibold text-foreground text-sm">{t.name}</TableCell>
+                    <TableCell className="font-semibold text-foreground text-sm">
+                      <div className="flex items-center gap-2">
+                        {t.logo_url && (
+                          <img src={t.logo_url} alt={t.name} className="h-6 w-6 rounded object-cover shrink-0" />
+                        )}
+                        {t.name}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="font-mono text-xs">{t.slug}</Badge>
                     </TableCell>
@@ -284,11 +500,21 @@ export default function TenantManagement() {
                     <TableCell className="text-muted-foreground text-sm">
                       {format(new Date(t.created_at), "dd MMM yyyy", { locale: ptBR })}
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg"
+                        onClick={() => openEditDialog(t)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {tenants.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground font-medium">
+                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground font-medium">
                       Nenhum tenant encontrado.
                     </TableCell>
                   </TableRow>
@@ -299,7 +525,108 @@ export default function TenantManagement() {
         )}
       </div>
 
-      {/* Manutenção: backfill de storage (NextIA Fase 4) */}
+      {/* ── Edit Dialog ── */}
+      <Dialog open={isEditOpen} onOpenChange={(open) => { if (!open) closeEditDialog(); }}>
+        <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden rounded-2xl">
+          <DialogHeader className="p-6 pb-2 border-b border-border bg-muted/40">
+            <DialogTitle className="text-xl font-bold text-foreground">Editar Tenant</DialogTitle>
+            <DialogDescription>
+              Altere os metadados visuais da empresa. O slug não pode ser modificado.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={editForm.handleSubmit(onEditSubmit)}>
+            <div className="p-6 space-y-5">
+
+              <div className="space-y-1">
+                <Label className="text-sm font-semibold text-foreground">Nome da empresa</Label>
+                <Input
+                  placeholder="Ex: ACME Engenharia"
+                  className="h-11 rounded-lg"
+                  {...editForm.register('tenant_name')}
+                />
+                {editForm.formState.errors.tenant_name && (
+                  <p className="text-xs text-destructive font-medium">
+                    {editForm.formState.errors.tenant_name.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-sm font-semibold text-foreground">Slug</Label>
+                <Input
+                  value={editingTenant?.slug ?? ''}
+                  disabled
+                  className="h-11 rounded-lg font-mono"
+                  title="O slug não pode ser alterado após a criação"
+                  onChange={() => {}}
+                />
+                <p className="text-xs text-muted-foreground">O slug não pode ser alterado após a criação.</p>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4" /> Logo (opcional)
+                </Label>
+                <div className="flex items-center gap-3">
+                  <LogoPreview previewUrl={editLogoPreview} />
+                  <div className="flex-1">
+                    <input
+                      ref={editLogoInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="hidden"
+                      onChange={(e) => handleEditLogoSelect(e.target.files?.[0])}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-9 rounded-lg text-xs font-semibold"
+                      onClick={() => editLogoInputRef.current?.click()}
+                    >
+                      {editLogoPreview ? 'Trocar imagem' : 'Selecionar imagem'}
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-1">PNG, JPEG ou WebP · máx. 2 MB</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Palette className="h-4 w-4" /> Cor primária
+                </Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    className="h-11 w-14 rounded-lg cursor-pointer border border-input bg-background p-1"
+                    {...editForm.register('primary_color')}
+                  />
+                  <Input
+                    placeholder="#0066CC"
+                    className="h-11 rounded-lg font-mono flex-1"
+                    value={editColorValue}
+                    {...editForm.register('primary_color')}
+                  />
+                </div>
+              </div>
+
+            </div>
+
+            <DialogFooter className="p-6 pt-4 border-t border-border bg-muted/40 sm:justify-end gap-2">
+              <Button type="button" variant="outline" className="rounded-lg h-11 font-semibold" onClick={closeEditDialog} disabled={isEditSubmitting}>
+                Cancelar
+              </Button>
+              <Button type="submit" className="rounded-lg h-11 font-semibold" disabled={isEditSubmitting}>
+                {isEditSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Salvar Alterações
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Backfill de Storage ── */}
       <div className="bg-card border border-border rounded-xl shadow-sm p-5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
@@ -316,7 +643,7 @@ export default function TenantManagement() {
                     : <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0" />}
                   <span className="text-xs font-medium text-foreground">
                     {backfillResult.summary.totalMoved} movidos · {backfillResult.summary.totalFailed} falhas ·
-                    DB: {Object.values(backfillResult.db).reduce((a, b) => a + b, 0)} linhas atualizadas
+                    DB: {(Object.values(backfillResult.db) as number[]).reduce((a, b) => a + b, 0)} linhas atualizadas
                   </span>
                 </div>
               )}

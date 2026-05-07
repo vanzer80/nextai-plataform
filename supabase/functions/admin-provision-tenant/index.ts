@@ -61,7 +61,7 @@ Deno.serve(async (req: Request) => {
 
   // 4. Parse + validar body
   let body: {
-    tenant?: { name?: string; slug?: string; primary_color?: string };
+    tenant?: { name?: string; slug?: string; primary_color?: string; logo_url?: string | null };
     admin?: { email?: string; password?: string; full_name?: string };
   };
   try { body = await req.json(); }
@@ -97,7 +97,7 @@ Deno.serve(async (req: Request) => {
   // 6. Criar tenant
   const { data: newTenant, error: tenantErr } = await supabaseAdmin
     .from("tenants")
-    .insert({ name: tenant.name.trim(), slug: tenant.slug, primary_color: primaryColor })
+    .insert({ name: tenant.name.trim(), slug: tenant.slug, primary_color: primaryColor, logo_url: tenant.logo_url ?? null })
     .select("id")
     .single();
 
