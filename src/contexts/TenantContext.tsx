@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { applyTenantBrand } from '@/src/lib/color';
 
 export interface TenantData {
   id: string;
@@ -28,6 +29,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
     if (!user?.team_id) {
       setTenant(null);
+      applyTenantBrand(null);
       setLoading(false);
       return;
     }
@@ -53,6 +55,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             primaryColor: data.primary_color,
             isPlatform: data.is_platform ?? false,
           });
+          applyTenantBrand(data.primary_color);
         }
         setLoading(false);
       });

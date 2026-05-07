@@ -1,4 +1,6 @@
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { useTenant } from '@/src/contexts/TenantContext';
 import { getWidgetIds } from './dashboardConfig';
 import { useDashboardData } from './useDashboardData';
 import { ReportsKpiWidget } from './widgets/ReportsKpiWidget';
@@ -12,6 +14,7 @@ import type { WidgetId } from './widgetRegistry';
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { tenant } = useTenant();
 
   // Always compute widgetIds (no early return before hooks)
   const widgetIds = (user?.setup_pending ? [] : getWidgetIds(user?.role)) as WidgetId[];
@@ -19,6 +22,9 @@ export default function Dashboard() {
   const { isTeamReports, isTeamFinance } = data;
 
   const has = (id: WidgetId) => widgetIds.includes(id);
+
+  // Usuários da plataforma não têm dados operacionais — ir direto para gestão
+  if (tenant?.isPlatform) return <Navigate to="/admin/tenants" replace />;
 
   if (user?.setup_pending) {
     return (
