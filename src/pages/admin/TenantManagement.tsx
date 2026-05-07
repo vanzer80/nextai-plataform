@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Plus, Globe, Loader2, Palette } from 'lucide-react';
+import { Plus, Globe, Loader2, Palette, HardDrive, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
 import { format } from 'date-fns';
@@ -46,6 +46,9 @@ export default function TenantManagement() {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isBackfilling, setIsBackfilling] = useState(false);
+  const [backfillResult, setBackfillResult] = useState<{ success: boolean; summary: { totalMoved: number; totalFailed: number }; db: Record<string, number> } | null>(null);
+  const [showBackfillConfirm, setShowBackfillConfirm] = useState(false);
 
   const fetchTenants = async () => {
     try {
@@ -103,6 +106,30 @@ export default function TenantManagement() {
       toast.error('Erro ao provisionar tenant', { description: err.message });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const runBackfill = async () => {
+    setShowBackfillConfirm(false);
+    setIsBackfilling(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke('storage-backfill-mopar');
+      if (error) throw new Error(error.message);
+      if (result?.error) throw new Error(result.error);
+      setBackfillResult(result);
+      if (result.success) {
+        toast.success('Backfill concluído!', {
+          description: `${result.summary.totalMoved} objetos movidos. DB atualizado.`,
+        });
+      } else {
+        toast.warning('Backfill parcial', {
+          description: `${result.summary.totalMoved} movidos, ${result.summary.totalFailed} falhas.`,
+        });
+      }
+    } catch (err: any) {
+      toast.error('Erro no backfill', { description: err.message });
+    } finally {
+      setIsBackfilling(false);
     }
   };
 
@@ -263,6 +290,55 @@ export default function TenantManagement() {
             </Table>
           </div>
         )}
+      </div>
+
+      {/* Manutenção: backfill de storage (NextIA Fase 4) */}
+      <div className="bg-card border border-border rounded-xl shadow-sm p-5">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <HardDrive className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold text-sm text-foreground">Backfill de Storage — Mopar</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Move objetos legados para paths namespaceados por tenant e atualiza as colunas de URL no banco. Operação idempotente.
+              </p>
+              {backfillResult && (
+                <div className="mt-2 flex items-center gap-2">
+                  {backfillResult.success
+                    ? <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                    : <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0" />}
+                  <span className="text-xs font-medium text-foreground">
+                    {backfillResult.summary.totalMoved} movidos · {backfillResult.summary.totalFailed} falhas ·
+                    DB: {Object.values(backfillResult.db).reduce((a, b) => a + b, 0)} linhas atualizadas
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {showBackfillConfirm ? (
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs text-muted-foreground">Confirmar?</span>
+              <Button size="sm" variant="destructive" className="h-8 rounded-lg text-xs font-semibold" onClick={runBackfill} disabled={isBackfilling}>
+                {isBackfilling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Sim, executar'}
+              </Button>
+              <Button size="sm" variant="outline" className="h-8 rounded-lg text-xs" onClick={() => setShowBackfillConfirm(false)} disabled={isBackfilling}>
+                Cancelar
+              </Button>
+            </div>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 rounded-lg text-xs font-semibold shrink-0"
+              onClick={() => setShowBackfillConfirm(true)}
+              disabled={isBackfilling}
+            >
+              {isBackfilling ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <HardDrive className="h-3.5 w-3.5 mr-1.5" />}
+              Executar Backfill
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
