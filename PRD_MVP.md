@@ -555,30 +555,39 @@ Classificação: 🔴 Crítico · 🟡 Importante · 🟢 Melhoria
 
 | Fase / Sprint | Foco | Status |
 |---------------|------|--------|
-| **Fase 10 — Fundação multi-tenant** | Tabela `tenants`, `team_id`, provisioning, branding OKLCH | 🔄 Em andamento (Sessões 31–39) |
-| **Fase 10.1 — Isolamento de dados** | `team_id` em 9 tabelas + RLS completo + RPCs | ⏳ Pendente |
-| **Sprint 11** | Offline-first — IndexedDB + Background Sync | ⏳ Bloqueado por Fase 10 (`tenant.slug` nomeia o banco local) |
+| **Fase 10 — Fundação multi-tenant** | Tabela `tenants`, `team_id`, provisioning, branding OKLCH | ✅ Concluída (Sessões 31–32 + 37–39) |
+| **Fase 10.1 — Isolamento de dados** | `team_id` em 8 tabelas + RLS RESTRICTIVE + RPCs | ✅ Concluída (Sessão 33) |
+| **Fase 10.2 — Branding dinâmico** | `TenantContext` + IndexedDB slug + OKLCH vars | ✅ Concluída (Sessão 34) |
+| **Fase 10.3 — Onboarding + storage** | `admin-provision-tenant` EF + storage isolation | ✅ Concluída (Sessão 35) |
+| **Fase 10.4 — Storage backfill** | Backfill 43 objetos legados + drop policies legacy | ✅ Concluída (Sessão 36) |
+| **Sprint 11** | Offline-first — Background Sync + indicador de conectividade | ⏳ Pendente |
 | **Sprint 12** | Notificações email/WhatsApp (Resend + Evolution API) | ⏳ Pendente |
 | **Sprint 13** | PDF server-side (Edge Function) para orçamentos e relatórios | ⏳ Pendente |
 | **Sprint 14** | Auditoria / LGPD | ⏳ Pendente |
 
-### Fase 10 — Estado atual
+### Fase 10 — Estado atual (Sessões 31–39)
 
-- [x] Tabela `tenants` criada + Mopar inserido como primeiro tenant
-- [x] `users.team_id` backfillado + FK adicionada
-- [x] `get_caller_team_id()` criada
-- [x] `notify_compradores` corrigida (R-02 — vazamento cross-tenant)
-- [x] `is_platform` flag + tenant NextAI provisionado (slug: `nextai`, cor: `#6366F1`)
-- [x] SuperMaster `nextai@gmail.com` criado
-- [x] `TenantContext` + redirect plataforma → `/admin/tenants`
-- [x] Branding dinâmico OKLCH (`src/lib/color.ts` + `applyTenantBrand`)
-- [x] Bucket `tenant-assets` + 3 policies RLS
-- [x] Upload de logo no form de criação de tenant
-- [x] Dialog de edição de tenant (name, cor, logo — slug imutável)
-- [ ] `handle_new_user` trigger propagar `team_id` automaticamente
-- [ ] `admin-create-user` Edge Function aceitar e persistir `team_id`
-- [ ] `team_id` em `notifications` + backfill
-- [ ] ADD COLUMN `team_id` nas 9 tabelas restantes + RLS completo
+- [x] Tabela `tenants` criada + Mopar inserido como primeiro tenant (s31)
+- [x] `users.team_id` backfillado + FK adicionada (s31)
+- [x] `get_caller_team_id()` criada (s31)
+- [x] `notify_compradores` corrigida (R-02 — vazamento cross-tenant) (s31)
+- [x] `handle_new_user` trigger corrigido — propaga `team_id` para novos usuários (s32)
+- [x] `admin-create-user` Edge Function v4 aceita e persiste `team_id` (s32)
+- [x] `team_id` em `notifications` + backfill (s32)
+- [x] ADD COLUMN `team_id` em 8 tabelas de domínio + backfill (s33)
+- [x] Políticas RLS RESTRICTIVE com `team_id = get_caller_team_id()` em todas as tabelas (s33)
+- [x] 5 RPCs SECURITY DEFINER atualizadas com `get_caller_team_id()` check (s33)
+- [x] `TenantContext` + `useTenant()` wiring em AppLayout/Login/PDFs (s34)
+- [x] IndexedDB `${tenant.slug}-reports` — namespacing por tenant (s34)
+- [x] `is_platform` flag + tenant NextAI provisionado (slug: `nextai`, cor: `#6366F1`) (s37)
+- [x] SuperMaster `nextai@gmail.com` criado (s37)
+- [x] Redirect plataforma → `/admin/tenants` (guard em `Dashboard.tsx`) (s38)
+- [x] Branding dinâmico OKLCH (`src/lib/color.ts` + `applyTenantBrand`) (s38)
+- [x] Bucket `tenant-assets` + 3 policies RLS (s39)
+- [x] Upload de logo no form de criação de tenant (s39)
+- [x] Dialog de edição de tenant (name, cor, logo — slug imutável) (s39)
+- [x] Edge Function `admin-provision-tenant` com suporte a `logo_url` (s39)
+- [x] Storage `service_reports_media`: paths `{teamId}/` + backfill 43 objetos legados (s35–s36)
 
 ---
 
