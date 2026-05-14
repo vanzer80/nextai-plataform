@@ -1,8 +1,8 @@
 # PRD — Portal Mopar · MVP
 
 > **Documento:** Product Requirements Document — estado real do MVP  
-> **Gerado em:** 2026-04-22 por varredura completa do repositório  
-> **Versão do código:** Sprints 1–10 + Auditoria Técnica completa  
+> **Gerado em:** 2026-04-22 · **Atualizado em:** 2026-05-13  
+> **Versão do código:** Sprints 1–10 + Sessões 31–39 (Multi-Tenancy / NextAI)  
 > **TypeScript:** `npx tsc --noEmit` → EXIT:0
 
 ---
@@ -21,6 +21,7 @@ O **Portal Mopar** é um sistema operacional web para equipes de manutenção, c
 - O **Dashboard** exibe KPIs em tempo real distintos por perfil: relatórios pendentes, reembolsos, produtividade semanal, ticket médio e taxa de aprovação.
 - **Notificações em tempo real** chegam via Supabase Realtime com sino e badge de não lidas.
 - O app é **instalável como PWA** (manifest + Service Worker) e possui base de operação offline parcial via IndexedDB.
+- O app funciona como **plataforma SaaS white-label** (NextAI): o SuperMaster provisiona novas empresas com branding dinâmico por cor primária (OKLCH), logo próprio e isolamento completo de dados por tenant.
 
 ### Público-alvo
 
@@ -68,6 +69,7 @@ O **Portal Mopar** é um sistema operacional web para equipes de manutenção, c
 | Clientes | Supervisor, Gestor, Admin, Master |
 | Checklists | Gestor, Admin, Master |
 | Administrador | Gestor, Admin, Master |
+| Tenants | Master (is_platform = true) |
 
 ### 2.3 Dashboard
 
@@ -226,6 +228,8 @@ rascunho → [técnico envia] → enviado → [gestor aprova] → aprovado
 - **Exclusão:** remove do Auth e da tabela `users`.
 - Acesso: Gestor, Admin, Master.
 
+**Nota:** Gerenciamento de tenants (criar/editar empresas na plataforma) é um módulo separado — ver §2.13. UserManagement gerencia usuários dentro de um tenant; TenantManagement gerencia os próprios tenants.
+
 ### 2.10 Assistente de IA
 
 **Edge Function `ai-proxy`** (Supabase) — nenhuma chave no bundle JS:
@@ -260,6 +264,30 @@ rascunho → [técnico envia] → enviado → [gestor aprova] → aprovado
 
 **Status:** instalado, aguardando credenciais reais em `tests/.env.test`.
 
+### 2.13 Multi-Tenancy / NextAI Platform
+
+Infraestrutura SaaS white-label implementada nas Sessões 31–39. Permite que uma única instância Supabase sirva múltiplas empresas com isolamento completo de dados, branding dinâmico e provisionamento self-service.
+
+**Tabela `tenants`:** `id`, `slug` (imutável, unique), `name`, `logo_url`, `primary_color`, `is_platform`.
+
+**Flag `is_platform`:** distingue SuperMaster de plataforma (NextAI, `is_platform = true`) de Master de cliente (`is_platform = false`). Guard em `Dashboard.tsx` redireciona `is_platform = true` para `/admin/tenants` imediatamente — SuperMaster nunca vê o dashboard operacional vazio.
+
+**`TenantContext` + `useTenant()`:** carrega o tenant do usuário logado via `team_id`; chama `applyTenantBrand()` após hydratação; chama `applyTenantBrand(null)` no logout para restaurar o tema padrão.
+
+**`src/lib/color.ts`:** `hexToOklch()` (matrizes OKLab oficiais de Björn Ottosson) + `applyTenantBrand()` injeta `<style id="tenant-brand">` no `<head>` com variáveis CSS `--primary`, `--ring`, `--sidebar-primary`, `--sidebar-ring` para light e dark. Preserva luminância do design system (0.52 light / 0.72 dark); chroma dark = 86% do light.
+
+**Bucket `tenant-assets`:** público, limite 2 MB, tipos PNG/JPEG/WebP. 3 policies em `storage.objects`: SELECT aberto (qualquer usuário lê logos), INSERT e UPDATE restritos a `role = Master AND is_platform = true`.
+
+**`TenantManagement.tsx`:** tabela de tenants com thumbnail 24×24 do logo; dialog de criação com campos slug, name, primary_color, logo (upload + preview 40×40); dialog de edição com name, primary_color, logo — slug desabilitado e imutável após criação; coluna Ações com botão Pencil por linha.
+
+**Edge Function `admin-provision-tenant`:** recebe `tenant{slug, name, primary_color, logo_url?}` + `master{email, password, full_name}`; cria tenant e usuário Master em transação única server-side. Upload do logo (se fornecido) ocorre antes da chamada à Edge Function — URL pública passada no body.
+
+**`get_caller_team_id()`:** RPC `STABLE SECURITY DEFINER` — helper usado pelas políticas RLS de isolamento; retorna `team_id` do usuário autenticado via `auth.uid()`.
+
+**`notify_compradores` (R-02):** corrigida em Sessão 31 para filtrar por `team_id` do caller — antes notificava Compradores de **todos** os tenants indiscriminadamente.
+
+**Acesso:** `TenantManagement` visível e acessível apenas para usuários com `role = Master` e `is_platform = true`.
+
 ---
 
 ## 3. Pilha Tecnológica
@@ -291,7 +319,10 @@ rascunho → [técnico envia] → enviado → [gestor aprova] → aprovado
 | **Row Level Security** | Isolamento por `auth.uid()` + `role` |
 | **Realtime** | `postgres_changes` em 6+ tabelas |
 | **Storage** | Bucket privado `service_reports_media` (fotos, assinaturas) |
+| **Storage** | Bucket público `tenant-assets` (logos de tenants) |
 | **Edge Functions** | `ai-proxy` — chamadas IA server-side |
+| **Edge Functions** | `admin-provision-tenant` — provisioning de tenant + usuário Master |
+| **RPCs** | `get_caller_team_id()` — helper RLS, retorna `team_id` do caller |
 
 ### 3.3 IA e Integrações
 
@@ -323,6 +354,7 @@ SDK no cliente: `@google/genai` 1.50 instalado mas **não usado diretamente** �
 |---------|--------|
 | `src/lib/withTimeout.ts` | Race condition helper: rejeita Promise após N ms |
 | `src/lib/supabase.ts` | Cliente Supabase singleton |
+| `src/lib/color.ts` | `hexToOklch()` + `applyTenantBrand()` — branding dinâmico por OKLCH |
 | `date-fns` 4.1 | Formatação de datas (locale pt-BR) |
 | `clsx` + `tailwind-merge` | Composição segura de classes CSS |
 | `class-variance-authority` | Variantes de componentes UI |
@@ -521,13 +553,33 @@ Classificação: 🔴 Crítico · 🟡 Importante · 🟢 Melhoria
 
 ## 6. Roadmap de sprints futuras
 
-| Sprint | Foco | Justificativa |
-|--------|------|--------------|
-| **11** | Offline-first — IndexedDB + Background Sync | Técnicos trabalham em obras sem sinal |
-| **12** | Notificações email/WhatsApp (Resend + Evolution API) | Aprovações hoje dependem do usuário abrir o app |
-| **13** | PDF server-side (Edge Function) para orçamentos e relatórios | PDF oficial com carimbo, assinatura digital válida |
-| **14** | Auditoria / LGPD | Fotos e dados pessoais exigem política de retenção |
+| Fase / Sprint | Foco | Status |
+|---------------|------|--------|
+| **Fase 10 — Fundação multi-tenant** | Tabela `tenants`, `team_id`, provisioning, branding OKLCH | 🔄 Em andamento (Sessões 31–39) |
+| **Fase 10.1 — Isolamento de dados** | `team_id` em 9 tabelas + RLS completo + RPCs | ⏳ Pendente |
+| **Sprint 11** | Offline-first — IndexedDB + Background Sync | ⏳ Bloqueado por Fase 10 (`tenant.slug` nomeia o banco local) |
+| **Sprint 12** | Notificações email/WhatsApp (Resend + Evolution API) | ⏳ Pendente |
+| **Sprint 13** | PDF server-side (Edge Function) para orçamentos e relatórios | ⏳ Pendente |
+| **Sprint 14** | Auditoria / LGPD | ⏳ Pendente |
+
+### Fase 10 — Estado atual
+
+- [x] Tabela `tenants` criada + Mopar inserido como primeiro tenant
+- [x] `users.team_id` backfillado + FK adicionada
+- [x] `get_caller_team_id()` criada
+- [x] `notify_compradores` corrigida (R-02 — vazamento cross-tenant)
+- [x] `is_platform` flag + tenant NextAI provisionado (slug: `nextai`, cor: `#6366F1`)
+- [x] SuperMaster `nextai@gmail.com` criado
+- [x] `TenantContext` + redirect plataforma → `/admin/tenants`
+- [x] Branding dinâmico OKLCH (`src/lib/color.ts` + `applyTenantBrand`)
+- [x] Bucket `tenant-assets` + 3 policies RLS
+- [x] Upload de logo no form de criação de tenant
+- [x] Dialog de edição de tenant (name, cor, logo — slug imutável)
+- [ ] `handle_new_user` trigger propagar `team_id` automaticamente
+- [ ] `admin-create-user` Edge Function aceitar e persistir `team_id`
+- [ ] `team_id` em `notifications` + backfill
+- [ ] ADD COLUMN `team_id` nas 9 tabelas restantes + RLS completo
 
 ---
 
-*Documento gerado por varredura automatizada do repositório em 2026-04-22. Reflete fielmente o código em produção nas Sprints 1–10.*
+*Documento gerado por varredura automatizada do repositório em 2026-04-22. Atualizado em 2026-05-13 para refletir Sessões 31–39 (Multi-Tenancy / NextAI).*
