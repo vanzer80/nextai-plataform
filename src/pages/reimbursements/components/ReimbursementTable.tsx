@@ -52,13 +52,13 @@ export default function ReimbursementTable({
               </TableHead>
             )}
             <TableHead className="font-semibold text-foreground w-[120px]">Data</TableHead>
-            {isManager && <TableHead className="font-semibold text-slate-700">Colaborador</TableHead>}
-            <TableHead className="font-semibold text-foreground">Categoria</TableHead>
+            {isManager && <TableHead className="font-semibold text-slate-700 w-[160px]">Colaborador</TableHead>}
+            <TableHead className="font-semibold text-foreground w-[130px]">Categoria</TableHead>
             <TableHead className="font-semibold text-foreground">Descrição</TableHead>
-            <TableHead className="font-semibold text-foreground font-numeric text-right">Valor</TableHead>
-            <TableHead className="font-semibold text-foreground text-center">Anexo</TableHead>
-            <TableHead className="font-semibold text-foreground text-center">Status</TableHead>
-            <TableHead className="font-semibold text-foreground text-right"></TableHead>
+            <TableHead className="font-semibold text-foreground font-numeric text-right w-[100px]">Valor</TableHead>
+            <TableHead className="font-semibold text-foreground text-center w-[60px]">Anexo</TableHead>
+            <TableHead className="font-semibold text-foreground text-center w-[120px]">Status</TableHead>
+            <TableHead className="font-semibold text-foreground text-right w-[260px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -126,7 +126,7 @@ export default function ReimbursementTable({
                 {getStatusBadge(item.status)}
               </TableCell>
 
-              <TableCell className="text-right">
+              <TableCell className="text-right whitespace-nowrap">
                 <div className="flex items-center justify-end gap-2">
                   {isManager && (item.status === 'Pendente' || item.status === 'Revisao') && (
                     <>
