@@ -33,7 +33,7 @@ export default function OrcamentosList() {
   }, [refresh, updateItem]);
 
   return (
-    <div className="flex flex-col gap-4 w-full max-w-3xl mx-auto pb-8">
+    <div className="flex flex-col gap-4 w-full pb-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Orçamentos</h1>

@@ -38,7 +38,7 @@ export default function Dashboard() {
   const showPie = has('reimbursements-pie');
 
   return (
-    <div className="flex flex-col gap-5 h-full w-full max-w-7xl mx-auto pb-6">
+    <div className="flex flex-col gap-5 h-full w-full pb-6">
       <header className="mb-2">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
           Olá, {user?.full_name?.split(' ')[0] || 'Profissional'}!

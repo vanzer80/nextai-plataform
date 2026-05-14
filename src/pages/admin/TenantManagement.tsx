@@ -316,7 +316,7 @@ export default function TenantManagement() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col gap-6 h-full w-full max-w-7xl mx-auto pb-6">
+    <div className="flex flex-col gap-6 h-full w-full pb-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">

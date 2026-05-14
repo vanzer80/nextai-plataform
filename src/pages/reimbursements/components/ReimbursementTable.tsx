@@ -38,7 +38,7 @@ export default function ReimbursementTable({
   const someSelected = selectedIds.length > 0 && !allSelected;
   return (
     <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden mt-4 overflow-x-auto">
-      <Table className="min-w-[600px]">
+      <Table className="min-w-[850px]">
         <TableHeader className="bg-muted/40">
           <TableRow className="hover:bg-transparent border-border">
             {isManager && (
@@ -58,7 +58,7 @@ export default function ReimbursementTable({
             <TableHead className="font-semibold text-foreground font-numeric text-right">Valor</TableHead>
             <TableHead className="font-semibold text-foreground text-center">Anexo</TableHead>
             <TableHead className="font-semibold text-foreground text-center">Status</TableHead>
-            <TableHead className="font-semibold text-foreground text-right w-[100px]"></TableHead>
+            <TableHead className="font-semibold text-foreground text-right"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

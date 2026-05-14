@@ -224,7 +224,7 @@ export default function MaterialsList() {
     ];
 
     return (
-      <div className="flex flex-col gap-5 h-full w-full max-w-7xl mx-auto pb-6">
+      <div className="flex flex-col gap-5 h-full w-full pb-6">
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -414,7 +414,7 @@ export default function MaterialsList() {
   const TECH_TABS = ['Todos', 'Pendente', 'Em Análise', 'Comprado', 'Entregue', 'Cancelado'];
 
   return (
-    <div className="flex flex-col gap-5 h-full w-full max-w-3xl mx-auto pb-6">
+    <div className="flex flex-col gap-5 h-full w-full pb-6">
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">

@@ -42,7 +42,7 @@ export default function ReportsList() {
   const isManager = user?.role && ['Gestor', 'Supervisor', 'Admin', 'Master'].includes(user.role);
 
   return (
-    <div className="flex flex-col gap-4 w-full max-w-3xl mx-auto pb-8">
+    <div className="flex flex-col gap-4 w-full pb-8">
       {/* Cabeçalho */}
       <div className="flex items-center justify-between">
         <div>

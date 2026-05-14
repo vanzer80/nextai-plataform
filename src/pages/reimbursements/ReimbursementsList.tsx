@@ -418,7 +418,7 @@ export default function ReimbursementsList() {
   };
 
   return (
-    <div className="min-h-full w-full max-w-7xl mx-auto flex flex-col gap-6 pb-6">
+    <div className="min-h-full w-full flex flex-col gap-6 pb-6">
       
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
