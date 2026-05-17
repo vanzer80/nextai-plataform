@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  XCircle, Receipt, User as UserIcon, Paperclip, Copy, Check, RotateCcw, 
-  CheckCircle, Pencil, History, Clock
+import {
+  XCircle, Receipt, User as UserIcon, Paperclip, Copy, Check, RotateCcw,
+  CheckCircle, Pencil, History, Clock, Banknote
 } from 'lucide-react';
 import { 
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle 
@@ -29,9 +29,10 @@ interface ReimbursementDetailModalProps {
   onOpenChange: (open: boolean) => void;
   item: any;
   isManager: boolean;
-  onAction: (id: string, action: 'Aprovado' | 'Rejeitado' | 'Revisao', reason?: string) => Promise<void>;
+  onAction: (id: string, action: 'Aprovado' | 'Rejeitado' | 'Revisao' | 'Pago', reason?: string) => Promise<void>;
   getStatusBadge: (status: string) => React.ReactNode;
   currentUserId: string | undefined;
+  isFinanceiro: boolean;
 }
 
 export default function ReimbursementDetailModal({
@@ -41,7 +42,8 @@ export default function ReimbursementDetailModal({
   isManager,
   onAction,
   getStatusBadge,
-  currentUserId
+  currentUserId,
+  isFinanceiro,
 }: ReimbursementDetailModalProps) {
   const [isRejecting, setIsRejecting] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -197,6 +199,19 @@ export default function ReimbursementDetailModal({
                 </div>
               )}
 
+              {/* Data de pagamento */}
+              {item.status === 'Pago' && item.paid_at && (
+                <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <Banknote className="h-4 w-4 text-violet-600 shrink-0" />
+                  <div>
+                    <h4 className="text-[10px] font-semibold text-violet-600 uppercase tracking-widest">Pago em</h4>
+                    <p className="font-bold text-violet-800 dark:text-violet-300 text-sm">
+                      {format(new Date(item.paid_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* HISTÓRICO DE AUDITORIA */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
@@ -239,7 +254,14 @@ export default function ReimbursementDetailModal({
 
             {/* AÇÕES (Rodapé) */}
             <div className="px-5 py-4 border-t border-border bg-muted/40 shrink-0">
-              {isManager && (item.status === 'Pendente' || item.status === 'Revisao') ? (
+              {isFinanceiro && item.status === 'Aprovado' ? (
+                <Button
+                  className="w-full h-12 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold gap-2"
+                  onClick={() => onAction(item.id, 'Pago')}
+                >
+                  <Banknote className="h-5 w-5" /> Confirmar Pagamento
+                </Button>
+              ) : isManager && (item.status === 'Pendente' || item.status === 'Revisao') ? (
                 isRejecting ? (
                   <div className="space-y-3">
                     <Textarea

@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, RotateCcw, XCircle, Pencil, Paperclip, Eye, MoreHorizontal } from 'lucide-react';
+import { CheckCircle, RotateCcw, XCircle, Pencil, Paperclip, Eye, MoreHorizontal, Banknote } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
@@ -14,7 +14,8 @@ interface ReimbursementTableProps {
   isManager: boolean;
   user: any;
   getStatusBadge: (status: string) => React.ReactNode;
-  onAction: (id: string, action: 'Aprovado' | 'Rejeitado' | 'Revisao') => void;
+  onAction: (id: string, action: 'Aprovado' | 'Rejeitado' | 'Revisao' | 'Pago') => void;
+  canPay: boolean;
   onOpenDetails: (item: any) => void;
   onOpenReject: (item: any) => void;
   onOpenReturn: (item: any) => void;
@@ -34,7 +35,8 @@ export default function ReimbursementTable({
   onOpenReturn,
   selectedIds,
   onSelectAll,
-  onSelectOne
+  onSelectOne,
+  canPay
 }: ReimbursementTableProps) {
   const navigate = useNavigate();
   const allSelected = data.length > 0 && data.every(item => selectedIds.includes(item.id));
@@ -67,6 +69,7 @@ export default function ReimbursementTable({
         <TableBody>
           {data.map((item) => {
             const canModerate = isManager && (item.status === 'Pendente' || item.status === 'Revisao');
+            const canMarkPaid = canPay && item.status === 'Aprovado';
             const canEdit = (item.status === 'Pendente' || item.status === 'Revisao') && item.user_id === user?.id;
             return (
             <TableRow key={item.id} className={`hover:bg-muted/30 border-border transition-colors ${selectedIds.includes(item.id) ? 'bg-primary/5' : ''}`}>
@@ -171,6 +174,18 @@ export default function ReimbursementTable({
                           onClick={() => onOpenReject(item)}
                         >
                           <XCircle className="h-4 w-4" /> Reprovar
+                        </DropdownMenuItem>
+                      </>
+                    )}
+
+                    {canMarkPaid && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="cursor-pointer gap-2 text-violet-600"
+                          onClick={() => onAction(item.id, 'Pago')}
+                        >
+                          <Banknote className="h-4 w-4" /> Marcar como Pago
                         </DropdownMenuItem>
                       </>
                     )}

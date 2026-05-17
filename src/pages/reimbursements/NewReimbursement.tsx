@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -65,6 +65,8 @@ export default function NewReimbursement() {
   const [customCategory, setCustomCategory] = useState('');
   const [revisaoReason, setRevisaoReason] = useState('');
   const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
+  const [duplicateWarning, setDuplicateWarning] = useState<{ id: string; createdAt: string } | null>(null);
+  const pendingHashRef = useRef<string | null>(null);
 
   const clients = useClients();
 
@@ -213,6 +215,25 @@ export default function NewReimbursement() {
       return;
     }
 
+    // Duplicate receipt check (new submissions only)
+    if (!isEditMode && file && !duplicateWarning) {
+      if (!pendingHashRef.current) {
+        const buf = await file.arrayBuffer();
+        const digest = await crypto.subtle.digest('SHA-256', buf);
+        pendingHashRef.current = Array.from(new Uint8Array(digest))
+          .map(b => b.toString(16).padStart(2, '0')).join('');
+      }
+      const { data: dup } = await supabase
+        .from('reimbursements')
+        .select('id, created_at')
+        .eq('receipt_hash', pendingHashRef.current)
+        .maybeSingle();
+      if (dup) {
+        setDuplicateWarning({ id: dup.id, createdAt: dup.created_at });
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     const toastId = toast.loading(isEditMode ? "Atualizando dados..." : "Iniciando envio...");
     let receiptUrl = existingReceiptUrl;
@@ -237,7 +258,7 @@ export default function NewReimbursement() {
       const amountParsed = parseFloat(values.amount.replace(',', '.'));
       const finalCategory = values.category === 'Outros' ? customCategory.trim() : values.category;
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         user_id: user.id,
         category: finalCategory,
         amount: amountParsed,
@@ -253,6 +274,7 @@ export default function NewReimbursement() {
         budget: values.budget || null,
         rejection_reason: null,
         revision_reason: null,
+        receipt_hash: pendingHashRef.current ?? null,
       };
 
       if (isEditMode) {
@@ -584,6 +606,35 @@ export default function NewReimbursement() {
           </CardContent>
         </Card>
 
+        {/* Aviso de comprovante duplicado */}
+        {duplicateWarning && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 px-4 py-3 space-y-2">
+            <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
+              Comprovante duplicado detectado
+            </p>
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Este comprovante já foi enviado em{' '}
+              {new Date(duplicateWarning.createdAt).toLocaleDateString('pt-BR')}.
+              Deseja enviar mesmo assim?
+            </p>
+            <div className="flex gap-2 pt-1">
+              <Button
+                type="button" variant="outline" size="sm"
+                className="flex-1 rounded-lg border-amber-300 text-amber-700 hover:bg-amber-100"
+                onClick={() => { setDuplicateWarning(null); pendingHashRef.current = null; }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit" size="sm"
+                className="flex-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+              >
+                Enviar mesmo assim
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="pt-2 pb-8 flex gap-3">
           <Button
             type="button" variant="outline"
@@ -596,7 +647,7 @@ export default function NewReimbursement() {
           <Button
             type="submit"
             className="flex-1 h-14 rounded-xl text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !!duplicateWarning}
           >
             {isSubmitting
               ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> {isEditMode ? 'Atualizando...' : 'Enviando...'}</>

@@ -30,6 +30,7 @@ export default function ReimbursementsList() {
   const { user } = useAuth();
   const { tenant } = useTenant();
   const isManager = ['Gestor', 'Admin', 'Financeiro', 'Master', 'Supervisor'].some(r => user?.role?.includes(r));
+  const isFinanceiro = ['Financeiro', 'Admin', 'Master'].some(r => user?.role?.includes(r));
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -143,6 +144,8 @@ export default function ReimbursementsList() {
     switch (status) {
       case 'Aprovado':
         return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 border-0 text-xs font-semibold">Aprovado</Badge>;
+      case 'Pago':
+        return <Badge className="bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-300 border-0 text-xs font-semibold">Pago</Badge>;
       case 'Rejeitado':
         return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-300 border-0 text-xs font-semibold">Rejeitado</Badge>;
       case 'Revisao':
@@ -152,7 +155,7 @@ export default function ReimbursementsList() {
     }
   };
 
-  const handleAction = async (id: string, action: 'Aprovado' | 'Rejeitado' | 'Revisao', reason?: string) => {
+  const handleAction = async (id: string, action: 'Aprovado' | 'Rejeitado' | 'Revisao' | 'Pago', reason?: string) => {
     try {
       const { data: rpcResult, error: rpcError } = await supabase.rpc(
         'process_reimbursement_action',
@@ -166,12 +169,13 @@ export default function ReimbursementsList() {
       if (rpcError) throw new Error(rpcError.message);
       if (rpcResult && rpcResult.success === false) throw new Error(rpcResult.error);
 
-      const msgs = {
+      const msgs: Record<string, string> = {
         'Aprovado': 'Reembolso aprovado!',
         'Rejeitado': 'Reembolso reprovado.',
         'Revisao': 'Solicitação devolvida para ajuste.',
+        'Pago': 'Pagamento confirmado!',
       };
-      toast.success(msgs[action]);
+      toast.success(msgs[action] ?? 'Ação realizada.');
       setIsModalOpen(false);
     } catch (err: any) {
       toast.error(`Erro: ${err.message}`);
@@ -340,6 +344,7 @@ export default function ReimbursementsList() {
 
       const statusColors: Record<string, [number, number, number]> = {
         'Aprovado':  [209, 250, 229],
+        'Pago':      [237, 233, 254],
         'Rejeitado': [255, 228, 230],
         'Revisao':   [255, 237, 213],
         'Pendente':  [254, 243, 199],
@@ -442,12 +447,13 @@ export default function ReimbursementsList() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
-          { label: 'Pendente', val: totals['Pendente'], color: 'amber' },
-          { label: 'Aprovado', val: totals['Aprovado'], color: 'emerald' },
-          { label: 'Rejeitado', val: totals['Rejeitado'], color: 'rose' },
-          { label: 'Total', val: totals.total, color: 'blue' }
+          { label: 'Pendente',  val: totals['Pendente'],  color: 'amber'  },
+          { label: 'Aprovado',  val: totals['Aprovado'],  color: 'emerald' },
+          { label: 'Pago',      val: totals['Pago'],      color: 'violet' },
+          { label: 'Rejeitado', val: totals['Rejeitado'], color: 'rose'   },
+          { label: 'Total',     val: totals.total,        color: 'blue'   },
         ].map(t => (
           <div key={t.label} className={`bg-${t.color}-50 border border-${t.color}-200 rounded-xl p-3 text-center`}>
             <p className={`text-xs font-semibold text-${t.color}-600 uppercase`}>{t.label}</p>
@@ -465,6 +471,7 @@ export default function ReimbursementsList() {
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="Pendente">Pendente</SelectItem>
               <SelectItem value="Aprovado">Aprovado</SelectItem>
+              <SelectItem value="Pago">Pago</SelectItem>
               <SelectItem value="Rejeitado">Rejeitado</SelectItem>
               <SelectItem value="Revisao">Em Revisão</SelectItem>
             </SelectContent>
@@ -496,15 +503,16 @@ export default function ReimbursementsList() {
           </div>
 
           <div className="hidden lg:block">
-            <ReimbursementTable 
+            <ReimbursementTable
               data={filteredData} isManager={isManager} user={user}
               getStatusBadge={getStatusBadge} onAction={handleAction}
               onOpenDetails={(item) => { setSelectedItem(item); setIsModalOpen(true); }}
-              onOpenReject={(item) => { setSelectedItem(item); setIsModalOpen(true); }} 
-              onOpenReturn={(item) => { setSelectedItem(item); setIsModalOpen(true); }} 
+              onOpenReject={(item) => { setSelectedItem(item); setIsModalOpen(true); }}
+              onOpenReturn={(item) => { setSelectedItem(item); setIsModalOpen(true); }}
               selectedIds={selectedIds}
               onSelectAll={onSelectAll}
               onSelectOne={onSelectOne}
+              canPay={isFinanceiro}
             />
           </div>
 
@@ -547,10 +555,10 @@ export default function ReimbursementsList() {
         </>
       )}
 
-      <ReimbursementDetailModal 
+      <ReimbursementDetailModal
         isOpen={isModalOpen} onOpenChange={setIsModalOpen} item={selectedItem}
         isManager={isManager} onAction={handleAction} getStatusBadge={getStatusBadge}
-        currentUserId={user?.id}
+        currentUserId={user?.id} isFinanceiro={isFinanceiro}
       />
     </div>
   );
