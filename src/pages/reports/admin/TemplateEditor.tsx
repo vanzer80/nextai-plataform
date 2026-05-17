@@ -25,8 +25,8 @@ import {
   blankDraftItem,
 } from '@/src/services/checklistService';
 import type { DraftItem } from '@/src/services/checklistService';
-import type { ChecklistItemType, ServiceType } from '@/src/types/reports';
-import { SERVICE_TYPE_OPTIONS } from '@/src/types/reports';
+import type { ChecklistItemType } from '@/src/types/reports';
+import { useServiceTypes } from '@/src/hooks/useServiceTypes';
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -158,7 +158,7 @@ function ItemDialog({ open, initial, onSave, onClose }: ItemDialogProps) {
 interface TemplateHeader {
   name: string;
   description: string;
-  service_type: ServiceType | null;
+  service_type: string | null;
   asset_category: string;
   is_active: boolean;
 }
@@ -171,6 +171,7 @@ export default function TemplateEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { types: serviceTypes } = useServiceTypes();
   const isEdit = Boolean(id);
 
   const [header, setHeader] = useState<TemplateHeader>(blankHeader());
@@ -339,15 +340,15 @@ export default function TemplateEditor() {
               <Label className="text-sm font-semibold">Tipo de Serviço</Label>
               <Select
                 value={header.service_type ?? 'none'}
-                onValueChange={v => setH('service_type', v === 'none' ? null : v as ServiceType)}
+                onValueChange={v => setH('service_type', v === 'none' ? null : v)}
               >
                 <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="Qualquer" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Qualquer tipo</SelectItem>
-                  {SERVICE_TYPE_OPTIONS.map(t => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  {serviceTypes.map(t => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

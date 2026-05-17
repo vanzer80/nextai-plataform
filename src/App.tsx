@@ -18,6 +18,7 @@ const ReimbursementsList = lazy(() => import('@/src/pages/reimbursements/Reimbur
 const NewReimbursement   = lazy(() => import('@/src/pages/reimbursements/NewReimbursement'));
 const UserManagement     = lazy(() => import('@/src/pages/admin/UserManagement'));
 const TenantManagement   = lazy(() => import('@/src/pages/admin/TenantManagement'));
+const ServiceTypes       = lazy(() => import('@/src/pages/admin/ServiceTypes'));
 const ClientsList        = lazy(() => import('@/src/pages/clients/ClientsList'));
 const MaterialsList      = lazy(() => import('@/src/pages/materials/MaterialsList'));
 const NewMaterialRequest = lazy(() => import('@/src/pages/materials/NewMaterialRequest'));
@@ -68,6 +69,7 @@ export default function App() {
                 <Route path="/admin/checklist-templates" element={<ChecklistTemplates />} />
                 <Route path="/admin/checklist-templates/new" element={<TemplateEditor />} />
                 <Route path="/admin/checklist-templates/:id/edit" element={<TemplateEditor />} />
+                <Route path="/admin/service-types" element={<ServiceTypes />} />
               </Route>
 
               {/* Master-only: tenant provisioning */}

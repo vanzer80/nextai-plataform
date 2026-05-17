@@ -13,7 +13,7 @@ import { useReportDraft } from '@/src/hooks/useReportDraft';
 import { useChecklistTemplate } from '@/src/hooks/useChecklistTemplate';
 import SyncStatusIndicator from './components/SyncStatusIndicator';
 import { submitReport } from '@/src/services/reportService';
-import type { ServiceType, ReportChecklistItem, EvidenceFile, CreateServiceReportDTO } from '@/src/types/reports';
+import type { ReportChecklistItem, EvidenceFile, CreateServiceReportDTO } from '@/src/types/reports';
 
 const Step1Identification = lazy(() => import('./components/steps/Step1Identification'));
 const Step2AssetContext   = lazy(() => import('./components/steps/Step2AssetContext'));
@@ -25,11 +25,9 @@ const Step7SignatureSend  = lazy(() => import('./components/steps/Step7Signature
 
 // ── Schema Zod (cobre todos os 7 steps) ──────────────────────
 
-const SERVICE_TYPES = ['Preventiva', 'Corretiva', 'Instalação', 'Vistoria', 'Emergência'] as const;
-
 export const reportSchema = z.object({
   // Step 1
-  service_type: z.enum(SERVICE_TYPES, { message: 'Selecione o tipo de serviço' }),
+  service_type: z.string().min(1, { message: 'Selecione o tipo de serviço' }),
   service_date: z.string().min(1, 'Informe a data do serviço'),
   os_number:    z.string().optional(),
   started_at:   z.string().optional(),
@@ -111,7 +109,7 @@ export default function NewReport() {
   });
 
   const draft = useReportDraft();
-  const serviceType = form.watch('service_type') as ServiceType | undefined;
+  const serviceType = form.watch('service_type');
   const { template, loading: templateLoading } = useChecklistTemplate(serviceType);
   const assetId = form.watch('asset_id');
 

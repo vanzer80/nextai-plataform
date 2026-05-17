@@ -14,29 +14,14 @@ import {
 import {
   getTemplates, toggleTemplateActive, deleteTemplate,
 } from '@/src/services/checklistService';
-import type { ChecklistTemplate, ServiceType } from '@/src/types/reports';
-import { SERVICE_TYPE_OPTIONS } from '@/src/types/reports';
-
-const SERVICE_TYPE_LABEL: Record<ServiceType, string> = {
-  Preventiva: 'Preventiva',
-  Corretiva: 'Corretiva',
-  Instalação: 'Instalação',
-  Vistoria: 'Vistoria',
-  Emergência: 'Emergência',
-};
-
-const TYPE_COLOR: Record<ServiceType, string> = {
-  Preventiva: 'bg-blue-100 text-blue-700',
-  Corretiva:  'bg-orange-100 text-orange-700',
-  Instalação: 'bg-violet-100 text-violet-700',
-  Vistoria:   'bg-teal-100 text-teal-700',
-  Emergência: 'bg-rose-100 text-rose-700',
-};
+import type { ChecklistTemplate } from '@/src/types/reports';
+import { useServiceTypes } from '@/src/hooks/useServiceTypes';
 
 export default function ChecklistTemplates() {
   const [templates, setTemplates] = useState<ChecklistTemplate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState<ServiceType | 'all'>('all');
+  const [filterType, setFilterType] = useState<string>('all');
+  const { types: serviceTypes } = useServiceTypes();
   const [toDelete, setToDelete] = useState<ChecklistTemplate | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -107,14 +92,14 @@ export default function ChecklistTemplates() {
       </div>
 
       {/* Filtro */}
-      <Select value={filterType} onValueChange={v => setFilterType(v as ServiceType | 'all')}>
+      <Select value={filterType} onValueChange={setFilterType}>
         <SelectTrigger className="h-10 rounded-xl bg-background border-input text-sm">
           <SelectValue placeholder="Todos os tipos" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todos os tipos</SelectItem>
-          {SERVICE_TYPE_OPTIONS.map(t => (
-            <SelectItem key={t} value={t}>{t}</SelectItem>
+          {serviceTypes.map(t => (
+            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -143,8 +128,8 @@ export default function ChecklistTemplates() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-bold text-foreground truncate">{tmpl.name}</p>
                     {tmpl.service_type && (
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${TYPE_COLOR[tmpl.service_type]}`}>
-                        {SERVICE_TYPE_LABEL[tmpl.service_type]}
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                        {tmpl.service_type}
                       </span>
                     )}
                     {!tmpl.is_active && (

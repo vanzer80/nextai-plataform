@@ -6,7 +6,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { ClipboardList } from 'lucide-react';
-import { SERVICE_TYPE_OPTIONS } from '@/src/types/reports';
+import { useServiceTypes } from '@/src/hooks/useServiceTypes';
 import type { ReportFormValues } from '@/src/pages/reports/NewReport';
 
 interface Step1Props {
@@ -16,6 +16,7 @@ interface Step1Props {
 export default function Step1Identification({ form }: Step1Props) {
   const { register, setValue, watch, formState: { errors } } = form;
   const serviceType = watch('service_type');
+  const { types: serviceTypes } = useServiceTypes();
 
   return (
     <Card className="shadow-sm border-border">
@@ -40,8 +41,8 @@ export default function Step1Identification({ form }: Step1Props) {
               <SelectValue placeholder="Selecione o tipo de serviço" />
             </SelectTrigger>
             <SelectContent>
-              {SERVICE_TYPE_OPTIONS.map(opt => (
-                <SelectItem key={opt} value={opt} className="py-3 text-base">{opt}</SelectItem>
+              {serviceTypes.map(opt => (
+                <SelectItem key={opt.value} value={opt.value} className="py-3 text-base">{opt.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>

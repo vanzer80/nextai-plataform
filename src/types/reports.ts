@@ -1,6 +1,6 @@
 export type ReportStatus = 'draft' | 'pending_review' | 'returned' | 'approved' | 'rejected';
 
-export type ServiceType = 'Preventiva' | 'Corretiva' | 'Instalação' | 'Vistoria' | 'Emergência';
+export type ServiceType = string;
 
 export type ChecklistItemType = 'boolean' | 'text' | 'number' | 'photo' | 'select';
 
@@ -180,10 +180,3 @@ export interface EvidenceFile {
   caption: string;
 }
 
-export const SERVICE_TYPE_OPTIONS: ServiceType[] = [
-  'Preventiva',
-  'Corretiva',
-  'Instalação',
-  'Vistoria',
-  'Emergência',
-];

@@ -8,6 +8,7 @@ import {
   Building2,
   ShieldAlert,
   ListChecks,
+  Settings2,
   FileText,
   Globe,
   Menu,
@@ -43,6 +44,7 @@ const NAV_LINKS = [
   { name: 'Compras', path: '/materials', icon: ShoppingCart, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Comprador', 'Admin', 'Master'] },
   { name: 'Clientes', path: '/clients', icon: Building2, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
   { name: 'Checklists', path: '/admin/checklist-templates', icon: ListChecks, roles: ['Gestor', 'Admin', 'Master'] },
+  { name: 'Tipos de Serviço', path: '/admin/service-types', icon: Settings2, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'Administrador', path: '/admin/usuarios', icon: ShieldAlert, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'Tenants', path: '/admin/tenants', icon: Globe, roles: ['Master'] },
 ];
