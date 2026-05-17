@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, ArrowLeft, Receipt, Upload, Sparkles } from 'lucide-react';
+import { Loader2, ArrowLeft, Receipt, Upload, Sparkles, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useTenant } from '@/src/contexts/TenantContext';
 import { toast } from 'sonner';
@@ -67,6 +67,9 @@ export default function NewReimbursement() {
   const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
   const [duplicateWarning, setDuplicateWarning] = useState<{ id: string; createdAt: string } | null>(null);
   const pendingHashRef = useRef<string | null>(null);
+  const [cnpjInfo, setCnpjInfo] = useState<{ razaoSocial: string; nomeFantasia: string | null; ativo: boolean } | null>(null);
+  const [cnpjChecking, setCnpjChecking] = useState(false);
+  const cnpjTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clients = useClients();
 
@@ -122,6 +125,28 @@ export default function NewReimbursement() {
   const selectedCategory = watch("category");
   const selectedClient = watch("client_id");
   const selectedMaintenanceType = watch("maintenance_type");
+  const pixValue = watch("pix");
+
+  React.useEffect(() => {
+    if (cnpjTimerRef.current) clearTimeout(cnpjTimerRef.current);
+    const digits = (pixValue ?? '').replace(/\D/g, '');
+    if (digits.length !== 14) { setCnpjInfo(null); return; }
+    cnpjTimerRef.current = setTimeout(async () => {
+      setCnpjChecking(true);
+      try {
+        const res = await fetch(`https://publica.cnpj.ws/cnpj/${digits}`);
+        if (!res.ok) { setCnpjInfo(null); return; }
+        const json = await res.json();
+        setCnpjInfo({
+          razaoSocial: json.razao_social ?? '',
+          nomeFantasia: json.estabelecimento?.nome_fantasia ?? null,
+          ativo: json.estabelecimento?.situacao_cadastral === 'Ativa',
+        });
+      } catch { setCnpjInfo(null); }
+      finally { setCnpjChecking(false); }
+    }, 800);
+    return () => { if (cnpjTimerRef.current) clearTimeout(cnpjTimerRef.current); };
+  }, [pixValue]);
 
   // ── AI extraction helpers ──────────────────────────────────────────────────
 
@@ -484,6 +509,26 @@ export default function NewReimbursement() {
                   className="h-14 text-base rounded-xl bg-background border-input focus-visible:ring-ring"
                   {...register("pix")}
                 />
+                {cnpjChecking && (
+                  <p className="text-xs text-muted-foreground animate-pulse flex items-center gap-1.5">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Verificando CNPJ...
+                  </p>
+                )}
+                {!cnpjChecking && cnpjInfo && (
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border ${
+                    cnpjInfo.ativo
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300'
+                      : 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-300'
+                  }`}>
+                    {cnpjInfo.ativo
+                      ? <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                      : <AlertTriangle className="h-3.5 w-3.5 shrink-0" />}
+                    <span>
+                      {cnpjInfo.ativo ? 'CNPJ ativo' : 'CNPJ inativo'} —{' '}
+                      {cnpjInfo.nomeFantasia || cnpjInfo.razaoSocial}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">

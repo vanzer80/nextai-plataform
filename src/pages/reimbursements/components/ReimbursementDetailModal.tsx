@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   XCircle, Receipt, User as UserIcon, Paperclip, Copy, Check, RotateCcw,
-  CheckCircle, Pencil, History, Clock, Banknote
+  CheckCircle, Pencil, History, Clock, Banknote, AlertTriangle
 } from 'lucide-react';
 import { 
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle 
@@ -52,6 +52,7 @@ export default function ReimbursementDetailModal({
   const [copiedPix, setCopiedPix] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [anomaly, setAnomaly] = useState<{ avg: number; count: number; pct: number } | null>(null);
 
   useEffect(() => {
     if (isOpen && item?.id) {
@@ -60,8 +61,30 @@ export default function ReimbursementDetailModal({
       setIsReturning(false);
       setRejectionReason("");
       setReturnReason("");
+      setAnomaly(null);
+      if (isManager && item.user_id && item.category) {
+        checkAnomaly();
+      }
     }
   }, [isOpen, item?.id]);
+
+  const checkAnomaly = async () => {
+    try {
+      const { data } = await supabase
+        .from('reimbursements')
+        .select('amount')
+        .eq('user_id', item.user_id)
+        .eq('category', item.category)
+        .not('status', 'eq', 'Rejeitado')
+        .neq('id', item.id);
+
+      if (!data || data.length < 3) return;
+      const amounts = data.map(r => Number(r.amount));
+      const avg = amounts.reduce((a, b) => a + b, 0) / amounts.length;
+      const pct = ((Number(item.amount) / avg) - 1) * 100;
+      if (pct > 50) setAnomaly({ avg, count: amounts.length, pct });
+    } catch { /* silent */ }
+  };
 
   const fetchHistory = async () => {
     try {
@@ -207,6 +230,21 @@ export default function ReimbursementDetailModal({
                     <h4 className="text-[10px] font-semibold text-violet-600 uppercase tracking-widest">Pago em</h4>
                     <p className="font-bold text-violet-800 dark:text-violet-300 text-sm">
                       {format(new Date(item.paid_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Alerta de anomalia de valor (somente gestores) */}
+              {isManager && anomaly && (
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-xl px-4 py-3 flex items-start gap-3">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-xs font-bold text-amber-800 dark:text-amber-300">Valor acima da média histórica</h4>
+                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                      Média de <strong>{item.category}</strong> para este colaborador:{' '}
+                      <strong>R$ {anomaly.avg.toFixed(2).replace('.', ',')}</strong> ({anomaly.count} registros).
+                      Este valor está <strong>{Math.round(anomaly.pct)}% acima</strong>.
                     </p>
                   </div>
                 </div>
