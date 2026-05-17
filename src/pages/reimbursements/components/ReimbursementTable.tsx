@@ -1,11 +1,13 @@
 import React from 'react';
-import { CheckCircle, RotateCcw, XCircle, Pencil, Paperclip, User as UserIcon } from 'lucide-react';
-import { 
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
+import { CheckCircle, RotateCcw, XCircle, Pencil, Paperclip, Eye, MoreHorizontal } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Link } from 'react-router-dom';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 
 interface ReimbursementTableProps {
   data: any[];
@@ -34,11 +36,12 @@ export default function ReimbursementTable({
   onSelectAll,
   onSelectOne
 }: ReimbursementTableProps) {
+  const navigate = useNavigate();
   const allSelected = data.length > 0 && data.every(item => selectedIds.includes(item.id));
   const someSelected = selectedIds.length > 0 && !allSelected;
   return (
     <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden mt-4 overflow-x-auto">
-      <Table className="min-w-[850px]">
+      <Table className="min-w-[720px]">
         <TableHeader className="bg-muted/40">
           <TableRow className="hover:bg-transparent border-border">
             {isManager && (
@@ -58,11 +61,14 @@ export default function ReimbursementTable({
             <TableHead className="font-semibold text-foreground font-numeric text-right w-[100px]">Valor</TableHead>
             <TableHead className="font-semibold text-foreground text-center w-[60px]">Anexo</TableHead>
             <TableHead className="font-semibold text-foreground text-center w-[120px]">Status</TableHead>
-            <TableHead className="font-semibold text-foreground text-right w-[260px]"></TableHead>
+            <TableHead className="font-semibold text-foreground text-center w-[70px]">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((item) => (
+          {data.map((item) => {
+            const canModerate = isManager && (item.status === 'Pendente' || item.status === 'Revisao');
+            const canEdit = (item.status === 'Pendente' || item.status === 'Revisao') && item.user_id === user?.id;
+            return (
             <TableRow key={item.id} className={`hover:bg-muted/30 border-border transition-colors ${selectedIds.includes(item.id) ? 'bg-primary/5' : ''}`}>
               {isManager && (
                 <TableCell>
@@ -126,64 +132,57 @@ export default function ReimbursementTable({
                 {getStatusBadge(item.status)}
               </TableCell>
 
-              <TableCell className="text-right whitespace-nowrap">
-                <div className="flex items-center justify-end gap-2">
-                  {isManager && (item.status === 'Pendente' || item.status === 'Revisao') && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); onAction(item.id, 'Aprovado'); }}
-                        className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 h-8 px-2"
+              <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44 rounded-xl">
+                    <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => onOpenDetails(item)}>
+                      <Eye className="h-4 w-4" /> Detalhes
+                    </DropdownMenuItem>
+
+                    {canEdit && (
+                      <DropdownMenuItem
+                        className="cursor-pointer gap-2 text-amber-600"
+                        onClick={() => navigate(`/reimbursements/${item.id}/edit`)}
                       >
-                        <CheckCircle className="h-4 w-4 xl:mr-1" />
-                        <span className="hidden xl:inline">Aprovar</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenReturn(item);
-                        }}
-                        className="text-orange-600 border-orange-200 hover:bg-orange-50 h-8 px-2"
-                      >
-                        <RotateCcw className="h-4 w-4 xl:mr-1" />
-                        <span className="hidden xl:inline">Ajuste</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenReject(item);
-                        }}
-                        className="text-rose-600 border-rose-200 hover:bg-rose-50 h-8 px-2"
-                      >
-                        <XCircle className="h-4 w-4 xl:mr-1" />
-                        <span className="hidden xl:inline">Reprovar</span>
-                      </Button>
-                    </>
-                  )}
-                  {(item.status === 'Pendente' || item.status === 'Revisao') && item.user_id === user?.id && (
-                    <Link
-                      to={`/reimbursements/${item.id}/edit`}
-                      className="inline-flex items-center justify-center whitespace-nowrap rounded-[min(var(--radius-md),12px)] transition-colors text-amber-600 font-semibold hover:bg-amber-50 py-1 h-8 px-2"
-                    >
-                      <Pencil className="h-4 w-4 xl:mr-1" />
-                      <span className="hidden xl:inline">Editar</span>
-                    </Link>
-                  )}
-                  <Button variant="ghost" size="sm" onClick={() => onOpenDetails(item)} className="text-blue-600 font-semibold hover:bg-blue-50 h-8 px-2">
-                    Detalhes
-                  </Button>
-                </div>
+                        <Pencil className="h-4 w-4" /> Editar
+                      </DropdownMenuItem>
+                    )}
+
+                    {canModerate && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="cursor-pointer gap-2 text-emerald-600"
+                          onClick={() => onAction(item.id, 'Aprovado')}
+                        >
+                          <CheckCircle className="h-4 w-4" /> Aprovar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer gap-2 text-orange-600"
+                          onClick={() => onOpenReturn(item)}
+                        >
+                          <RotateCcw className="h-4 w-4" /> Ajuste
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer gap-2 text-rose-600"
+                          onClick={() => onOpenReject(item)}
+                        >
+                          <XCircle className="h-4 w-4" /> Reprovar
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
           {data.length === 0 && (
             <TableRow>
-               <TableCell colSpan={isManager ? 8 : 7} className="text-center p-8 text-slate-500">
+               <TableCell colSpan={isManager ? 9 : 7} className="text-center p-8 text-slate-500">
                  Nenhum reembolso encontrado.
                </TableCell>
             </TableRow>
