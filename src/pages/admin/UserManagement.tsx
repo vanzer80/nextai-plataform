@@ -5,6 +5,7 @@ import * as z from 'zod';
 import { Plus, MoreHorizontal, Edit, Trash2, Shield, User as UserIcon, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
+import { useAuth } from '@/src/contexts/AuthContext';
 
 import { 
   Table, 
@@ -54,6 +55,7 @@ const userSchema = z.object({
 type UserFormValues = z.infer<typeof userSchema>;
 
 export default function UserManagement() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -62,13 +64,15 @@ export default function UserManagement() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchUsers = async () => {
+    if (!currentUser?.team_id) return;
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select('id, full_name, email, role, team_id, created_at')
+        .eq('team_id', currentUser.team_id)
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       setUsers(data || []);
     } catch (err: any) {
@@ -80,8 +84,8 @@ export default function UserManagement() {
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (currentUser?.team_id) fetchUsers();
+  }, [currentUser?.team_id]);
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
