@@ -401,8 +401,8 @@ export default function AppLayout() {
               Next<span className="opacity-50">AI</span>
             </div>
           ) : (
-            <div className="text-2xl font-extrabold tracking-tight">
-              PORTAL<span className="text-primary">MOPAR</span>
+            <div className="text-2xl font-extrabold tracking-tight text-sidebar-foreground">
+              {tenant?.name ?? 'Portal'}
             </div>
           )}
         </div>
@@ -428,8 +428,8 @@ export default function AppLayout() {
             NextAI
           </div>
         ) : (
-          <div className="text-xl font-extrabold tracking-tight">
-            P<span className="text-primary">MOPAR</span>
+          <div className="text-xl font-extrabold tracking-tight text-sidebar-foreground">
+            {(tenant?.name ?? 'Portal').split(' ')[0]}
           </div>
         )}
 

@@ -54,7 +54,7 @@ export interface PendingBlob {
 
 const DB_VERSION = 2;
 
-let dbName = 'portal-mopar-reports';
+let dbName = 'nextai-reports';
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
 export function initDBName(tenantSlug: string): void {

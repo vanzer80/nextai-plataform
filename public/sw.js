@@ -1,4 +1,4 @@
-const CACHE_NAME = 'portal-mopar-v2';
+const CACHE_NAME = 'nextai-v1';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

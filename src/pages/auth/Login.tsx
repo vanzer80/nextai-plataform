@@ -62,7 +62,7 @@ export default function Login() {
       <Card className="w-full max-w-sm border-border shadow-md">
         <CardHeader className="space-y-2 pb-6 text-center">
           <div className="mb-4 flex justify-center text-2xl font-extrabold tracking-tight">
-            PORTAL<span className="text-primary">MOPAR</span>
+            Next<span className="text-primary">AI</span>
           </div>
           <CardTitle className="text-xl font-semibold">Acesso ao Sistema</CardTitle>
           <CardDescription className="text-muted-foreground">
@@ -76,7 +76,7 @@ export default function Login() {
               <Input 
                 id="email" 
                 type="email" 
-                placeholder="tecnico@mopar.com.br" 
+                placeholder="seu@email.com.br"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

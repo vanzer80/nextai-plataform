@@ -205,7 +205,7 @@ export default function UserManagement() {
                   <div className="space-y-1">
                     <Label className="text-sm font-semibold text-foreground">E-mail</Label>
                     <Input 
-                      placeholder="joao@mopar.com" 
+                      placeholder="colaborador@empresa.com"
                       className="h-11 rounded-lg focus-visible:ring-ring"
                       {...register('email')} 
                     />

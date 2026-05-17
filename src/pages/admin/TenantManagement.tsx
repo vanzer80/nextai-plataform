@@ -632,7 +632,7 @@ export default function TenantManagement() {
           <div className="flex items-start gap-3">
             <HardDrive className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
             <div>
-              <p className="font-semibold text-sm text-foreground">Backfill de Storage — Mopar</p>
+              <p className="font-semibold text-sm text-foreground">Backfill de Storage Legado</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Move objetos legados para paths namespaceados por tenant e atualiza as colunas de URL no banco. Operação idempotente.
               </p>

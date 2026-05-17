@@ -1,7 +1,7 @@
 {
-  "name": "Portal Mopar",
-  "short_name": "Mopar",
-  "description": "Portal de gestão para técnicos de campo Mopar",
+  "name": "NextAI",
+  "short_name": "NextAI",
+  "description": "Plataforma de gestão para equipes de campo",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#020617",

@@ -1,6 +1,6 @@
 {
-  "name": "Portal Mopar",
-  "description": "Sistema de Gestão Operacional de Campo para empresas de manutenção e facilities. Mobile-first.",
+  "name": "NextAI",
+  "description": "Plataforma SaaS de gestão operacional para equipes de campo. Mobile-first, multi-tenant.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

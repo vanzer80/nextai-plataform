@@ -179,7 +179,7 @@ export default function OrcamentoDetail() {
             variant="outline"
             size="sm"
             className="gap-1.5"
-            onClick={() => gerarPdfOrcamento(orcamento, tenant?.name ?? 'Portal Mopar')}
+            onClick={() => gerarPdfOrcamento(orcamento, tenant?.name ?? 'Portal')}
           >
             <FileDown className="h-4 w-4" /> PDF
           </Button>
