@@ -57,6 +57,7 @@ export default function ReimbursementsList() {
           id, created_at, category, amount, status, receipt_url,
           user_id, description, maintenance_type, client_id, branch, budget,
           favorecido, pix_key, rejection_reason, revision_reason,
+          paid_at, paid_by,
           clients(name),
           users:user_id(full_name)
         `)

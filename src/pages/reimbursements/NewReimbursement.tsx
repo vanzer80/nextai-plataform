@@ -131,21 +131,27 @@ export default function NewReimbursement() {
     if (cnpjTimerRef.current) clearTimeout(cnpjTimerRef.current);
     const digits = (pixValue ?? '').replace(/\D/g, '');
     if (digits.length !== 14) { setCnpjInfo(null); return; }
+
+    const controller = new AbortController();
     cnpjTimerRef.current = setTimeout(async () => {
       setCnpjChecking(true);
       try {
-        const res = await fetch(`https://publica.cnpj.ws/cnpj/${digits}`);
+        const res = await fetch(`https://publica.cnpj.ws/cnpj/${digits}`, { signal: controller.signal });
         if (!res.ok) { setCnpjInfo(null); return; }
         const json = await res.json();
         setCnpjInfo({
           razaoSocial: json.razao_social ?? '',
-          nomeFantasia: json.estabelecimento?.nome_fantasia ?? null,
+          nomeFantasia: json.estabelecimento?.nome_fantasia || null,
           ativo: json.estabelecimento?.situacao_cadastral === 'Ativa',
         });
-      } catch { setCnpjInfo(null); }
-      finally { setCnpjChecking(false); }
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') setCnpjInfo(null);
+      } finally { setCnpjChecking(false); }
     }, 800);
-    return () => { if (cnpjTimerRef.current) clearTimeout(cnpjTimerRef.current); };
+    return () => {
+      if (cnpjTimerRef.current) clearTimeout(cnpjTimerRef.current);
+      controller.abort();
+    };
   }, [pixValue]);
 
   // ── AI extraction helpers ──────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  XCircle, Receipt, User as UserIcon, Paperclip, Copy, Check, RotateCcw,
+  XCircle, User as UserIcon, Copy, Check, RotateCcw,
   CheckCircle, Pencil, History, Clock, Banknote, AlertTriangle
 } from 'lucide-react';
 import { 
@@ -75,7 +75,7 @@ export default function ReimbursementDetailModal({
         .select('amount')
         .eq('user_id', item.user_id)
         .eq('category', item.category)
-        .not('status', 'eq', 'Rejeitado')
+        .neq('status', 'Rejeitado')
         .neq('id', item.id);
 
       if (!data || data.length < 3) return;
