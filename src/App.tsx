@@ -1,9 +1,10 @@
 import { lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from '@/src/contexts/AuthContext';
-import { TenantProvider } from '@/src/contexts/TenantContext';
-import { ProtectedRoute, RoleGuard } from '@/src/components/auth/ProtectedRoute';
+import { AuthProvider, useAuth } from '@/src/contexts/AuthContext';
+import { TenantProvider, useTenant } from '@/src/contexts/TenantContext';
+import { ProtectedRoute, RoleGuard, PlatformGuard } from '@/src/components/auth/ProtectedRoute';
 import AppLayout from '@/src/components/layout/AppLayout';
+import PlatformLayout from '@/src/components/layout/PlatformLayout';
 import Login from '@/src/pages/auth/Login';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -26,6 +27,20 @@ const OrcamentosList     = lazy(() => import('@/src/pages/orcamentos/OrcamentosL
 const NovoOrcamento      = lazy(() => import('@/src/pages/orcamentos/NovoOrcamento'));
 const OrcamentoDetail    = lazy(() => import('@/src/pages/orcamentos/OrcamentoDetail'));
 
+// Platform admin pages (SuperMaster only)
+const PlatformTenants  = lazy(() => import('@/src/pages/platform/PlatformTenants'));
+const PlatformUsers    = lazy(() => import('@/src/pages/platform/PlatformUsers'));
+const PlatformSettings = lazy(() => import('@/src/pages/platform/PlatformSettings'));
+
+// Redirects SuperMaster to /platform/tenants, regular users to /dashboard
+function SmartRedirect() {
+  const { user } = useAuth();
+  const { tenant, loading } = useTenant();
+  if (loading) return null;
+  const isSuperMaster = user?.role === 'Master' && tenant?.isPlatform === true;
+  return <Navigate to={isSuperMaster ? '/platform/tenants' : '/dashboard'} replace />;
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -35,8 +50,18 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           
           <Route element={<ProtectedRoute />}>
+            {/* Platform admin (SuperMaster only) */}
+            <Route element={<PlatformGuard />}>
+              <Route element={<PlatformLayout />}>
+                <Route path="/platform" element={<Navigate to="/platform/tenants" replace />} />
+                <Route path="/platform/tenants" element={<PlatformTenants />} />
+                <Route path="/platform/users" element={<PlatformUsers />} />
+                <Route path="/platform/settings" element={<PlatformSettings />} />
+              </Route>
+            </Route>
+
             <Route element={<AppLayout />}>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/" element={<SmartRedirect />} />
               <Route path="/dashboard" element={<Dashboard />} />
               
               <Route path="/reports" element={<ReportsList />} />
