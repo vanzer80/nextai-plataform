@@ -1,7 +1,7 @@
 import { lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/src/contexts/AuthContext';
-import { TenantProvider, useTenant } from '@/src/contexts/TenantContext';
+import { TenantProvider } from '@/src/contexts/TenantContext';
 import { ProtectedRoute, RoleGuard, PlatformGuard } from '@/src/components/auth/ProtectedRoute';
 import AppLayout from '@/src/components/layout/AppLayout';
 import PlatformLayout from '@/src/components/layout/PlatformLayout';
@@ -34,10 +34,9 @@ const PlatformSettings = lazy(() => import('@/src/pages/platform/PlatformSetting
 
 // Redirects SuperMaster to /platform/tenants, regular users to /dashboard
 function SmartRedirect() {
-  const { user } = useAuth();
-  const { tenant, loading } = useTenant();
+  const { user, loading } = useAuth();
   if (loading) return null;
-  const isSuperMaster = user?.role === 'Master' && tenant?.isPlatform === true;
+  const isSuperMaster = user?.role === 'Master' && user?.isPlatform === true;
   return <Navigate to={isSuperMaster ? '/platform/tenants' : '/dashboard'} replace />;
 }
 

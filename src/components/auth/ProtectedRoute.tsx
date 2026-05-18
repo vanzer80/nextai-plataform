@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/src/contexts/AuthContext';
-import { useTenant } from '@/src/contexts/TenantContext';
 import { Loader2, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabaseUrl, supabaseAnonKey } from '@/src/lib/supabase';
@@ -80,10 +79,9 @@ export function ProtectedRoute() {
 }
 
 export function PlatformGuard() {
-  const { user } = useAuth();
-  const { tenant, loading } = useTenant();
+  const { user, loading } = useAuth();
   if (loading) return null;
-  const isSuperMaster = user?.role === 'Master' && tenant?.isPlatform === true;
+  const isSuperMaster = user?.role === 'Master' && user?.isPlatform === true;
   if (!isSuperMaster) return <Navigate to="/dashboard" replace />;
   return <Outlet />;
 }

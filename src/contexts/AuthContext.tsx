@@ -10,6 +10,7 @@ export interface AuthUser extends User {
   role?: UserRole;
   full_name?: string;
   team_id?: string;
+  isPlatform?: boolean;
   setup_pending?: boolean;
 }
 
@@ -71,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (_event === 'TOKEN_REFRESHED' || _event === 'INITIAL_SESSION') {
           if (_event === 'TOKEN_REFRESHED') {
             setUser(prev => prev && currentSession?.user
-              ? { ...currentSession.user, role: prev.role, full_name: prev.full_name, team_id: prev.team_id, setup_pending: prev.setup_pending }
+              ? { ...currentSession.user, role: prev.role, full_name: prev.full_name, team_id: prev.team_id, isPlatform: prev.isPlatform, setup_pending: prev.setup_pending }
               : prev);
           }
           return;
@@ -160,7 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await withTimeout<any>(
         supabase
           .from('users')
-          .select('role, full_name, team_id')
+          .select('role, full_name, team_id, tenant:tenants(is_platform)')
           .eq('id', authUser.id)
           .maybeSingle(),
         8000
@@ -186,6 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: data.role as UserRole,
           full_name: data.full_name || defaultProfile.full_name,
           team_id: data.team_id,
+          isPlatform: data.tenant?.is_platform ?? false,
           setup_pending: false
         });
       }
