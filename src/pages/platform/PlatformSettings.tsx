@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -35,18 +35,41 @@ export default function PlatformSettings() {
   const { tenant } = useTenant();
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(tenant?.logoUrl ?? null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const logoRef = useRef<HTMLInputElement>(null);
 
-  const { register, handleSubmit, watch, formState: { errors, isDirty } } = useForm<ProfileFormValues>({
+  const { register, handleSubmit, watch, reset, formState: { errors, isDirty } } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: tenant?.name ?? '',
-      primary_color: tenant?.primaryColor ?? '#0066CC',
+      name: '',
+      primary_color: '#0066CC',
     },
   });
   const colorValue = watch('primary_color');
+
+  // Sincroniza form e preview quando o TenantContext termina de carregar
+  useEffect(() => {
+    if (!tenant) return;
+    reset({
+      name: tenant.name,
+      primary_color: tenant.primaryColor,
+    });
+    setLogoPreview(prev => {
+      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+      return tenant.logoUrl ?? null;
+    });
+  }, [tenant, reset]);
+
+  // Revoga blob URL ao desmontar
+  useEffect(() => {
+    return () => {
+      setLogoPreview(prev => {
+        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+        return null;
+      });
+    };
+  }, []);
 
   const handleLogoSelect = (file: File | undefined) => {
     if (!file) return;

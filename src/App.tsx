@@ -50,6 +50,9 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           
           <Route element={<ProtectedRoute />}>
+            {/* Root redirect: fora do AppLayout para evitar flash do menu operacional */}
+            <Route path="/" element={<SmartRedirect />} />
+
             {/* Platform admin (SuperMaster only) */}
             <Route element={<PlatformGuard />}>
               <Route element={<PlatformLayout />}>
@@ -61,7 +64,6 @@ export default function App() {
             </Route>
 
             <Route element={<AppLayout />}>
-              <Route path="/" element={<SmartRedirect />} />
               <Route path="/dashboard" element={<Dashboard />} />
               
               <Route path="/reports" element={<ReportsList />} />

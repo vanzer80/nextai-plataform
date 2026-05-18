@@ -8,11 +8,12 @@ const corsHeaders = {
 
 const ALLOWED_ROLES = ["Master", "Admin", "Gestor"];
 
-// Numeric rank — caller can only create roles strictly below their own rank
 const ROLE_RANK: Record<string, number> = {
   Master: 5, Admin: 4, Gestor: 3, Supervisor: 2,
   Financeiro: 2, Comprador: 2, Administrativo: 2, Tecnico: 1,
 };
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -31,7 +32,6 @@ Deno.serve(async (req: Request) => {
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-  // 1. Validar JWT do chamador (quem está pedindo a criação)
   const callerClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
     auth: { autoRefreshToken: false, persistSession: false },
@@ -45,7 +45,6 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // 2. Verificar se o chamador tem role autorizado
   const { data: profile, error: profileError } = await callerClient
     .from("users")
     .select("role, team_id")
@@ -66,9 +65,19 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // 3. Validar body da requisição
-  // team_id é aceito no body mas ignorado em favor do team_id do caller —
-  // evita que um Gestor crie usuários em outro tenant.
+  // Verifica se caller e SuperMaster (Master do tenant plataforma)
+  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const { data: callerTenant } = await supabaseAdmin
+    .from("tenants")
+    .select("is_platform")
+    .eq("id", profile.team_id)
+    .maybeSingle();
+
+  const isSuperMaster = profile.role === "Master" && callerTenant?.is_platform === true;
+
   let body: { email?: string; password?: string; full_name?: string; role?: string; team_id?: string };
   try {
     body = await req.json();
@@ -79,7 +88,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const { email, password, full_name, role } = body;
+  const { email, password, full_name, role, team_id: bodyTeamId } = body;
 
   if (!email || !password || !full_name || !role) {
     return new Response(JSON.stringify({ error: "Campos obrigatorios: email, password, full_name, role." }), {
@@ -88,7 +97,6 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // 4. Validar que o role solicitado é um valor permitido no sistema
   const VALID_APP_ROLES = ["Master", "Admin", "Gestor", "Supervisor", "Financeiro", "Comprador", "Administrativo", "Tecnico"];
   if (!VALID_APP_ROLES.includes(role)) {
     return new Response(JSON.stringify({ error: `Role invalido: ${role}` }), {
@@ -97,20 +105,31 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // 4b. Prevenir escalada de privilégio: caller não pode criar role de nível >= ao seu
-  const callerRank = ROLE_RANK[profile.role] ?? 0;
-  const targetRank = ROLE_RANK[role] ?? 0;
-  if (targetRank >= callerRank) {
-    return new Response(JSON.stringify({ error: "Permissao negada. Voce nao pode criar um perfil com nivel igual ou superior ao seu." }), {
-      status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  // SuperMaster pode criar qualquer role (inclusive Master para outras empresas).
+  // Usuarios normais nao podem criar role de nivel >= ao seu.
+  if (!isSuperMaster) {
+    const callerRank = ROLE_RANK[profile.role] ?? 0;
+    const targetRank = ROLE_RANK[role] ?? 0;
+    if (targetRank >= callerRank) {
+      return new Response(JSON.stringify({ error: "Permissao negada. Voce nao pode criar um perfil com nivel igual ou superior ao seu." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
   }
 
-  // 5. Criar usuário com service_role (bypassa confirmação de email)
-  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  // SuperMaster pode especificar team_id do corpo para criar em qualquer tenant.
+  // Usuarios normais sempre criam no proprio tenant (ignorar body.team_id).
+  let targetTeamId = profile.team_id ?? null;
+  if (isSuperMaster && bodyTeamId) {
+    if (!UUID_RE.test(bodyTeamId)) {
+      return new Response(JSON.stringify({ error: "team_id invalido." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    targetTeamId = bodyTeamId;
+  }
 
   const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
     email,
@@ -127,16 +146,11 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // 6. Aguardar trigger e então atualizar role + full_name + team_id
-  // O trigger handle_new_user cria a linha em public.users automaticamente.
-  // Aguardamos até 2s para o trigger propagar antes do UPDATE.
-  // team_id vem sempre do perfil do caller — garante que o novo usuário
-  // pertence ao mesmo tenant de quem está criando, sem aceitar valor externo.
   await new Promise(resolve => setTimeout(resolve, 2000));
 
   const { error: updateError } = await supabaseAdmin
     .from("users")
-    .update({ full_name, role, team_id: profile.team_id ?? null })
+    .update({ full_name, role, team_id: targetTeamId })
     .eq("id", newUser.user.id);
 
   if (updateError) {
@@ -150,7 +164,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  console.log(`[admin-create-user] Usuario ${newUser.user.id} (${role}, team:${profile.team_id}) criado por ${callerUser.id} (${profile.role})`);
+  console.log(`[admin-create-user] Usuario ${newUser.user.id} (${role}, team:${targetTeamId}) criado por ${callerUser.id} (${profile.role}${isSuperMaster ? ', SuperMaster' : ''})`);
 
   return new Response(JSON.stringify({ success: true, userId: newUser.user.id }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
