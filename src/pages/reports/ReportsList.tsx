@@ -46,14 +46,14 @@ export default function ReportsList() {
       {/* Cabeçalho */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Relatórios Técnicos</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Ordens de Serviço</h1>
           <p className="text-sm text-muted-foreground">Histórico de serviços de campo</p>
         </div>
         <Link
           to="/reports/new"
           className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold h-10 px-4 rounded-xl shadow-sm transition-colors"
         >
-          <Plus className="h-4 w-4" /> Novo
+          <Plus className="h-4 w-4" /> Nova OS
         </Link>
       </div>
 
@@ -70,7 +70,7 @@ export default function ReportsList() {
         )}
         {pendingCount > 0 && !isSyncing && (
           <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
-            {pendingCount} {pendingCount === 1 ? 'relatório' : 'relatórios'} aguardando sync
+            {pendingCount} OS aguardando sync
           </span>
         )}
       </div>
@@ -100,9 +100,9 @@ export default function ReportsList() {
         ) : reports.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-12 text-muted-foreground bg-card rounded-xl border border-dashed border-border">
             <ClipboardList className="h-10 w-10 mb-4 text-muted-foreground/70" />
-            <p className="text-sm font-medium">Nenhum relatório encontrado.</p>
+            <p className="text-sm font-medium">Nenhuma OS encontrada.</p>
             <p className="text-xs mt-1">
-              {isManager ? 'Aguarde que sua equipe envie relatórios.' : 'Crie seu primeiro relatório clicando em Novo.'}
+              {isManager ? 'Aguarde que sua equipe envie OS.' : 'Crie sua primeira OS clicando em Nova OS.'}
             </p>
           </div>
         ) : (

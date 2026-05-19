@@ -35,7 +35,7 @@ export default function Step7SignatureSend({
         <CardHeader className="pb-3 border-b border-border bg-muted/30 rounded-t-xl">
           <CardTitle className="text-base flex items-center gap-2">
             <ClipboardList className="h-4 w-4 text-primary" />
-            Resumo do Relatório
+            Resumo da OS
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
@@ -97,7 +97,7 @@ export default function Step7SignatureSend({
             label="Técnico — assine aqui"
           />
           {!technicianSignature && (
-            <p className="mt-2 text-xs text-rose-500">A assinatura do técnico é obrigatória para enviar o relatório.</p>
+            <p className="mt-2 text-xs text-rose-500">A assinatura do técnico é obrigatória para enviar a OS.</p>
           )}
         </CardContent>
       </Card>

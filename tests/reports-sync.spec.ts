@@ -41,7 +41,7 @@ async function drawSignature(page: Page) {
 
 async function fillMinimalReport(page: Page, serviceType = 'Corretiva') {
   await page.goto('/reports/new');
-  await page.waitForSelector('text=Novo Relatório', { timeout: 10_000 });
+  await page.waitForSelector('text=Nova OS', { timeout: 10_000 });
 
   // Step 1
   await page.getByRole('combobox').first().click();
@@ -153,7 +153,7 @@ test('RS-05 — Offline real → feedback "salvo localmente" e badge âmbar na l
 
   await login(page, TECH_EMAIL, TECH_PASSWORD);
   await page.goto('/reports/new');
-  await page.waitForSelector('text=Novo Relatório', { timeout: 10_000 });
+  await page.waitForSelector('text=Nova OS', { timeout: 10_000 });
 
   // Step 1
   await page.getByRole('combobox').first().click();
@@ -193,7 +193,7 @@ test('RS-06 — Itens salvos offline são sincronizados ao reconectar', async ({
 
   await login(page, TECH_EMAIL, TECH_PASSWORD);
   await page.goto('/reports/new');
-  await page.waitForSelector('text=Novo Relatório', { timeout: 10_000 });
+  await page.waitForSelector('text=Nova OS', { timeout: 10_000 });
 
   // Criar relatório offline
   await page.getByRole('combobox').first().click();

@@ -188,7 +188,7 @@ export default function ChecklistTemplates() {
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             O template <strong>{toDelete?.name}</strong> e todos os seus itens serão excluídos permanentemente.
-            Relatórios já respondidos não são afetados.
+            OS já respondidas não são afetadas.
           </p>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setToDelete(null)} disabled={deleting} className="flex-1 rounded-xl">

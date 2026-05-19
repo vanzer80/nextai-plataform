@@ -21,7 +21,7 @@ export function ReportsBarWidget({ isLoading, barData, isTeamReports }: Props) {
     <Card className="shadow-sm border-border h-full flex flex-col min-w-0">
       <CardHeader className="pb-2 shrink-0">
         <CardTitle className="text-base font-semibold text-foreground flex items-center justify-between">
-          Balanço de Relatórios (Últimos 7 dias)
+          Balanço de OS (Últimos 7 dias)
           <Button variant="ghost" size="sm" className="h-8 text-xs text-primary hover:bg-accent" onClick={() => navigate('/reports')}>
             Ver todos <ArrowRight className="ml-1 h-3 w-3" />
           </Button>

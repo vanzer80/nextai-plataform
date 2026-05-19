@@ -172,7 +172,7 @@ export default function NewReport() {
       });
 
       await draft.discardDraft();
-      toast.success('Relatório enviado com sucesso!', { description: `ID: ${reportId.slice(0, 8)}` });
+      toast.success('OS enviada com sucesso!', { description: `ID: ${reportId.slice(0, 8)}` });
       navigate('/reports');
     } catch (err) {
       console.error('[NewReport] submit error', err);
@@ -190,12 +190,12 @@ export default function NewReport() {
           clientSignature,
           clientSignerName,
         );
-        toast.warning('Sem conexão — relatório salvo localmente.', {
+        toast.warning('Sem conexão — OS salva localmente.', {
           description: 'Fotos, checklist e assinatura incluídos. Será sincronizado ao reconectar.',
         });
         navigate('/reports');
       } catch {
-        toast.error('Erro ao salvar o relatório.');
+        toast.error('Erro ao salvar a OS.');
       }
     } finally {
       setIsSubmitting(false);
@@ -219,7 +219,7 @@ export default function NewReport() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Novo Relatório</h1>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Nova OS</h1>
           <p className="text-xs text-muted-foreground">
             Passo {currentStep} de {TOTAL_STEPS} — {STEP_LABELS[currentStep - 1]}
           </p>
@@ -321,7 +321,7 @@ export default function NewReport() {
             {isSubmitting ? (
               <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
             ) : (
-              <><Save className="h-4 w-4 mr-2" /> Enviar Relatório</>
+              <><Save className="h-4 w-4 mr-2" /> Enviar OS</>
             )}
           </Button>
         ) : (

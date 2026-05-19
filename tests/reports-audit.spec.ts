@@ -48,7 +48,7 @@ async function drawSignature(page: Page) {
 
 async function createMinimalReport(page: Page, serviceType = 'Corretiva'): Promise<string> {
   await page.goto('/reports/new');
-  await page.waitForSelector('text=Novo Relatório', { timeout: 10_000 });
+  await page.waitForSelector('text=Nova OS', { timeout: 10_000 });
 
   await page.getByRole('combobox').first().click();
   await page.getByRole('option', { name: serviceType }).click();
@@ -84,7 +84,7 @@ test('RA-01 — Auth carrega role correto (sem ficar preso em fallback Tecnico)'
   // Aguardar que a UI reflita o role correto (Gestor/Master tem acesso a /clients)
   // Se ficar preso como Tecnico, /clients seria bloqueado pelo RoleGuard
   await page.goto('/reports');
-  await page.waitForSelector('text=Relatórios Técnicos', { timeout: 10_000 });
+  await page.waitForSelector('text=Ordens de Serviço', { timeout: 10_000 });
 
   // Master deve ver todos os relatórios (sem filtro por técnico)
   // O texto de empty state de Master é diferente do de Tecnico
@@ -151,7 +151,7 @@ test('RA-04 — Técnico vê lista de relatórios (RLS SELECT correto)', async (
   await createMinimalReport(page);
 
   await page.goto('/reports');
-  await page.waitForSelector('text=Relatórios Técnicos', { timeout: 10_000 });
+  await page.waitForSelector('text=Ordens de Serviço', { timeout: 10_000 });
 
   // Deve haver pelo menos um relatório na lista
   const cards = page.locator('a[href*="/reports/"]');
@@ -174,7 +174,7 @@ test('RA-05 — Gestor/Master vê relatórios de outros técnicos na lista', asy
   const mgr = await ctx2.newPage();
   await login(mgr, MGR_EMAIL, MGR_PASSWORD);
   await mgr.goto('/reports');
-  await mgr.waitForSelector('text=Relatórios Técnicos', { timeout: 10_000 });
+  await mgr.waitForSelector('text=Ordens de Serviço', { timeout: 10_000 });
 
   const cards = mgr.locator('a[href*="/reports/"]');
   await expect(cards.first()).toBeVisible({ timeout: 10_000 });
@@ -238,7 +238,7 @@ test('RA-08 — Tentativa de submit sem assinatura → erro claro (não vai para
 
   await login(page, TECH_EMAIL, TECH_PASSWORD);
   await page.goto('/reports/new');
-  await page.waitForSelector('text=Novo Relatório', { timeout: 10_000 });
+  await page.waitForSelector('text=Nova OS', { timeout: 10_000 });
 
   // Preencher até step 7 sem assinar
   await page.getByRole('combobox').first().click();
@@ -268,7 +268,7 @@ test('RA-09 — Offline → salvo localmente → sincronizado ao reconectar', as
 
   await login(page, TECH_EMAIL, TECH_PASSWORD);
   await page.goto('/reports/new');
-  await page.waitForSelector('text=Novo Relatório', { timeout: 10_000 });
+  await page.waitForSelector('text=Nova OS', { timeout: 10_000 });
 
   await page.getByRole('combobox').first().click();
   await page.getByRole('option', { name: 'Corretiva' }).click();

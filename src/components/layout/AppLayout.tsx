@@ -38,7 +38,7 @@ import clsx from 'clsx';
 // Configuration of navigation links
 const NAV_LINKS = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Financeiro', 'Comprador', 'Admin', 'Master'] },
-  { name: 'Relatórios', path: '/reports', icon: ClipboardList, roles: ['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master'] },
+  { name: 'Ordens de Serviço', path: '/reports', icon: ClipboardList, roles: ['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master'] },
   { name: 'Orçamentos', path: '/orcamentos', icon: FileText, roles: ['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master'] },
   { name: 'Reembolsos', path: '/reimbursements', icon: Receipt, roles: ['Tecnico', 'Supervisor', 'Gestor', 'Financeiro', 'Admin', 'Master'] },
   { name: 'Compras', path: '/materials', icon: ShoppingCart, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Comprador', 'Admin', 'Master'] },
@@ -52,7 +52,7 @@ const NAV_LINKS = [
 // All possible bottom nav options (mobile quick-access bar)
 const ALL_BOTTOM_NAV_OPTIONS = [
   { name: 'Início',        path: '/dashboard',                 icon: Home          },
-  { name: 'Relatórios',    path: '/reports',                   icon: ClipboardList },
+  { name: 'OS',            path: '/reports',                   icon: ClipboardList },
   { name: 'Orçamentos',    path: '/orcamentos',                icon: FileText      },
   { name: 'Reembolsos',    path: '/reimbursements',            icon: Receipt       },
   { name: 'Compras',       path: '/materials',                 icon: ShoppingCart  },

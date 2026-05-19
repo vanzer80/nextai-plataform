@@ -145,7 +145,7 @@ export default function ReportDetail() {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-24 text-muted-foreground">
         <Loader2 className="h-8 w-8 animate-spin" />
-        <p className="text-sm">Carregando relatório...</p>
+        <p className="text-sm">Carregando OS...</p>
       </div>
     );
   }
@@ -154,7 +154,7 @@ export default function ReportDetail() {
     return (
       <div className="flex flex-col items-center gap-4 py-20 text-muted-foreground">
         <AlertTriangle className="h-10 w-10 text-destructive" />
-        <p className="text-sm font-medium">{error ?? 'Relatório não encontrado.'}</p>
+        <p className="text-sm font-medium">{error ?? 'OS não encontrada.'}</p>
         <Button variant="outline" onClick={() => navigate('/reports')}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Voltar para lista
         </Button>
@@ -189,7 +189,7 @@ export default function ReportDetail() {
             )}
           </div>
           <h1 className="text-xl font-bold text-foreground mt-1 leading-tight">
-            {report.os_number ? `OS ${report.os_number}` : 'Relatório sem OS'}
+            {report.os_number ? `OS ${report.os_number}` : 'OS sem número'}
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">{fmtDate(report.service_date)}</p>
         </div>
@@ -219,7 +219,7 @@ export default function ReportDetail() {
         <div className="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-100/70 dark:bg-amber-500/15 p-4 flex gap-3">
           <AlertTriangle className="h-5 w-5 text-amber-700 dark:text-amber-300 shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Relatório devolvido para ajuste</p>
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">OS devolvida para ajuste</p>
             <p className="text-sm text-amber-800 dark:text-amber-300 mt-0.5">{report.reviewer_comment}</p>
           </div>
         </div>

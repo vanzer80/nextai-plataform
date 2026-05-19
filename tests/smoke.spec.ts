@@ -48,7 +48,7 @@ test('S1 — Técnico cria relatório (7 steps) → aparece na lista', async ({ 
   await page.goto('/reports/new');
 
   // Step 1 — Identificação
-  await page.waitForSelector('text=Novo Relatório', { timeout: 10_000 });
+  await page.waitForSelector('text=Nova OS', { timeout: 10_000 });
   await page.getByRole('combobox').first().click();
   await page.getByRole('option', { name: 'Corretiva' }).click();
   // service_date já vem preenchido com hoje

@@ -48,7 +48,7 @@ async function drawSignature(page: Page) {
 
 async function createMinimalReport(page: Page, serviceType = 'Corretiva'): Promise<string> {
   await page.goto('/reports/new');
-  await page.waitForSelector('text=Novo Relatório', { timeout: 10_000 });
+  await page.waitForSelector('text=Nova OS', { timeout: 10_000 });
 
   await page.getByRole('combobox').first().click();
   await page.getByRole('option', { name: serviceType }).click();

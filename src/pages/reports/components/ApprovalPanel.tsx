@@ -23,7 +23,7 @@ const ACTION_CONFIG = {
     needsComment: false,
     confirmLabel: 'Confirmar aprovação',
     placeholder: '',
-    successMessage: 'Relatório aprovado com sucesso!',
+    successMessage: 'OS aprovada com sucesso!',
   },
   return: {
     label: 'Devolver',
@@ -33,7 +33,7 @@ const ACTION_CONFIG = {
     needsComment: true,
     confirmLabel: 'Confirmar devolução',
     placeholder: 'Descreva o que precisa ser corrigido pelo técnico...',
-    successMessage: 'Relatório devolvido para ajuste.',
+    successMessage: 'OS devolvida para ajuste.',
   },
   reject: {
     label: 'Reprovar',
@@ -43,7 +43,7 @@ const ACTION_CONFIG = {
     needsComment: true,
     confirmLabel: 'Confirmar reprovação',
     placeholder: 'Informe o motivo da reprovação...',
-    successMessage: 'Relatório reprovado.',
+    successMessage: 'OS reprovada.',
   },
 } as const;
 
@@ -122,7 +122,7 @@ export default function ApprovalPanel({ report, onSuccess }: ApprovalPanelProps)
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <Icon className="h-4 w-4" />
-              {cfg.label} — {report.os_number ? `OS ${report.os_number}` : 'este relatório'}
+              {cfg.label} — {report.os_number ? `OS ${report.os_number}` : 'esta OS'}
             </div>
 
             {cfg.needsComment && (
@@ -137,7 +137,7 @@ export default function ApprovalPanel({ report, onSuccess }: ApprovalPanelProps)
 
             {!cfg.needsComment && (
               <p className="text-sm text-muted-foreground">
-                Confirme a aprovação do relatório. Uma notificação será enviada ao técnico.
+                Confirme a aprovação da OS. Uma notificação será enviada ao técnico.
               </p>
             )}
 
