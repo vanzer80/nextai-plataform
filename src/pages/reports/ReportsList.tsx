@@ -1,4 +1,5 @@
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect } from 'react';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { Plus, ClipboardList, AlertCircle, Loader2, Wifi, WifiOff } from 'lucide-react';
 import { supabase } from '@/src/lib/supabase';
@@ -17,6 +18,7 @@ export default function ReportsList() {
   const { user } = useAuth();
   const [filter, setFilter] = useState<ReportsFilter>(EMPTY_FILTER);
   const { reports, loading, error, hasMore, loadMore, refresh, updateItem } = useReports(filter);
+  const [listRef] = useAutoAnimate({ duration: 200 });
   const { isOnline, isSyncing, pendingCount } = useOutletContext<AppLayoutOutletContext>();
 
   // Realtime: atualiza o item afetado na lista sem refetch completo
@@ -42,7 +44,7 @@ export default function ReportsList() {
   const isManager = user?.role && ['Gestor', 'Supervisor', 'Admin', 'Master'].includes(user.role);
 
   return (
-    <div className="flex flex-col gap-4 w-full pb-8">
+    <div className="flex flex-col gap-4 w-full pb-8 animate-in fade-in duration-300">
       {/* Cabeçalho */}
       <div className="flex items-center justify-between">
         <div>
@@ -91,7 +93,7 @@ export default function ReportsList() {
       )}
 
       {/* Lista */}
-      <div className="flex flex-col gap-3">
+      <div ref={listRef} className="flex flex-col gap-3">
         {loading && reports.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-12 text-muted-foreground">
             <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
@@ -106,8 +108,14 @@ export default function ReportsList() {
             </p>
           </div>
         ) : (
-          reports.map(report => (
-            <Fragment key={report.id}><ReportCard report={report} /></Fragment>
+          reports.map((report, index) => (
+            <div
+              key={report.id}
+              className="animate-in fade-in slide-in-from-bottom-2 duration-200"
+              style={{ animationDelay: `${Math.min(index * 40, 200)}ms` }}
+            >
+              <ReportCard report={report} />
+            </div>
           ))
         )}
 

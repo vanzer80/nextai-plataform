@@ -29,7 +29,7 @@ export default function ReportCard({ report, localSyncStatus }: ReportCardProps)
     : format(parseISO(report.created_at), "dd 'de' MMM, yyyy", { locale: ptBR });
 
   return (
-    <Card className="overflow-hidden shadow-sm border-border hover:shadow-md transition-shadow">
+    <Card className="overflow-hidden shadow-sm border-border hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
       <CardContent className="p-4">
         {/* Status + Data */}
         <div className="flex items-start justify-between mb-3 gap-2">
