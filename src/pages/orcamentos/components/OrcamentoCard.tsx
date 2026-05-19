@@ -19,7 +19,7 @@ export function OrcamentoCard({ orcamento }: { orcamento: Orcamento }) {
   return (
     <Link
       to={`/orcamentos/${orcamento.id}`}
-      className="block bg-card rounded-xl border border-border p-4 hover:border-primary/50 hover:shadow-md transition-all"
+      className="block bg-card rounded-xl border border-border p-4 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">

@@ -20,7 +20,7 @@ export default function ReimbursementCard({
 }: ReimbursementCardProps) {
   return (
     <Card
-      className="shadow-sm border-border mb-3 cursor-pointer hover:shadow-md transition-all active:scale-[0.98]"
+      className="shadow-sm border-border mb-3 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.98]"
       onClick={() => onOpenDetails(item)}
     >
       <CardContent className="p-4 flex flex-col gap-3">

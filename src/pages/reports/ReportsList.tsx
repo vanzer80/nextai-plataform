@@ -97,7 +97,7 @@ export default function ReportsList() {
         {loading && reports.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-12 text-muted-foreground">
             <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
-            <p className="text-sm">Carregando relatórios...</p>
+            <p className="text-sm">Carregando OS...</p>
           </div>
         ) : reports.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-12 text-muted-foreground bg-card rounded-xl border border-dashed border-border">
@@ -111,7 +111,7 @@ export default function ReportsList() {
           reports.map((report, index) => (
             <div
               key={report.id}
-              className="animate-in fade-in slide-in-from-bottom-2 duration-200"
+              className="animate-in fade-in fill-mode-backwards slide-in-from-bottom-2 duration-200"
               style={{ animationDelay: `${Math.min(index * 40, 200)}ms` }}
             >
               <ReportCard report={report} />

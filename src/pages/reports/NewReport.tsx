@@ -206,7 +206,7 @@ export default function NewReport() {
   const progress = (currentStep / TOTAL_STEPS) * 100;
 
   return (
-    <div className="flex flex-col gap-4 w-full max-w-2xl mx-auto pb-10">
+    <div className="flex flex-col gap-4 w-full max-w-2xl mx-auto pb-10 animate-in fade-in duration-300">
 
       {/* Cabeçalho */}
       <div className="flex items-center gap-3">

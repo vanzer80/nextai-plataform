@@ -169,7 +169,7 @@ export default function ReportDetail() {
   const hasExecution = report.services_performed || report.parts_used || report.pending_issues || report.technical_recommendation;
 
   return (
-    <div className="flex flex-col gap-4 w-full max-w-2xl mx-auto pb-10">
+    <div className="flex flex-col gap-4 w-full max-w-2xl mx-auto pb-10 animate-in fade-in duration-300">
 
       {/* Header */}
       <div className="flex items-start gap-3">
