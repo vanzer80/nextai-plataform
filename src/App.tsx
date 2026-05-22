@@ -20,7 +20,8 @@ const NewReimbursement   = lazy(() => import('@/src/pages/reimbursements/NewReim
 const UserManagement     = lazy(() => import('@/src/pages/admin/UserManagement'));
 const TenantManagement   = lazy(() => import('@/src/pages/admin/TenantManagement'));
 const ServiceTypes       = lazy(() => import('@/src/pages/admin/ServiceTypes'));
-const ClientsList        = lazy(() => import('@/src/pages/clients/ClientsList'));
+const ClientsList           = lazy(() => import('@/src/pages/clients/ClientsList'));
+const EquipmentManagement   = lazy(() => import('@/src/pages/equipments/EquipmentManagement'));
 const MaterialsList      = lazy(() => import('@/src/pages/materials/MaterialsList'));
 const NewMaterialRequest = lazy(() => import('@/src/pages/materials/NewMaterialRequest'));
 const OrcamentosList     = lazy(() => import('@/src/pages/orcamentos/OrcamentosList'));
@@ -87,6 +88,11 @@ export default function App() {
               {/* Clientes - Gestor, Admin, Master, Supervisor */}
               <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor']} />}>
                 <Route path="/clients" element={<ClientsList />} />
+              </Route>
+
+              {/* Equipamentos - Gestor, Admin, Master, Supervisor */}
+              <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor']} />}>
+                <Route path="/equipments" element={<EquipmentManagement />} />
               </Route>
 
               {/* Admin Area */}

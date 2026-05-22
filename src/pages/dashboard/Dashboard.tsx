@@ -8,6 +8,7 @@ import { ReimbursementsKpiWidget } from './widgets/ReimbursementsKpiWidget';
 import { ProductivityWidget } from './widgets/ProductivityWidget';
 import { TicketMedioWidget } from './widgets/TicketMedioWidget';
 import { ApprovalRateWidget } from './widgets/ApprovalRateWidget';
+import { ReturnRateWidget } from './widgets/ReturnRateWidget';
 import { ReportsBarWidget } from './widgets/ReportsBarWidget';
 import { ReimbursementsPieWidget } from './widgets/ReimbursementsPieWidget';
 import type { WidgetId } from './widgetRegistry';
@@ -66,6 +67,9 @@ export default function Dashboard() {
         )}
         {has('approval-rate') && (
           <ApprovalRateWidget isLoading={data.isLoading} approvalRate={data.approvalRate} />
+        )}
+        {has('return-rate') && (
+          <ReturnRateWidget isLoading={data.isLoading} returnRate={data.returnRate} />
         )}
       </div>
 

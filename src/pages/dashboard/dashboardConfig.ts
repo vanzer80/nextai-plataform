@@ -7,10 +7,10 @@ export const dashboardConfigByRole: Record<UserRole, string[]> = {
   Administrativo: ['reports-kpi', 'reimbursements-kpi', 'productivity', 'approval-rate', 'reports-bar', 'reimbursements-pie'],
   Comprador:      ['reports-kpi', 'reimbursements-kpi', 'productivity', 'approval-rate', 'reports-bar', 'reimbursements-pie'],
   Financeiro:     ['reimbursements-kpi', 'ticket-medio', 'approval-rate', 'reimbursements-pie'],
-  Supervisor:     ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'reports-bar', 'reimbursements-pie'],
-  Gestor:         ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'reports-bar', 'reimbursements-pie'],
-  Admin:          ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'reports-bar', 'reimbursements-pie'],
-  Master:         ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'reports-bar', 'reimbursements-pie'],
+  Supervisor:     ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'reports-bar', 'reimbursements-pie'],
+  Gestor:         ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'reports-bar', 'reimbursements-pie'],
+  Admin:          ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'reports-bar', 'reimbursements-pie'],
+  Master:         ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'reports-bar', 'reimbursements-pie'],
 };
 
 // Retorna lista vazia para role desconhecida — fallback seguro (não renderiza nada)

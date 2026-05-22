@@ -20,6 +20,7 @@ import {
   Moon,
   Laptop,
   Check,
+  Wrench,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
@@ -43,6 +44,7 @@ const NAV_LINKS = [
   { name: 'Reembolsos', path: '/reimbursements', icon: Receipt, roles: ['Tecnico', 'Supervisor', 'Gestor', 'Financeiro', 'Admin', 'Master'] },
   { name: 'Compras', path: '/materials', icon: ShoppingCart, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Comprador', 'Admin', 'Master'] },
   { name: 'Clientes', path: '/clients', icon: Building2, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
+  { name: 'Equipamentos', path: '/equipments', icon: Wrench, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
   { name: 'Checklists', path: '/admin/checklist-templates', icon: ListChecks, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'Tipos de Serviço', path: '/admin/service-types', icon: Settings2, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'Administrador', path: '/admin/usuarios', icon: ShieldAlert, roles: ['Gestor', 'Admin', 'Master'] },

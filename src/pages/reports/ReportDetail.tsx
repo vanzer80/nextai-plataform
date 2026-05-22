@@ -121,7 +121,7 @@ export default function ReportDetail() {
     if (!report) return;
     setIsPdfLoading(true);
     try {
-      await gerarPdfRelatorio({ report, checklistItems, signatures, attachments, tenantName: tenant?.name ?? 'Portal' });
+      await gerarPdfRelatorio({ report, checklistItems, signatures, attachments, tenantName: tenant?.name ?? 'Portal', tenantLogoUrl: tenant?.logoUrl ?? null });
     } finally {
       setIsPdfLoading(false);
     }

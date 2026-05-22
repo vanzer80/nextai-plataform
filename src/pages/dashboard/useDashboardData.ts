@@ -16,6 +16,7 @@ export interface DashboardData {
   productivity: number;
   avgTicket: number;
   approvalRate: number | null;
+  returnRate: number | null;
   barData: BarEntry[];
   pieData: PieEntry[];
   isTeamReports: boolean;
@@ -44,6 +45,7 @@ export function useDashboardData(
   const [productivity, setProductivity] = useState(0);
   const [avgTicket, setAvgTicket] = useState(0);
   const [approvalRate, setApprovalRate] = useState<number | null>(null);
+  const [returnRate, setReturnRate] = useState<number | null>(null);
   const [barData, setBarData] = useState<BarEntry[]>([]);
   const [pieData, setPieData] = useState<PieEntry[]>([]);
 
@@ -88,6 +90,10 @@ export function useDashboardData(
         let q = supabase.from('reimbursements').select('category, amount').gte('created_at', thirtyDaysAgo).limit(500);
         if (!isTeamFinance) q = q.eq('user_id', user.id);
         promises.push(q); keys.push('pieQry');
+      }
+      if (nq.has('returnQry')) {
+        promises.push(supabase.rpc('get_dashboard_return_rate', { p_days: 30 }));
+        keys.push('returnQry');
       }
 
       const results = await Promise.all(promises);
@@ -144,6 +150,16 @@ export function useDashboardData(
           .map(k => ({ name: k, value: cats[k], fill: PIE_COLORS[k] }));
         setPieData(formatted.length > 0 ? formatted : [{ name: 'Sem Despesas (0)', value: 1, fill: '#e2e8f0' }]);
       }
+
+      if (res.returnQry) {
+        if (res.returnQry.error) { console.warn('returnQry', res.returnQry.error); }
+        else {
+          const row = res.returnQry.data?.[0];
+          const total = Number(row?.total_count ?? 0);
+          const returned = Number(row?.returned_count ?? 0);
+          setReturnRate(total > 0 ? (returned / total) * 100 : null);
+        }
+      }
     } catch (err) {
       console.error('Dashboard fetch error:', err);
     } finally {
@@ -183,5 +199,5 @@ export function useDashboardData(
     return () => { supabase.removeChannel(ch); };
   }, [user?.id, isTeamReports, isTeamFinance, widgetKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { isLoading, reportsCount, reimbursementSum, productivity, avgTicket, approvalRate, barData, pieData, isTeamReports, isTeamFinance };
+  return { isLoading, reportsCount, reimbursementSum, productivity, avgTicket, approvalRate, returnRate, barData, pieData, isTeamReports, isTeamFinance };
 }

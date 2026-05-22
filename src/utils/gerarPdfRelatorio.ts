@@ -10,6 +10,7 @@ export interface PdfReportData {
   signatures: ReportSignature[];
   attachments: ReportAttachment[];
   tenantName: string;
+  tenantLogoUrl?: string | null;
 }
 
 // ── Formatters ────────────────────────────────────────────────────────────────
@@ -108,6 +109,7 @@ export async function gerarPdfRelatorio({
   signatures,
   attachments,
   tenantName,
+  tenantLogoUrl,
 }: PdfReportData): Promise<void> {
 
   // Fotos válidas (somente imagens)
@@ -119,7 +121,9 @@ export async function gerarPdfRelatorio({
   const sigImageMap = new Map<string, string | null>();
   const attImageMap = new Map<string, string | null>();
 
+  let logoDataUrl: string | null = null;
   await Promise.all([
+    (async () => { logoDataUrl = tenantLogoUrl ? await urlToDataUrl(tenantLogoUrl) : null; })(),
     ...signatures.map(async sig => {
       sigImageMap.set(sig.id, await urlToDataUrl(sig.image_url));
     }),
@@ -153,15 +157,22 @@ export async function gerarPdfRelatorio({
   const assetName  = report.equipments?.name ?? report.asset_name_manual ?? null;
 
   // ── Cabeçalho ─────────────────────────────────────────────────────────────────
+  const logoW = 40;
+  if (logoDataUrl) {
+    const logoFmt = detectImageFormat(null, logoDataUrl);
+    doc.addImage(logoDataUrl, logoFmt, marginL, 10, logoW, 16);
+  }
+  const textX = logoDataUrl ? marginL + logoW + 4 : marginL;
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(30, 58, 95);
-  doc.text(tenantName.toUpperCase(), marginL, 22);
+  doc.text(tenantName.toUpperCase(), textX, 22);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(100, 116, 139);
-  doc.text('Relatório de Serviço Técnico', marginL, 29);
+  doc.text('Relatório de Serviço Técnico', textX, 29);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);

@@ -35,20 +35,28 @@ export default function Step2AssetContext({ form }: Step2Props) {
   const assetNameManual    = watch('asset_name_manual');
 
   // Manual mode: active when user explicitly chose "digitar manualmente"
-  // OR when no equipments exist in the DB
+  // OR when client is selected but has no registered equipments
   const [manualMode, setManualMode] = useState(false);
-  const showManualInput = manualMode || (loadingEquipments === false && equipments.length === 0);
+  const showClientPrompt = !selectedClientId;
+  const showManualInput = !showClientPrompt && (manualMode || (loadingEquipments === false && equipments.length === 0));
 
   useEffect(() => {
+    if (!selectedClientId) {
+      setEquipments([]);
+      setLoadingEquipments(false);
+      return;
+    }
     setLoadingEquipments(true);
+    setManualMode(false);
     supabase
       .from('equipments')
       .select('id, name')
+      .eq('client_id', selectedClientId)
       .then(({ data }) => {
         setEquipments(data ?? []);
         setLoadingEquipments(false);
       });
-  }, []);
+  }, [selectedClientId]);
 
   // When switching to manual mode, clear the FK selection
   const enterManualMode = () => {
@@ -131,8 +139,13 @@ export default function Step2AssetContext({ form }: Step2Props) {
         <div className="space-y-2">
           <Label className="text-sm font-semibold text-foreground">Equipamento / Ativo</Label>
 
+          {/* Prompt para selecionar cliente primeiro */}
+          {showClientPrompt && (
+            <p className="text-sm text-muted-foreground">Selecione um cliente para ver os equipamentos cadastrados.</p>
+          )}
+
           {/* Dropdown — só exibe quando há equipamentos cadastrados */}
-          {!loadingEquipments && equipments.length > 0 && (
+          {!showClientPrompt && !loadingEquipments && equipments.length > 0 && (
             <Select value={selectValue} onValueChange={handleSelectChange}>
               <SelectTrigger className="h-12 text-base rounded-xl bg-muted border-border focus:ring-ring">
                 <SelectValue placeholder="Selecione o equipamento" />
