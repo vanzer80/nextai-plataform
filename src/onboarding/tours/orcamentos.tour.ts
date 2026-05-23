@@ -13,7 +13,7 @@ export const orcamentosTour: TourModule = {
         side: 'bottom',
         align: 'end',
       },
-      roles: ['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master'],
+      roles: ['Supervisor', 'Gestor', 'Admin', 'Master'],
     },
     {
       element: '[data-onboarding="orc-card-primeiro"]',
@@ -23,7 +23,7 @@ export const orcamentosTour: TourModule = {
         description: 'Clique para abrir o detalhe. Gestores e supervisores aprovam ou rejeitam o orçamento aqui. O PDF com logo do tenant pode ser gerado e enviado ao cliente diretamente.',
         side: 'bottom',
       },
-      roles: ['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master'],
+      roles: ['Supervisor', 'Gestor', 'Admin', 'Master'],
     },
   ],
 };

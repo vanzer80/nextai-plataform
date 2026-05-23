@@ -29,7 +29,7 @@ export const layoutTour: TourModule = {
         description: 'Crie propostas comerciais com itens, valores e descontos. Fluxo completo: Rascunho → Enviado → Aprovado ou Rejeitado. PDF gerado localmente no navegador.',
         side: 'right',
       },
-      roles: ['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master'],
+      roles: ['Supervisor', 'Gestor', 'Admin', 'Master'],
     },
     {
       element: '[data-onboarding="nav-reembolsos"]',
