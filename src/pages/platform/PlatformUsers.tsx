@@ -214,7 +214,7 @@ export default function PlatformUsers() {
       </div>
 
       {/* Table */}
-      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden min-h-[300px]">
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden min-h-[300px]" data-onboarding="platform-users-lista">
         {loading ? (
           <div className="flex flex-col items-center justify-center p-12 text-muted-foreground h-64">
             <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />

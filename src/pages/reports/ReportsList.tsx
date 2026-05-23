@@ -53,6 +53,7 @@ export default function ReportsList() {
         </div>
         <Link
           to="/reports/new"
+          data-onboarding="os-nova"
           className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold h-10 px-4 rounded-xl shadow-sm transition-colors"
         >
           <Plus className="h-4 w-4" /> Nova OS
@@ -60,7 +61,7 @@ export default function ReportsList() {
       </div>
 
       {/* Indicadores de conectividade e sync */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap" data-onboarding="os-sync-badge">
         <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${isOnline ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-muted text-muted-foreground'}`}>
           {isOnline ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
           {isOnline ? 'Online' : 'Offline'}
@@ -78,11 +79,13 @@ export default function ReportsList() {
       </div>
 
       {/* Filtros — gestor vê todos, técnico vê apenas os seus */}
+      <div data-onboarding="os-filtros">
       <ReportFilters
         filter={filter}
         onChange={setFilter}
         onClear={() => setFilter(EMPTY_FILTER)}
       />
+      </div>
 
       {/* Aviso de cache offline */}
       {error && (
@@ -111,6 +114,7 @@ export default function ReportsList() {
           reports.map((report, index) => (
             <div
               key={report.id}
+              data-onboarding={index === 0 ? 'os-card-primeiro' : undefined}
               className="animate-in fade-in fill-mode-backwards slide-in-from-bottom-2 duration-200"
               style={{ animationDelay: `${Math.min(index * 40, 200)}ms` }}
             >

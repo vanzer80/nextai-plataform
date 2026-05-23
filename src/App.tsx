@@ -2,6 +2,7 @@ import { lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/src/contexts/AuthContext';
 import { TenantProvider } from '@/src/contexts/TenantContext';
+import { OnboardingProvider } from '@/src/onboarding/OnboardingContext';
 import { ProtectedRoute, RoleGuard, PlatformGuard } from '@/src/components/auth/ProtectedRoute';
 import AppLayout from '@/src/components/layout/AppLayout';
 import PlatformLayout from '@/src/components/layout/PlatformLayout';
@@ -46,6 +47,7 @@ export default function App() {
     <AuthProvider>
       <TenantProvider>
       <BrowserRouter>
+        <OnboardingProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
           
@@ -113,6 +115,7 @@ export default function App() {
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </OnboardingProvider>
       </BrowserRouter>
       </TenantProvider>
       <Toaster />

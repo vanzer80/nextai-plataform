@@ -161,7 +161,7 @@ export default function EquipmentManagement() {
             )}
           </p>
         </div>
-        <Button onClick={openCreate} className="h-11 px-6 rounded-xl font-semibold gap-2 w-full sm:w-auto">
+        <Button onClick={openCreate} data-onboarding="eq-novo" className="h-11 px-6 rounded-xl font-semibold gap-2 w-full sm:w-auto">
           <Plus className="h-4 w-4" /> Novo Equipamento
         </Button>
       </div>
@@ -212,7 +212,7 @@ export default function EquipmentManagement() {
                         {STATUS_LABELS[eq.status] ?? eq.status}
                       </span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell data-onboarding={eq === equipments[0] ? 'eq-preventiva-col' : undefined}>
                       {ms !== 'sem-dados' && (
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${msConfig.className}`}>
                           {msConfig.label}
@@ -222,7 +222,7 @@ export default function EquipmentManagement() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(eq)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(eq)} data-onboarding={eq === equipments[0] ? 'eq-detalhe-btn' : undefined}>
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(eq)}>

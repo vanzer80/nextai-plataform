@@ -427,6 +427,7 @@ export default function MaterialsList() {
         </div>
         <Button
           onClick={() => navigate('/materials/new')}
+          data-onboarding="mat-novo"
           className="w-full sm:w-auto inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold h-12 px-5 rounded-xl"
         >
           <Plus className="h-5 w-5" />
@@ -474,9 +475,10 @@ export default function MaterialsList() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {filtered.map(req => (
+          {filtered.map((req, i) => (
             <Card
               key={req.id}
+              data-onboarding={i === 0 ? 'mat-card-primeiro' : undefined}
               onClick={() => req.comprador_response ? setSelectedRequest(req) : undefined}
               className={clsx(
                 'border-slate-200 overflow-hidden transition-all',

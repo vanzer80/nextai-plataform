@@ -132,7 +132,7 @@ export default function PlatformSettings() {
           <div className="p-6 space-y-5">
 
             {/* Logo */}
-            <div className="space-y-2">
+            <div className="space-y-2" data-onboarding="platform-settings-logo">
               <Label className="text-sm font-semibold flex items-center gap-2">
                 <ImageIcon className="h-4 w-4" /> Logo da Plataforma
               </Label>

@@ -52,7 +52,7 @@ export default function Dashboard() {
       </header>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0" data-onboarding="dashboard-kpis">
         {has('reports-kpi') && (
           <ReportsKpiWidget isLoading={data.isLoading} count={data.reportsCount} isTeamReports={isTeamReports} />
         )}
@@ -69,13 +69,15 @@ export default function Dashboard() {
           <ApprovalRateWidget isLoading={data.isLoading} approvalRate={data.approvalRate} />
         )}
         {has('return-rate') && (
-          <ReturnRateWidget isLoading={data.isLoading} returnRate={data.returnRate} />
+          <div data-onboarding="dashboard-taxa-retorno">
+            <ReturnRateWidget isLoading={data.isLoading} returnRate={data.returnRate} />
+          </div>
         )}
       </div>
 
       {/* Charts */}
       {(showBar || showPie) && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-2 min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-2 min-h-0" data-onboarding="dashboard-grafico">
           {showBar && (
             <div className={showPie ? 'lg:col-span-2' : 'lg:col-span-3'}>
               <ReportsBarWidget isLoading={data.isLoading} barData={data.barData} isTeamReports={isTeamReports} />

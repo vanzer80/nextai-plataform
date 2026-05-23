@@ -30,6 +30,7 @@ export default defineConfig(() => {
             'vendor-pdf':      ['jspdf', 'jspdf-autotable'],
             'vendor-xlsx':     ['xlsx'],
             'vendor-ui':       ['@base-ui/react', 'sonner', 'next-themes'],
+            'vendor-driver':   ['driver.js'],
           },
         },
       },

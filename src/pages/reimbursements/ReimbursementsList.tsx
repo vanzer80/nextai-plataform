@@ -442,7 +442,7 @@ export default function ReimbursementsList() {
               </Button>
             </>
           )}
-          <Link to="/reimbursements/new" className="inline-flex items-center justify-center text-white flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 h-11 px-6 rounded-xl shadow-sm font-semibold transition-colors">
+          <Link to="/reimbursements/new" data-onboarding="reimb-novo" className="inline-flex items-center justify-center text-white flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 h-11 px-6 rounded-xl shadow-sm font-semibold transition-colors">
             <Plus className="mr-2 h-5 w-5" /> {isManager ? 'Novo' : 'Solicitar'}
           </Link>
         </div>
@@ -493,12 +493,14 @@ export default function ReimbursementsList() {
       ) : (
         <>
           <div className="lg:hidden">
-            {filteredData.map(item => (
+            {filteredData.map((item, i) => (
               <Fragment key={item.id}>
-                <ReimbursementCard
-                  item={item} user={user} isManager={isManager}
-                  getStatusBadge={getStatusBadge} onOpenDetails={() => { setSelectedItem(item); setIsModalOpen(true); }}
-                />
+                <div data-onboarding={i === 0 ? 'reimb-card-primeiro' : undefined}>
+                  <ReimbursementCard
+                    item={item} user={user} isManager={isManager}
+                    getStatusBadge={getStatusBadge} onOpenDetails={() => { setSelectedItem(item); setIsModalOpen(true); }}
+                  />
+                </div>
               </Fragment>
             ))}
           </div>

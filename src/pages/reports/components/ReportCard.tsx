@@ -33,7 +33,7 @@ export default function ReportCard({ report, localSyncStatus }: ReportCardProps)
       <CardContent className="p-4">
         {/* Status + Data */}
         <div className="flex items-start justify-between mb-3 gap-2">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap" data-onboarding="os-status-badge">
             <ReportStatusBadge status={report.status} />
             {report.service_type && (
               <span className="text-xs text-muted-foreground font-medium">{report.service_type}</span>

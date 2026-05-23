@@ -43,6 +43,7 @@ export default function OrcamentosList() {
         </div>
         <Link
           to="/orcamentos/novo"
+          data-onboarding="orc-novo"
           className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold h-10 px-4 rounded-xl shadow-sm transition-colors"
         >
           <Plus className="h-4 w-4" /> Novo
@@ -73,8 +74,12 @@ export default function OrcamentosList() {
             </p>
           </div>
         ) : (
-          orcamentos.map(orc => (
-            <Fragment key={orc.id}><OrcamentoCard orcamento={orc} /></Fragment>
+          orcamentos.map((orc, i) => (
+            <Fragment key={orc.id}>
+              <div data-onboarding={i === 0 ? 'orc-card-primeiro' : undefined}>
+                <OrcamentoCard orcamento={orc} />
+              </div>
+            </Fragment>
           ))
         )}
 

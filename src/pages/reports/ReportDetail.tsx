@@ -182,7 +182,7 @@ export default function ReportDetail() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap" data-onboarding="detail-status">
             <ReportStatusBadge status={report.status} />
             {report.service_type && (
               <span className="text-xs text-muted-foreground font-medium">{report.service_type}</span>
@@ -199,6 +199,7 @@ export default function ReportDetail() {
             size="sm"
             onClick={handleExportPdf}
             disabled={isPdfLoading}
+            data-onboarding="detail-pdf"
             className="shrink-0 gap-1.5 rounded-xl border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700/60 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
           >
             {isPdfLoading
@@ -211,7 +212,9 @@ export default function ReportDetail() {
 
       {/* Painel de aprovação — visível apenas para gestores */}
       {isReviewer && (
-        <ApprovalPanel report={report} onSuccess={refresh} />
+        <div data-onboarding="detail-aprovacao">
+          <ApprovalPanel report={report} onSuccess={refresh} />
+        </div>
       )}
 
       {/* Alerta de devolução */}
@@ -346,7 +349,7 @@ export default function ReportDetail() {
 
       {/* Assinaturas */}
       {signatures.length > 0 && (
-        <Card className="shadow-sm border-border">
+        <Card className="shadow-sm border-border" data-onboarding="detail-assinaturas">
           <CardHeader className="pb-3 border-b border-border bg-muted/30 rounded-t-xl">
             <CardTitle className="text-base flex items-center gap-2">
               <PenLine className="h-4 w-4 text-primary" />

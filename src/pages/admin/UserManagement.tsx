@@ -181,7 +181,7 @@ export default function UserManagement() {
         </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm font-semibold h-11 px-6 rounded-xl w-full sm:w-auto transition-colors disabled:pointer-events-none disabled:opacity-50">
+          <DialogTrigger data-onboarding="admin-usr-convidar" className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm font-semibold h-11 px-6 rounded-xl w-full sm:w-auto transition-colors disabled:pointer-events-none disabled:opacity-50">
             <Plus className="h-5 w-5 mr-1 -ml-1" />
             Adicionar Colaborador
           </DialogTrigger>
@@ -277,7 +277,7 @@ export default function UserManagement() {
         </Dialog>
       </div>
 
-      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden min-h-[300px]">
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden min-h-[300px]" data-onboarding="admin-usr-tabela">
         {loading ? (
            <div className="flex flex-col items-center justify-center p-12 text-muted-foreground h-64">
            <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />

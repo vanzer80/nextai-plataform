@@ -84,7 +84,7 @@ export default function ChecklistTemplates() {
             Gerencie os modelos de checklist por tipo de serviço
           </p>
         </div>
-        <Button asChild className="h-10 rounded-xl bg-primary hover:bg-primary/90 gap-2 font-semibold shrink-0">
+        <Button asChild data-onboarding="admin-templates-novo" className="h-10 rounded-xl bg-primary hover:bg-primary/90 gap-2 font-semibold shrink-0">
           <Link to="/admin/checklist-templates/new">
             <Plus className="h-4 w-4" /> Novo
           </Link>
@@ -115,7 +115,7 @@ export default function ChecklistTemplates() {
           <p className="text-sm">Nenhum template encontrado.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3" data-onboarding="admin-templates-lista">
           {visible.map(tmpl => (
             <div
               key={tmpl.id}

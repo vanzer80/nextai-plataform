@@ -281,6 +281,7 @@ export default function CaptureStep({ mode, isProcessing, onAnalyzeImages, onAna
         <div
           className="bg-card rounded-2xl border-2 border-dashed border-border shadow-sm p-8 flex flex-col items-center gap-4 cursor-pointer hover:border-primary/60 hover:bg-accent/30 transition-colors"
           onClick={() => fileInputRef.current?.click()}
+          data-onboarding={mode === 'material' ? 'mat-ia-prompt' : undefined}
         >
           <div className="h-20 w-20 rounded-full bg-primary/15 flex items-center justify-center">
             <Camera className="h-10 w-10 text-primary" />

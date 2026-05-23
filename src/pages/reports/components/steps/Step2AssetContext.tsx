@@ -105,7 +105,7 @@ export default function Step2AssetContext({ form }: Step2Props) {
       <CardContent className="pt-5 space-y-5">
 
         {/* Cliente */}
-        <div className="space-y-2">
+        <div className="space-y-2" data-onboarding="wizard-step2-cliente">
           <Label className="text-sm font-semibold text-foreground">Cliente</Label>
           <Select
             value={selectedClientId ?? ''}
@@ -136,7 +136,7 @@ export default function Step2AssetContext({ form }: Step2Props) {
         </div>
 
         {/* Equipamento */}
-        <div className="space-y-2">
+        <div className="space-y-2" data-onboarding="wizard-step2-ativo">
           <Label className="text-sm font-semibold text-foreground">Equipamento / Ativo</Label>
 
           {/* Prompt para selecionar cliente primeiro */}
@@ -193,7 +193,7 @@ export default function Step2AssetContext({ form }: Step2Props) {
         </div>
 
         {/* Geolocalização */}
-        <div className="space-y-2">
+        <div className="space-y-2" data-onboarding="wizard-step2-geo">
           <Label className="text-sm font-semibold text-foreground">Localização GPS</Label>
           <GeolocationCapture value={geoValue} onChange={handleGeoChange} />
         </div>

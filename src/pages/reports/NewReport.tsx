@@ -236,7 +236,7 @@ export default function NewReport() {
       </div>
 
       {/* Indicador de steps */}
-      <div className="flex items-center gap-1 overflow-x-auto pb-1">
+      <div className="flex items-center gap-1 overflow-x-auto pb-1" data-onboarding="wizard-step-indicator">
         {STEP_LABELS.map((label, i) => {
           const step = i + 1;
           const isDone = step < currentStep;
@@ -316,6 +316,7 @@ export default function NewReport() {
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
+            data-onboarding="wizard-step7-enviar"
             className="flex-1 h-13 rounded-xl font-semibold"
           >
             {isSubmitting ? (

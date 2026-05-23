@@ -19,7 +19,7 @@ export default function Step3Checklist({
   onAnswerChange,
 }: Step3ChecklistProps) {
   return (
-    <Card className="shadow-sm border-border">
+    <Card className="shadow-sm border-border" data-onboarding="wizard-step3-checklist">
       <CardHeader className="pb-3 border-b border-border bg-muted/30 rounded-t-xl">
         <CardTitle className="text-base flex items-center gap-2">
           <CheckSquare className="h-4 w-4 text-primary" />

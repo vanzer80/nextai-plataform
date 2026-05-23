@@ -35,7 +35,7 @@ export default function Step4Diagnosis({ form, assetDescription }: Step4Props) {
       </CardHeader>
       <CardContent className="pt-5 space-y-5">
 
-        <div className="space-y-2">
+        <div className="space-y-2" data-onboarding="wizard-step4-problema">
           <Label className="text-sm font-semibold text-foreground">
             Problema relatado pelo cliente <span className="text-red-500">*</span>
           </Label>

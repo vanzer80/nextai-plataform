@@ -23,7 +23,7 @@ export default function Step5Execution({ form }: Step5Props) {
       </CardHeader>
       <CardContent className="pt-5 space-y-5">
 
-        <div className="space-y-2">
+        <div className="space-y-2" data-onboarding="wizard-step5-servicos">
           <Label className="text-sm font-semibold text-foreground">
             Serviços executados <span className="text-red-500">*</span>
           </Label>

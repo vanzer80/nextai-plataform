@@ -29,7 +29,7 @@ export default function Step1Identification({ form }: Step1Props) {
       <CardContent className="pt-5 space-y-5">
 
         {/* Tipo de Serviço */}
-        <div className="space-y-2">
+        <div className="space-y-2" data-onboarding="wizard-step1-tipo">
           <Label className="text-sm font-semibold text-foreground">
             Tipo de Serviço <span className="text-rose-500">*</span>
           </Label>

@@ -27,6 +27,7 @@ import { useTheme } from 'next-themes';
 import { supabase } from '@/src/lib/supabase';
 import { useAuth, type AuthUser } from '@/src/contexts/AuthContext';
 import { useTenant } from '@/src/contexts/TenantContext';
+import { OnboardingButton } from '@/src/onboarding/OnboardingButton';
 import { useOfflineSync } from '@/src/hooks/useOfflineSync';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet';
@@ -35,6 +36,21 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import ThemeToggle from '@/src/components/theme/ThemeToggle';
 import clsx from 'clsx';
+
+// Mapeamento path → chave data-onboarding para o tour
+const NAV_ONBOARDING: Record<string, string> = {
+  '/dashboard':                   'nav-dashboard',
+  '/reports':                     'nav-os',
+  '/orcamentos':                  'nav-orcamentos',
+  '/reimbursements':              'nav-reembolsos',
+  '/materials':                   'nav-compras',
+  '/clients':                     'nav-clientes',
+  '/equipments':                  'nav-equipamentos',
+  '/admin/checklist-templates':   'nav-checklists',
+  '/admin/service-types':         'nav-service-types',
+  '/admin/usuarios':              'nav-admin-usuarios',
+  '/admin/tenants':               'nav-tenants',
+};
 
 // Configuration of navigation links
 const NAV_LINKS = [
@@ -111,7 +127,7 @@ function UserProfileDropdown({ user, userRole, onSignOut, authorizedLinks, activ
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <button className="flex items-center gap-3 text-left w-full p-2 rounded-xl transition-colors hover:bg-sidebar-accent outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer">
+        <button data-onboarding="nav-perfil" className="flex items-center gap-3 text-left w-full p-2 rounded-xl transition-colors hover:bg-sidebar-accent outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer">
           <Avatar className="h-10 w-10 border-2 border-sidebar-border shrink-0">
             <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-sm font-bold">
               {getInitials(user?.full_name)}
@@ -219,7 +235,8 @@ function UserProfileDropdown({ user, userRole, onSignOut, authorizedLinks, activ
         </div>
 
         {/* ── Sign out (sticky footer) ── */}
-        <div className="px-6 py-5 border-t border-border shrink-0">
+        <div className="px-6 py-5 border-t border-border shrink-0 space-y-3">
+          <OnboardingButton className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors" />
           <Button
             onClick={() => { setOpen(false); onSignOut(); }}
             variant="outline"
@@ -245,7 +262,7 @@ interface NotificationsDropdownProps {
 function NotificationsDropdown({ notifications, unreadCount, onMarkAsRead }: NotificationsDropdownProps) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="relative p-2 rounded-full hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <DropdownMenuTrigger data-onboarding="nav-notificacoes" className="relative p-2 rounded-full hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <Bell className="h-5 w-5 text-sidebar-foreground/80 hover:text-sidebar-foreground transition-colors" />
         {unreadCount > 0 && (
           <span className="absolute top-1 right-1 h-2.5 w-2.5 bg-destructive rounded-full border-2 border-sidebar animate-pulse" />
@@ -373,6 +390,7 @@ export default function AppLayout() {
           key={link.path}
           to={link.path}
           onClick={() => isMobile && setIsMobileMenuOpen(false)}
+          data-onboarding={NAV_ONBOARDING[link.path]}
           className={clsx(
             'flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all rounded-lg',
             isActive

@@ -253,6 +253,7 @@ export default function PlatformTenants() {
 
         <Button
           onClick={() => setIsCreateOpen(true)}
+          data-onboarding="platform-tenants-novo"
           className="h-11 px-6 rounded-xl font-semibold w-full sm:w-auto"
         >
           <Plus className="h-5 w-5 mr-1 -ml-1" />
@@ -261,7 +262,7 @@ export default function PlatformTenants() {
       </div>
 
       {/* Table */}
-      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden min-h-[300px]">
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden min-h-[300px]" data-onboarding="platform-tenants-lista">
         {loading ? (
           <div className="flex flex-col items-center justify-center p-12 text-muted-foreground h-64">
             <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />

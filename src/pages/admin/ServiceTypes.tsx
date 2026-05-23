@@ -104,6 +104,7 @@ export default function ServiceTypes() {
         </div>
         <Button
           onClick={() => { setDraft({ value: '', label: '' }); setDialogOpen(true); }}
+          data-onboarding="admin-st-novo"
           className="h-10 rounded-xl bg-primary hover:bg-primary/90 gap-2 font-semibold shrink-0"
         >
           <Plus className="h-4 w-4" /> Novo

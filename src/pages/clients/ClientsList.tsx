@@ -47,7 +47,7 @@ export default function ClientsList() {
           </h1>
           <p className="text-sm text-muted-foreground">Gerencie a base de clientes e suas unidades.</p>
         </div>
-        <Button onClick={openCreate} className="h-11 px-6 rounded-xl font-semibold gap-2 w-full sm:w-auto">
+        <Button onClick={openCreate} data-onboarding="cli-novo" className="h-11 px-6 rounded-xl font-semibold gap-2 w-full sm:w-auto">
           <Plus className="h-4 w-4" /> Novo Cliente
         </Button>
       </div>
