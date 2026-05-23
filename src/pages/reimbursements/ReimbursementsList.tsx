@@ -450,15 +450,15 @@ export default function ReimbursementsList() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
-          { label: 'Pendente',  val: totals['Pendente'],  color: 'amber'  },
-          { label: 'Aprovado',  val: totals['Aprovado'],  color: 'emerald' },
-          { label: 'Pago',      val: totals['Pago'],      color: 'violet' },
-          { label: 'Rejeitado', val: totals['Rejeitado'], color: 'rose'   },
-          { label: 'Total',     val: totals.total,        color: 'blue'   },
+          { label: 'Pendente',  val: totals['Pendente'],  card: 'bg-amber-50 border border-amber-200',     lbl: 'text-amber-600',   num: 'text-amber-800'   },
+          { label: 'Aprovado',  val: totals['Aprovado'],  card: 'bg-emerald-50 border border-emerald-200', lbl: 'text-emerald-600', num: 'text-emerald-800' },
+          { label: 'Pago',      val: totals['Pago'],      card: 'bg-violet-50 border border-violet-200',   lbl: 'text-violet-600',  num: 'text-violet-800'  },
+          { label: 'Rejeitado', val: totals['Rejeitado'], card: 'bg-rose-50 border border-rose-200',       lbl: 'text-rose-600',    num: 'text-rose-800'    },
+          { label: 'Total',     val: totals.total,        card: 'bg-blue-50 border border-blue-200',       lbl: 'text-blue-600',    num: 'text-blue-800'    },
         ].map(t => (
-          <div key={t.label} className={`bg-${t.color}-50 border border-${t.color}-200 rounded-xl p-3 text-center`}>
-            <p className={`text-xs font-semibold text-${t.color}-600 uppercase`}>{t.label}</p>
-            <p className={`text-lg font-extrabold text-${t.color}-800`}>R$ {(t.val || 0).toFixed(2).replace('.', ',')}</p>
+          <div key={t.label} className={`${t.card} rounded-xl p-3 text-center`}>
+            <p className={`text-xs font-semibold ${t.lbl} uppercase`}>{t.label}</p>
+            <p className={`text-lg font-extrabold ${t.num}`}>R$ {(t.val || 0).toFixed(2).replace('.', ',')}</p>
           </div>
         ))}
       </div>

@@ -195,9 +195,7 @@ export default function NewReimbursement() {
     setIsExtracting(true);
     const toastId = toast.loading(`Analisando ${images.length > 1 ? images.length + ' imagens' : 'imagem'} com IA...`);
     try {
-      console.log('[IA] Iniciando extração. Imagens:', images.map(i => ({ mimeType: i.mimeType, base64Length: i.base64.length })));
       const data = await extractReceiptFromImages(images);
-      console.log('[IA] Resultado:', data);
       applyReceiptExtraction(data);
       setFile(images[0].file);
       toast.success("Dados extraídos! Revise os campos destacados.", { id: toastId });
@@ -332,7 +330,7 @@ export default function NewReimbursement() {
         ? "A operação demorou demais (verifique sua conexão)."
         : err.message;
       toast.error("Erro ao enviar", { id: toastId, description: errMsg, duration: 8000 });
-      console.error("ERRO:", err);
+      console.error('[NewReimbursement] submit error:', err);
     } finally {
       setIsSubmitting(false);
     }

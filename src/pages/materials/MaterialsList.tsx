@@ -79,7 +79,6 @@ export default function MaterialsList() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      console.log('[MaterialsList] fetchRequests result:', data?.length, 'records | userRole:', userRole, '| userId:', userId);
 
       // Resolve foto_url paths to signed URLs (handles full public URLs from legacy data and raw paths)
       const rawItems = (data as PurchaseRequest[]) || [];

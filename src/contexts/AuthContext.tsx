@@ -57,11 +57,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     let isMounted = true;
-    console.log('[AuthContext] Inicializando Listeners...');
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, currentSession) => {
-        console.log(`[AuthContext] onAuthStateChange Event: ${_event}`);
         if (!isMounted) return;
 
         setSession(currentSession);
@@ -88,7 +86,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Don't finalize loading here — initializeAuth() owns that responsibility.
           await fetchUserData(currentSession.user, false);
         } else {
-          console.log('[AuthContext] Sem sessão ativa no listener. Resetando user.');
           fetchedUserIdRef.current = null; // allow re-fetch on next login
           setUser(null);
           finalizeLoading();
@@ -98,7 +95,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Initial fetch - 1. Garantia de Resiliência
     const initializeAuth = async () => {
-      console.log('[AuthContext] Obtendo sessão via getSession()...');
       try {
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
@@ -112,10 +108,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(currentSession);
         
         if (currentSession?.user) {
-          console.log('[AuthContext] Usuário logado via Auth. Buscando Perfil...');
           await fetchUserData(currentSession.user);
         } else {
-          console.log('[AuthContext] Nenhum usuário logado. Pronto para Login.');
           finalizeLoading(); // Liberar Loading
         }
       } catch (err) {
@@ -123,7 +117,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } finally {
         // Garantia suprema (1): Independente da tragédia, a tela deve destravar
         if (isMounted) finalizeLoading();
-        console.log('[AuthContext] Initial Fetch Encerrado.');
       }
     };
 
@@ -146,7 +139,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchUserData = async (authUser: User, shouldFinalizeLoading = true) => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
-    console.log('[AuthContext] [fetchUserData] Iniciando...', authUser.id);
     
     // Safety fallback - 2. Fallback de Cadastro
     let defaultProfile: AuthUser = { 
@@ -179,7 +171,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         defaultProfile.setup_pending = true;
         setUser(defaultProfile);
       } else {
-        console.log(`[AuthContext] Perfil localizado: Role: ${data.role}`);
         fetchedUserIdRef.current = authUser.id; // mark as successfully loaded
 
         setUser({
@@ -203,13 +194,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } finally {
       isFetchingRef.current = false;
-      console.log('[AuthContext] Finalizando loading do perfil.');
       if (shouldFinalizeLoading) finalizeLoading();
     }
   };
 
   const signOut = async () => {
-    console.log('[AuthContext] Signing Out...');
     try {
         // Limpeza de cache local agressiva antes de invocar o SDK
         for (const key of Object.keys(localStorage)) {
