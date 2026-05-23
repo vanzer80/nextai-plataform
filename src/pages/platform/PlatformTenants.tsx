@@ -6,6 +6,7 @@ import * as z from 'zod';
 import {
   Plus, Globe, Loader2, Palette, MoreHorizontal,
   Pencil, Image as ImageIcon, Users, PowerOff, Power, Search,
+  Phone, Globe2, Building2, Mail, Hash,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
@@ -14,11 +15,16 @@ import { ptBR } from 'date-fns/locale';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+
+// ─── Schemas ─────────────────────────────────────────────────────────────────
 
 const createSchema = z.object({
   tenant_name:    z.string().min(3, 'Nome deve ter no mínimo 3 caracteres').max(100),
@@ -32,10 +38,17 @@ type CreateFormValues = z.infer<typeof createSchema>;
 
 const editSchema = z.object({
   tenant_name:   z.string().min(3, 'Nome deve ter no mínimo 3 caracteres').max(100),
-  primary_color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  primary_color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Cor inválida'),
+  cnpj:          z.string().max(18, 'Máximo 18 caracteres').optional(),
+  phone:         z.string().max(20, 'Máximo 20 caracteres').optional(),
+  website:       z.string().max(200, 'Máximo 200 caracteres').optional(),
+  sector:        z.string().optional(),
 });
 type EditFormValues = z.infer<typeof editSchema>;
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+// Flat record retornado pela RPC get_platform_tenants()
 interface TenantRow {
   id: string;
   name: string;
@@ -45,16 +58,39 @@ interface TenantRow {
   is_active: boolean;
   is_platform: boolean;
   created_at: string;
-  users: { count: number }[];
+  cnpj: string | null;
+  phone: string | null;
+  website: string | null;
+  sector: string | null;
+  user_count: number;
+  master_name: string | null;
+  master_email: string | null;
 }
+
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+const SECTORS = [
+  'Engenharia Civil',
+  'Engenharia Elétrica',
+  'Manutenção Industrial',
+  'Construção Civil',
+  'Instalações Prediais',
+  'Telecomunicações',
+  'TI e Tecnologia',
+  'Outro',
+];
 
 const MAX_LOGO_SIZE = 2 * 1024 * 1024;
 const LOGO_MIME = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 async function uploadLogo(file: File, slug: string): Promise<string> {
   const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
   const path = `${slug}/logo.${ext}`;
-  const { error } = await supabase.storage.from('tenant-assets').upload(path, file, { upsert: true, contentType: file.type });
+  const { error } = await supabase.storage
+    .from('tenant-assets')
+    .upload(path, file, { upsert: true, contentType: file.type });
   if (error) throw new Error(`Erro ao fazer upload do logo: ${error.message}`);
   const { data } = supabase.storage.from('tenant-assets').getPublicUrl(path);
   return `${data.publicUrl}?t=${Date.now()}`;
@@ -76,42 +112,54 @@ function LogoPreview({ url }: { url: string | null }) {
   );
 }
 
+// ─── Componente ───────────────────────────────────────────────────────────────
+
 export default function PlatformTenants() {
   const navigate = useNavigate();
 
-  const [tenants, setTenants] = useState<TenantRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [tenants, setTenants]   = useState<TenantRow[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [search, setSearch]     = useState('');
 
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [createLogoFile, setCreateLogoFile] = useState<File | null>(null);
+  // Create dialog
+  const [isCreateOpen, setIsCreateOpen]   = useState(false);
+  const [isSubmitting, setIsSubmitting]   = useState(false);
+  const [createLogoFile, setCreateLogoFile]       = useState<File | null>(null);
   const [createLogoPreview, setCreateLogoPreview] = useState<string | null>(null);
   const createLogoRef = useRef<HTMLInputElement>(null);
-  const [slugTouched, setSlugTouched] = useState(false);
+  const [slugTouched, setSlugTouched]     = useState(false);
 
-  const [editingTenant, setEditingTenant] = useState<TenantRow | null>(null);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
-  const [editLogoFile, setEditLogoFile] = useState<File | null>(null);
-  const [editLogoPreview, setEditLogoPreview] = useState<string | null>(null);
-  const [editLogoRemoved, setEditLogoRemoved] = useState(false);
+  // Edit sheet
+  const [editingTenant, setEditingTenant]         = useState<TenantRow | null>(null);
+  const [isEditOpen, setIsEditOpen]               = useState(false);
+  const [isEditSubmitting, setIsEditSubmitting]   = useState(false);
+  const [editLogoFile, setEditLogoFile]           = useState<File | null>(null);
+  const [editLogoPreview, setEditLogoPreview]     = useState<string | null>(null);
+  const [editLogoRemoved, setEditLogoRemoved]     = useState(false);
   const editLogoRef = useRef<HTMLInputElement>(null);
 
+  // Toggle active
   const [toggleTarget, setToggleTarget] = useState<TenantRow | null>(null);
-  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId]     = useState<string | null>(null);
 
+  // Forms
   const createForm = useForm<CreateFormValues>({
     resolver: zodResolver(createSchema),
-    defaultValues: { tenant_name: '', tenant_slug: '', primary_color: '#0066CC', admin_name: '', admin_email: '', admin_password: '' },
+    defaultValues: {
+      tenant_name: '', tenant_slug: '', primary_color: '#0066CC',
+      admin_name: '', admin_email: '', admin_password: '',
+    },
   });
 
   const editForm = useForm<EditFormValues>({
     resolver: zodResolver(editSchema),
-    defaultValues: { tenant_name: '', primary_color: '#0066CC' },
+    defaultValues: {
+      tenant_name: '', primary_color: '#0066CC',
+      cnpj: '', phone: '', website: '', sector: '',
+    },
   });
 
-  // Auto-generate slug from company name while user hasn't manually edited it
+  // Slug auto-gerado ao digitar nome (enquanto não foi editado manualmente)
   const watchedName = createForm.watch('tenant_name');
   useEffect(() => {
     if (slugTouched || !watchedName) return;
@@ -132,13 +180,12 @@ export default function PlatformTenants() {
       )
     : tenants;
 
+  // ── Data fetching ──────────────────────────────────────────────────────────
+
   const fetchTenants = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('tenants')
-        .select('id, name, slug, primary_color, logo_url, is_active, is_platform, created_at, users!users_team_id_fkey(count)')
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('get_platform_tenants');
       if (error) throw error;
       setTenants((data ?? []) as TenantRow[]);
     } catch (err: any) {
@@ -149,6 +196,8 @@ export default function PlatformTenants() {
   };
 
   useEffect(() => { fetchTenants(); }, []);
+
+  // ── Logo handlers ──────────────────────────────────────────────────────────
 
   const handleCreateLogoSelect = (file: File | undefined) => {
     if (!file) return;
@@ -176,6 +225,8 @@ export default function PlatformTenants() {
     setEditLogoRemoved(true);
   };
 
+  // ── Dialog/Sheet open/close ────────────────────────────────────────────────
+
   const closeCreate = () => {
     setIsCreateOpen(false);
     createForm.reset();
@@ -187,7 +238,14 @@ export default function PlatformTenants() {
 
   const openEdit = (t: TenantRow) => {
     setEditingTenant(t);
-    editForm.reset({ tenant_name: t.name, primary_color: t.primary_color });
+    editForm.reset({
+      tenant_name:   t.name,
+      primary_color: t.primary_color,
+      cnpj:          t.cnpj    ?? '',
+      phone:         t.phone   ?? '',
+      website:       t.website ?? '',
+      sector:        t.sector  ?? '',
+    });
     setEditLogoFile(null);
     setEditLogoPreview(t.logo_url);
     setEditLogoRemoved(false);
@@ -203,6 +261,8 @@ export default function PlatformTenants() {
     setEditLogoRemoved(false);
   };
 
+  // ── Submit handlers ────────────────────────────────────────────────────────
+
   const onCreateSubmit = async (data: CreateFormValues) => {
     setIsSubmitting(true);
     try {
@@ -212,7 +272,7 @@ export default function PlatformTenants() {
       const { data: result, error } = await supabase.functions.invoke('admin-provision-tenant', {
         body: {
           tenant: { name: data.tenant_name, slug: data.tenant_slug, primary_color: data.primary_color, logo_url: logoUrl },
-          admin: { full_name: data.admin_name, email: data.admin_email, password: data.admin_password },
+          admin:  { full_name: data.admin_name, email: data.admin_email, password: data.admin_password },
         },
       });
 
@@ -224,8 +284,8 @@ export default function PlatformTenants() {
       } else {
         toast.success('Empresa provisionada!', { description: `"${data.tenant_name}" (${data.tenant_slug}) está pronta.` });
       }
-      fetchTenants();
       closeCreate();
+      await fetchTenants();
     } catch (err: any) {
       toast.error('Erro ao provisionar empresa', { description: err.message });
     } finally {
@@ -237,9 +297,13 @@ export default function PlatformTenants() {
     if (!editingTenant) return;
     setIsEditSubmitting(true);
     try {
-      const updates: { name: string; primary_color: string; logo_url?: string | null } = {
-        name: data.tenant_name,
+      const updates: Record<string, unknown> = {
+        name:          data.tenant_name,
         primary_color: data.primary_color,
+        cnpj:          data.cnpj    || null,
+        phone:         data.phone   || null,
+        website:       data.website || null,
+        sector:        data.sector  || null,
       };
       if (editLogoFile) updates.logo_url = await uploadLogo(editLogoFile, editingTenant.slug);
       else if (editLogoRemoved) updates.logo_url = null;
@@ -247,14 +311,10 @@ export default function PlatformTenants() {
       const { error } = await supabase.from('tenants').update(updates).eq('id', editingTenant.id);
       if (error) throw error;
 
-      const newLogoUrl = 'logo_url' in updates ? (updates.logo_url ?? null) : editingTenant.logo_url;
-      setTenants(prev => prev.map(t =>
-        t.id === editingTenant.id
-          ? { ...t, name: data.tenant_name, primary_color: data.primary_color, logo_url: newLogoUrl }
-          : t
-      ));
       toast.success('Empresa atualizada!', { description: `"${data.tenant_name}" salvo com sucesso.` });
       closeEdit();
+      // Re-fetch confirma estado real do banco (inclui master_name/master_email via RPC)
+      await fetchTenants();
     } catch (err: any) {
       toast.error('Erro ao atualizar empresa', { description: err.message });
     } finally {
@@ -280,8 +340,12 @@ export default function PlatformTenants() {
     }
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <div className="flex flex-col gap-6 h-full w-full pb-6">
+
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
@@ -290,7 +354,6 @@ export default function PlatformTenants() {
           </h1>
           <p className="text-sm text-muted-foreground">Gerencie as empresas clientes da plataforma NextAI.</p>
         </div>
-
         <Button
           onClick={() => setIsCreateOpen(true)}
           data-onboarding="platform-tenants-novo"
@@ -325,6 +388,7 @@ export default function PlatformTenants() {
               <TableHeader className="bg-muted/40">
                 <TableRow className="hover:bg-transparent border-border">
                   <TableHead className="font-semibold text-foreground">Empresa</TableHead>
+                  <TableHead className="font-semibold text-foreground">Admin Master</TableHead>
                   <TableHead className="font-semibold text-foreground">Slug</TableHead>
                   <TableHead className="font-semibold text-foreground">Cor</TableHead>
                   <TableHead className="font-semibold text-foreground text-center">Usuários</TableHead>
@@ -336,44 +400,74 @@ export default function PlatformTenants() {
               <TableBody>
                 {filtered.map((t) => (
                   <TableRow key={t.id} className="hover:bg-muted/50 transition-colors border-border">
+
+                    {/* Empresa */}
                     <TableCell className="font-semibold text-foreground text-sm">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-[140px]">
                         {t.logo_url
                           ? <img src={t.logo_url} alt={t.name} className="h-6 w-6 rounded object-cover shrink-0" />
                           : <div className="h-6 w-6 rounded shrink-0 flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: t.primary_color }}>{t.name[0]}</div>
                         }
-                        <span>{t.name}</span>
-                        {t.is_platform && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-0">Platform</Badge>}
+                        <div className="flex flex-col min-w-0">
+                          <span className="truncate">{t.name}</span>
+                          {t.sector && <span className="text-[10px] font-normal text-muted-foreground">{t.sector}</span>}
+                        </div>
+                        {t.is_platform && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-0 shrink-0">Platform</Badge>}
                       </div>
                     </TableCell>
+
+                    {/* Admin Master */}
+                    <TableCell className="min-w-[160px]">
+                      <div className="flex flex-col">
+                        <span className="text-sm text-foreground font-medium">{t.master_name ?? '—'}</span>
+                        {t.master_email && (
+                          <span className="text-xs text-muted-foreground">{t.master_email}</span>
+                        )}
+                      </div>
+                    </TableCell>
+
+                    {/* Slug */}
                     <TableCell>
                       <Badge variant="outline" className="font-mono text-xs">{t.slug}</Badge>
                     </TableCell>
+
+                    {/* Cor */}
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="inline-block h-5 w-5 rounded-full border border-border shadow-sm" style={{ backgroundColor: t.primary_color }} />
+                        <span className="inline-block h-5 w-5 rounded-full border border-border shadow-sm shrink-0" style={{ backgroundColor: t.primary_color }} />
                         <span className="font-mono text-xs text-muted-foreground">{t.primary_color}</span>
                       </div>
                     </TableCell>
+
+                    {/* Usuários */}
                     <TableCell className="text-center">
-                      <Badge variant="secondary">{t.users?.[0]?.count ?? 0}</Badge>
+                      <Badge variant="secondary">{t.user_count ?? 0}</Badge>
                     </TableCell>
+
+                    {/* Status */}
                     <TableCell>
                       {t.is_active
                         ? <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300 border-0">Ativa</Badge>
                         : <Badge className="bg-muted text-muted-foreground border-0">Inativa</Badge>
                       }
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
+
+                    {/* Criado em */}
+                    <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                       {format(new Date(t.created_at), 'dd MMM yyyy', { locale: ptBR })}
                     </TableCell>
+
+                    {/* Actions */}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           disabled={togglingId === t.id}
                           className="inline-flex items-center justify-center h-8 w-8 p-0 text-muted-foreground hover:bg-muted hover:text-foreground rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                         >
-                          {togglingId === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
+                          {togglingId === t.id
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <MoreHorizontal className="h-4 w-4" />
+                          }
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-44 rounded-xl">
                           <DropdownMenuItem className="cursor-pointer font-medium" onClick={() => openEdit(t)}>
@@ -402,9 +496,10 @@ export default function PlatformTenants() {
                     </TableCell>
                   </TableRow>
                 ))}
+
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground font-medium">
+                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground font-medium">
                       {search ? `Nenhuma empresa encontrada para "${search}".` : 'Nenhuma empresa encontrada.'}
                     </TableCell>
                   </TableRow>
@@ -415,7 +510,7 @@ export default function PlatformTenants() {
         )}
       </div>
 
-      {/* Create Dialog */}
+      {/* ── Create Dialog ──────────────────────────────────────────────────── */}
       <Dialog open={isCreateOpen} onOpenChange={(open) => { if (!open) closeCreate(); }}>
         <DialogContent className="sm:max-w-[520px] p-0 overflow-hidden rounded-2xl">
           <DialogHeader className="p-6 pb-2 border-b border-border bg-muted/40">
@@ -469,18 +564,8 @@ export default function PlatformTenants() {
                     name="primary_color"
                     render={({ field }) => (
                       <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={field.value}
-                          onChange={(e) => field.onChange(e.target.value)}
-                          className="h-11 w-14 rounded-lg cursor-pointer border border-input bg-background p-1"
-                        />
-                        <Input
-                          placeholder="#0066CC"
-                          className="h-11 rounded-lg font-mono flex-1"
-                          value={field.value}
-                          onChange={(e) => field.onChange(e.target.value)}
-                        />
+                        <input type="color" value={field.value} onChange={(e) => field.onChange(e.target.value)} className="h-11 w-14 rounded-lg cursor-pointer border border-input bg-background p-1" />
+                        <Input placeholder="#0066CC" className="h-11 rounded-lg font-mono flex-1" value={field.value} onChange={(e) => field.onChange(e.target.value)} />
                       </div>
                     )}
                   />
@@ -521,85 +606,199 @@ export default function PlatformTenants() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={(open) => { if (!open) closeEdit(); }}>
-        <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden rounded-2xl">
-          <DialogHeader className="p-6 pb-2 border-b border-border bg-muted/40">
-            <DialogTitle className="text-xl font-bold">Editar Empresa</DialogTitle>
-            <DialogDescription>Altere os metadados visuais. O slug não pode ser modificado.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={editForm.handleSubmit(onEditSubmit)}>
-            <div className="p-6 space-y-4">
-              <div className="space-y-1">
-                <Label className="text-sm font-semibold">Nome da empresa</Label>
-                <Input placeholder="Ex: ACME Engenharia" className="h-11 rounded-lg" {...editForm.register('tenant_name')} />
-                {editForm.formState.errors.tenant_name && <p className="text-xs text-destructive font-medium">{editForm.formState.errors.tenant_name.message}</p>}
-              </div>
-              <div className="space-y-1">
-                <Label className="text-sm font-semibold">Slug</Label>
-                <Input value={editingTenant?.slug ?? ''} disabled className="h-11 rounded-lg font-mono" onChange={() => {}} />
-                <p className="text-xs text-muted-foreground">O slug não pode ser alterado após a criação.</p>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-sm font-semibold flex items-center gap-2"><ImageIcon className="h-4 w-4" /> Logo (opcional)</Label>
-                <div className="flex items-center gap-3">
-                  <LogoPreview url={editLogoPreview} />
-                  <div className="flex-1 flex items-center gap-2 flex-wrap">
-                    <input ref={editLogoRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => handleEditLogoSelect(e.target.files?.[0])} />
-                    <Button type="button" variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold" onClick={() => editLogoRef.current?.click()}>
-                      {editLogoPreview ? 'Trocar imagem' : 'Selecionar imagem'}
-                    </Button>
-                    {editLogoPreview && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 rounded-lg text-xs font-semibold text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={handleEditLogoRemove}
-                      >
-                        Remover
-                      </Button>
-                    )}
-                    <p className="text-xs text-muted-foreground w-full mt-1">PNG, JPEG ou WebP · máx. 2 MB</p>
+      {/* ── Edit Sheet ─────────────────────────────────────────────────────── */}
+      <Sheet open={isEditOpen} onOpenChange={(open) => { if (!open) closeEdit(); }}>
+        <SheetContent side="right" className="data-[side=right]:sm:max-w-[540px] p-0 gap-0">
+          <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="h-full flex flex-col">
+
+            {/* Sheet header */}
+            <div className="px-6 py-5 border-b border-border bg-muted/40 shrink-0 pr-14">
+              <SheetTitle className="text-lg font-bold leading-tight">Editar Empresa</SheetTitle>
+              <SheetDescription className="mt-0.5">
+                <span className="font-medium text-foreground">{editingTenant?.name}</span>
+                {' · slug: '}
+                <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{editingTenant?.slug}</code>
+              </SheetDescription>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6 space-y-6">
+
+              {/* ── Seção 1: Dados da Empresa ─────────────────────────────── */}
+              <div className="space-y-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <Building2 className="h-3.5 w-3.5" /> Dados da Empresa
+                </p>
+
+                <div className="space-y-1">
+                  <Label className="text-sm font-semibold">Nome da empresa *</Label>
+                  <Input placeholder="Ex: ACME Engenharia" className="h-11 rounded-lg" {...editForm.register('tenant_name')} />
+                  {editForm.formState.errors.tenant_name && <p className="text-xs text-destructive font-medium">{editForm.formState.errors.tenant_name.message}</p>}
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-sm font-semibold">Slug</Label>
+                  <Input value={editingTenant?.slug ?? ''} disabled className="h-11 rounded-lg font-mono bg-muted/50 opacity-70" onChange={() => {}} />
+                  <p className="text-xs text-muted-foreground">Imutável após criação — usado como identificador de storage.</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-semibold flex items-center gap-1.5">
+                      <Hash className="h-3.5 w-3.5" /> CNPJ
+                    </Label>
+                    <Input placeholder="00.000.000/0001-00" className="h-11 rounded-lg" {...editForm.register('cnpj')} />
+                    {editForm.formState.errors.cnpj && <p className="text-xs text-destructive font-medium">{editForm.formState.errors.cnpj.message}</p>}
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-sm font-semibold flex items-center gap-1.5">
+                      <Phone className="h-3.5 w-3.5" /> Telefone
+                    </Label>
+                    <Input placeholder="(11) 99999-9999" className="h-11 rounded-lg" {...editForm.register('phone')} />
+                    {editForm.formState.errors.phone && <p className="text-xs text-destructive font-medium">{editForm.formState.errors.phone.message}</p>}
                   </div>
                 </div>
+
+                <div className="space-y-1">
+                  <Label className="text-sm font-semibold flex items-center gap-1.5">
+                    <Globe2 className="h-3.5 w-3.5" /> Website
+                  </Label>
+                  <Input placeholder="https://www.empresa.com.br" className="h-11 rounded-lg" {...editForm.register('website')} />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-sm font-semibold">Segmento</Label>
+                  <Controller
+                    control={editForm.control}
+                    name="sector"
+                    render={({ field }) => (
+                      <Select value={field.value || ''} onValueChange={(val) => field.onChange(val ?? '')}>
+                        <SelectTrigger className="min-h-[44px] w-full rounded-lg text-sm">
+                          <SelectValue placeholder="Selecione o segmento..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SECTORS.map(s => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label className="text-sm font-semibold flex items-center gap-2"><Palette className="h-4 w-4" /> Cor primária</Label>
-                <Controller
-                  control={editForm.control}
-                  name="primary_color"
-                  render={({ field }) => (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={field.value}
-                        onChange={(e) => field.onChange(e.target.value)}
-                        className="h-11 w-14 rounded-lg cursor-pointer border border-input bg-background p-1"
-                      />
-                      <Input
-                        placeholder="#0066CC"
-                        className="h-11 rounded-lg font-mono flex-1"
-                        value={field.value}
-                        onChange={(e) => field.onChange(e.target.value)}
-                      />
+
+              <Separator />
+
+              {/* ── Seção 2: Identidade Visual ────────────────────────────── */}
+              <div className="space-y-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <Palette className="h-3.5 w-3.5" /> Identidade Visual
+                </p>
+
+                <div className="space-y-1">
+                  <Label className="text-sm font-semibold flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4" /> Logo (opcional)
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <LogoPreview url={editLogoPreview} />
+                    <div className="flex-1 flex items-center gap-2 flex-wrap">
+                      <input ref={editLogoRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => handleEditLogoSelect(e.target.files?.[0])} />
+                      <Button type="button" variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold" onClick={() => editLogoRef.current?.click()}>
+                        {editLogoPreview ? 'Trocar imagem' : 'Selecionar imagem'}
+                      </Button>
+                      {editLogoPreview && (
+                        <Button type="button" variant="ghost" size="sm" className="h-9 rounded-lg text-xs font-semibold text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleEditLogoRemove}>
+                          Remover
+                        </Button>
+                      )}
+                      <p className="text-xs text-muted-foreground w-full">PNG, JPEG ou WebP · máx. 2 MB</p>
                     </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-sm font-semibold flex items-center gap-2">
+                    <Palette className="h-4 w-4" /> Cor primária
+                  </Label>
+                  <Controller
+                    control={editForm.control}
+                    name="primary_color"
+                    render={({ field }) => (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={field.value}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          className="h-11 w-14 rounded-lg cursor-pointer border border-input bg-background p-1 shrink-0"
+                        />
+                        <Input
+                          placeholder="#0066CC"
+                          className="h-11 rounded-lg font-mono flex-1"
+                          value={field.value}
+                          onChange={(e) => field.onChange(e.target.value)}
+                        />
+                        <div
+                          className="h-11 w-11 rounded-lg border border-border shrink-0 shadow-sm"
+                          style={{ backgroundColor: field.value }}
+                          title="Preview da cor"
+                        />
+                      </div>
+                    )}
+                  />
+                  {editForm.formState.errors.primary_color && (
+                    <p className="text-xs text-destructive font-medium">{editForm.formState.errors.primary_color.message}</p>
                   )}
-                />
+                </div>
               </div>
+
+              <Separator />
+
+              {/* ── Seção 3: Administrador Master ─────────────────────────── */}
+              <div className="space-y-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <Users className="h-3.5 w-3.5" /> Administrador Master
+                </p>
+                <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
+                  {editingTenant?.master_name || editingTenant?.master_email ? (
+                    <>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-foreground">{editingTenant.master_name ?? '—'}</span>
+                        <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-0">Master</Badge>
+                      </div>
+                      {editingTenant.master_email && (
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Mail className="h-3.5 w-3.5 shrink-0" />
+                          <span className="break-all">{editingTenant.master_email}</span>
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground pt-1 border-t border-border mt-2">
+                        Para alterar e-mail ou senha do administrador, acesse o Dashboard Supabase → Authentication → Users.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Nenhum administrador Master encontrado para esta empresa.</p>
+                  )}
+                </div>
+              </div>
+
             </div>
-            <DialogFooter className="p-6 pt-4 border-t border-border bg-muted/40 sm:justify-end gap-2">
-              <Button type="button" variant="outline" className="rounded-lg h-11 font-semibold" onClick={closeEdit} disabled={isEditSubmitting}>Cancelar</Button>
+
+            {/* Sheet footer */}
+            <div className="px-6 py-4 border-t border-border bg-muted/40 flex justify-end gap-2 shrink-0">
+              <Button type="button" variant="outline" className="rounded-lg h-11 font-semibold" onClick={closeEdit} disabled={isEditSubmitting}>
+                Cancelar
+              </Button>
               <Button type="submit" className="rounded-lg h-11 font-semibold" disabled={isEditSubmitting}>
                 {isEditSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Salvar Alterações
               </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+            </div>
 
-      {/* Toggle Active Confirmation */}
+          </form>
+        </SheetContent>
+      </Sheet>
+
+      {/* ── Toggle Active Confirmation ─────────────────────────────────────── */}
       <Dialog open={!!toggleTarget} onOpenChange={(open) => { if (!open) setToggleTarget(null); }}>
         <DialogContent className="sm:max-w-[420px] rounded-2xl p-0 overflow-hidden">
           <DialogHeader className="p-6 pb-4 border-b border-border bg-muted/40">
@@ -608,8 +807,8 @@ export default function PlatformTenants() {
             </DialogTitle>
             <DialogDescription>
               {toggleTarget?.is_active
-                ? <>A empresa <span className="font-semibold text-foreground">{toggleTarget?.name}</span> será marcada como inativa. Seus usuários ainda poderão fazer login.</>
-                : <>A empresa <span className="font-semibold text-foreground">{toggleTarget?.name}</span> será reativada.</>
+                ? <><span className="font-semibold text-foreground">{toggleTarget?.name}</span> será marcada como inativa. Usuários ainda poderão fazer login.</>
+                : <><span className="font-semibold text-foreground">{toggleTarget?.name}</span> será reativada.</>
               }
             </DialogDescription>
           </DialogHeader>
@@ -625,6 +824,7 @@ export default function PlatformTenants() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }
