@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
   Plus, Globe, Loader2, Palette, MoreHorizontal,
-  Pencil, Image as ImageIcon, Users, PowerOff, Power,
+  Pencil, Image as ImageIcon, Users, PowerOff, Power, Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
@@ -57,7 +57,7 @@ async function uploadLogo(file: File, slug: string): Promise<string> {
   const { error } = await supabase.storage.from('tenant-assets').upload(path, file, { upsert: true, contentType: file.type });
   if (error) throw new Error(`Erro ao fazer upload do logo: ${error.message}`);
   const { data } = supabase.storage.from('tenant-assets').getPublicUrl(path);
-  return data.publicUrl;
+  return `${data.publicUrl}?t=${Date.now()}`;
 }
 
 function validateLogoFile(file: File): string | null {
@@ -81,34 +81,56 @@ export default function PlatformTenants() {
 
   const [tenants, setTenants] = useState<TenantRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createLogoFile, setCreateLogoFile] = useState<File | null>(null);
   const [createLogoPreview, setCreateLogoPreview] = useState<string | null>(null);
   const createLogoRef = useRef<HTMLInputElement>(null);
+  const [slugTouched, setSlugTouched] = useState(false);
 
   const [editingTenant, setEditingTenant] = useState<TenantRow | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   const [editLogoFile, setEditLogoFile] = useState<File | null>(null);
   const [editLogoPreview, setEditLogoPreview] = useState<string | null>(null);
+  const [editLogoRemoved, setEditLogoRemoved] = useState(false);
   const editLogoRef = useRef<HTMLInputElement>(null);
 
   const [toggleTarget, setToggleTarget] = useState<TenantRow | null>(null);
-  const [isToggling, setIsToggling] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const createForm = useForm<CreateFormValues>({
     resolver: zodResolver(createSchema),
     defaultValues: { tenant_name: '', tenant_slug: '', primary_color: '#0066CC', admin_name: '', admin_email: '', admin_password: '' },
   });
-  const createColor = createForm.watch('primary_color');
 
   const editForm = useForm<EditFormValues>({
     resolver: zodResolver(editSchema),
     defaultValues: { tenant_name: '', primary_color: '#0066CC' },
   });
-  const editColor = editForm.watch('primary_color');
+
+  // Auto-generate slug from company name while user hasn't manually edited it
+  const watchedName = createForm.watch('tenant_name');
+  useEffect(() => {
+    if (slugTouched || !watchedName) return;
+    const generated = watchedName
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 50);
+    createForm.setValue('tenant_slug', generated, { shouldValidate: false });
+  }, [watchedName, slugTouched, createForm]);
+
+  const filtered = search
+    ? tenants.filter(t =>
+        t.name.toLowerCase().includes(search.toLowerCase()) ||
+        t.slug.toLowerCase().includes(search.toLowerCase())
+      )
+    : tenants;
 
   const fetchTenants = async () => {
     try {
@@ -144,6 +166,14 @@ export default function PlatformTenants() {
     if (editLogoPreview?.startsWith('blob:')) URL.revokeObjectURL(editLogoPreview);
     setEditLogoFile(file);
     setEditLogoPreview(URL.createObjectURL(file));
+    setEditLogoRemoved(false);
+  };
+
+  const handleEditLogoRemove = () => {
+    if (editLogoPreview?.startsWith('blob:')) URL.revokeObjectURL(editLogoPreview);
+    setEditLogoFile(null);
+    setEditLogoPreview(null);
+    setEditLogoRemoved(true);
   };
 
   const closeCreate = () => {
@@ -152,6 +182,7 @@ export default function PlatformTenants() {
     setCreateLogoFile(null);
     if (createLogoPreview) URL.revokeObjectURL(createLogoPreview);
     setCreateLogoPreview(null);
+    setSlugTouched(false);
   };
 
   const openEdit = (t: TenantRow) => {
@@ -159,6 +190,7 @@ export default function PlatformTenants() {
     editForm.reset({ tenant_name: t.name, primary_color: t.primary_color });
     setEditLogoFile(null);
     setEditLogoPreview(t.logo_url);
+    setEditLogoRemoved(false);
     setIsEditOpen(true);
   };
 
@@ -168,6 +200,7 @@ export default function PlatformTenants() {
     setEditLogoFile(null);
     if (editLogoPreview?.startsWith('blob:')) URL.revokeObjectURL(editLogoPreview);
     setEditLogoPreview(null);
+    setEditLogoRemoved(false);
   };
 
   const onCreateSubmit = async (data: CreateFormValues) => {
@@ -204,18 +237,24 @@ export default function PlatformTenants() {
     if (!editingTenant) return;
     setIsEditSubmitting(true);
     try {
-      const updates: { name: string; primary_color: string; logo_url?: string } = {
+      const updates: { name: string; primary_color: string; logo_url?: string | null } = {
         name: data.tenant_name,
         primary_color: data.primary_color,
       };
       if (editLogoFile) updates.logo_url = await uploadLogo(editLogoFile, editingTenant.slug);
+      else if (editLogoRemoved) updates.logo_url = null;
 
       const { error } = await supabase.from('tenants').update(updates).eq('id', editingTenant.id);
       if (error) throw error;
 
+      const newLogoUrl = 'logo_url' in updates ? (updates.logo_url ?? null) : editingTenant.logo_url;
+      setTenants(prev => prev.map(t =>
+        t.id === editingTenant.id
+          ? { ...t, name: data.tenant_name, primary_color: data.primary_color, logo_url: newLogoUrl }
+          : t
+      ));
       toast.success('Empresa atualizada!', { description: `"${data.tenant_name}" salvo com sucesso.` });
       closeEdit();
-      fetchTenants();
     } catch (err: any) {
       toast.error('Erro ao atualizar empresa', { description: err.message });
     } finally {
@@ -225,18 +264,19 @@ export default function PlatformTenants() {
 
   const handleToggleActive = async () => {
     if (!toggleTarget) return;
-    const newValue = !toggleTarget.is_active;
-    setIsToggling(true);
+    const target = toggleTarget;
+    const newValue = !target.is_active;
+    setTogglingId(target.id);
     setToggleTarget(null);
     try {
-      const { error } = await supabase.from('tenants').update({ is_active: newValue }).eq('id', toggleTarget.id);
+      const { error } = await supabase.from('tenants').update({ is_active: newValue }).eq('id', target.id);
       if (error) throw error;
-      setTenants(prev => prev.map(t => t.id === toggleTarget.id ? { ...t, is_active: newValue } : t));
-      toast.success(newValue ? `"${toggleTarget.name}" ativada.` : `"${toggleTarget.name}" suspensa.`);
+      setTenants(prev => prev.map(t => t.id === target.id ? { ...t, is_active: newValue } : t));
+      toast.success(newValue ? `"${target.name}" ativada.` : `"${target.name}" suspensa.`);
     } catch (err: any) {
       toast.error('Erro ao alterar status', { description: err.message });
     } finally {
-      setIsToggling(false);
+      setTogglingId(null);
     }
   };
 
@@ -261,6 +301,17 @@ export default function PlatformTenants() {
         </Button>
       </div>
 
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <Input
+          placeholder="Buscar por nome ou slug..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="h-10 pl-9 rounded-lg"
+        />
+      </div>
+
       {/* Table */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden min-h-[300px]" data-onboarding="platform-tenants-lista">
         {loading ? (
@@ -283,7 +334,7 @@ export default function PlatformTenants() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tenants.map((t) => (
+                {filtered.map((t) => (
                   <TableRow key={t.id} className="hover:bg-muted/50 transition-colors border-border">
                     <TableCell className="font-semibold text-foreground text-sm">
                       <div className="flex items-center gap-2">
@@ -319,10 +370,10 @@ export default function PlatformTenants() {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger
-                          disabled={isToggling}
+                          disabled={togglingId === t.id}
                           className="inline-flex items-center justify-center h-8 w-8 p-0 text-muted-foreground hover:bg-muted hover:text-foreground rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                         >
-                          {isToggling ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
+                          {togglingId === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-44 rounded-xl">
                           <DropdownMenuItem className="cursor-pointer font-medium" onClick={() => openEdit(t)}>
@@ -351,10 +402,10 @@ export default function PlatformTenants() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {tenants.length === 0 && (
+                {filtered.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center text-muted-foreground font-medium">
-                      Nenhuma empresa encontrada.
+                      {search ? `Nenhuma empresa encontrada para "${search}".` : 'Nenhuma empresa encontrada.'}
                     </TableCell>
                   </TableRow>
                 )}
@@ -400,17 +451,39 @@ export default function PlatformTenants() {
 
                 <div className="space-y-1">
                   <Label className="text-sm font-semibold">Slug</Label>
-                  <Input placeholder="acme-eng" className="h-11 rounded-lg font-mono" {...createForm.register('tenant_slug')} />
+                  <Input
+                    placeholder="acme-eng"
+                    className="h-11 rounded-lg font-mono"
+                    {...createForm.register('tenant_slug', {
+                      onBlur: (e) => { if (e.target.value) setSlugTouched(true); },
+                    })}
+                  />
                   {createForm.formState.errors.tenant_slug && <p className="text-xs text-destructive font-medium">{createForm.formState.errors.tenant_slug.message}</p>}
                   <p className="text-xs text-muted-foreground">Identificador único, imutável após criação.</p>
                 </div>
 
                 <div className="space-y-1">
                   <Label className="text-sm font-semibold flex items-center gap-2"><Palette className="h-4 w-4" /> Cor primária</Label>
-                  <div className="flex items-center gap-2">
-                    <input type="color" className="h-11 w-14 rounded-lg cursor-pointer border border-input bg-background p-1" {...createForm.register('primary_color')} />
-                    <Input placeholder="#0066CC" className="h-11 rounded-lg font-mono flex-1" value={createColor} {...createForm.register('primary_color')} />
-                  </div>
+                  <Controller
+                    control={createForm.control}
+                    name="primary_color"
+                    render={({ field }) => (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={field.value}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          className="h-11 w-14 rounded-lg cursor-pointer border border-input bg-background p-1"
+                        />
+                        <Input
+                          placeholder="#0066CC"
+                          className="h-11 rounded-lg font-mono flex-1"
+                          value={field.value}
+                          onChange={(e) => field.onChange(e.target.value)}
+                        />
+                      </div>
+                    )}
+                  />
                 </div>
               </div>
 
@@ -471,21 +544,48 @@ export default function PlatformTenants() {
                 <Label className="text-sm font-semibold flex items-center gap-2"><ImageIcon className="h-4 w-4" /> Logo (opcional)</Label>
                 <div className="flex items-center gap-3">
                   <LogoPreview url={editLogoPreview} />
-                  <div className="flex-1">
+                  <div className="flex-1 flex items-center gap-2 flex-wrap">
                     <input ref={editLogoRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => handleEditLogoSelect(e.target.files?.[0])} />
                     <Button type="button" variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold" onClick={() => editLogoRef.current?.click()}>
                       {editLogoPreview ? 'Trocar imagem' : 'Selecionar imagem'}
                     </Button>
-                    <p className="text-xs text-muted-foreground mt-1">PNG, JPEG ou WebP · máx. 2 MB</p>
+                    {editLogoPreview && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 rounded-lg text-xs font-semibold text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={handleEditLogoRemove}
+                      >
+                        Remover
+                      </Button>
+                    )}
+                    <p className="text-xs text-muted-foreground w-full mt-1">PNG, JPEG ou WebP · máx. 2 MB</p>
                   </div>
                 </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-sm font-semibold flex items-center gap-2"><Palette className="h-4 w-4" /> Cor primária</Label>
-                <div className="flex items-center gap-2">
-                  <input type="color" className="h-11 w-14 rounded-lg cursor-pointer border border-input bg-background p-1" {...editForm.register('primary_color')} />
-                  <Input placeholder="#0066CC" className="h-11 rounded-lg font-mono flex-1" value={editColor} {...editForm.register('primary_color')} />
-                </div>
+                <Controller
+                  control={editForm.control}
+                  name="primary_color"
+                  render={({ field }) => (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={field.value}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        className="h-11 w-14 rounded-lg cursor-pointer border border-input bg-background p-1"
+                      />
+                      <Input
+                        placeholder="#0066CC"
+                        className="h-11 rounded-lg font-mono flex-1"
+                        value={field.value}
+                        onChange={(e) => field.onChange(e.target.value)}
+                      />
+                    </div>
+                  )}
+                />
               </div>
             </div>
             <DialogFooter className="p-6 pt-4 border-t border-border bg-muted/40 sm:justify-end gap-2">

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { applyTenantBrand } from '@/src/lib/color';
@@ -15,6 +15,7 @@ export interface TenantData {
 interface TenantContextType {
   tenant: TenantData | null;
   loading: boolean;
+  refreshTenant: () => void;
 }
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
@@ -23,6 +24,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const [tenant, setTenant] = useState<TenantData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [version, setVersion] = useState(0);
+
+  const refreshTenant = useCallback(() => setVersion(v => v + 1), []);
 
   useEffect(() => {
     if (authLoading) return;
@@ -63,10 +67,10 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [user?.team_id, authLoading]);
+  }, [user?.team_id, authLoading, version]);
 
   return (
-    <TenantContext.Provider value={{ tenant, loading }}>
+    <TenantContext.Provider value={{ tenant, loading, refreshTenant }}>
       {children}
     </TenantContext.Provider>
   );

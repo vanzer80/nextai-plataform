@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Settings, Palette, Image as ImageIcon, Loader2, User as UserIcon, Save } from 'lucide-react';
@@ -32,36 +32,29 @@ function getInitials(name?: string): string {
 
 export default function PlatformSettings() {
   const { user } = useAuth();
-  const { tenant } = useTenant();
+  const { tenant, refreshTenant } = useTenant();
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoRemoved, setLogoRemoved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const logoRef = useRef<HTMLInputElement>(null);
 
-  const { register, handleSubmit, watch, reset, formState: { errors, isDirty } } = useForm<ProfileFormValues>({
+  const { control, register, handleSubmit, reset, formState: { errors, isDirty } } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      name: '',
-      primary_color: '#0066CC',
-    },
+    defaultValues: { name: '', primary_color: '#0066CC' },
   });
-  const colorValue = watch('primary_color');
 
-  // Sincroniza form e preview quando o TenantContext termina de carregar
   useEffect(() => {
     if (!tenant) return;
-    reset({
-      name: tenant.name,
-      primary_color: tenant.primaryColor,
-    });
+    reset({ name: tenant.name, primary_color: tenant.primaryColor });
     setLogoPreview(prev => {
       if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
       return tenant.logoUrl ?? null;
     });
+    setLogoRemoved(false);
   }, [tenant, reset]);
 
-  // Revoga blob URL ao desmontar
   useEffect(() => {
     return () => {
       setLogoPreview(prev => {
@@ -78,13 +71,21 @@ export default function PlatformSettings() {
     if (logoPreview?.startsWith('blob:')) URL.revokeObjectURL(logoPreview);
     setLogoFile(file);
     setLogoPreview(URL.createObjectURL(file));
+    setLogoRemoved(false);
+  };
+
+  const handleLogoRemove = () => {
+    if (logoPreview?.startsWith('blob:')) URL.revokeObjectURL(logoPreview);
+    setLogoFile(null);
+    setLogoPreview(null);
+    setLogoRemoved(true);
   };
 
   const onSubmit = async (data: ProfileFormValues) => {
     if (!tenant?.id) return;
     setIsSaving(true);
     try {
-      const updates: { name: string; primary_color: string; logo_url?: string } = {
+      const updates: { name: string; primary_color: string; logo_url?: string | null } = {
         name: data.name,
         primary_color: data.primary_color,
       };
@@ -97,13 +98,16 @@ export default function PlatformSettings() {
           .upload(path, logoFile, { upsert: true, contentType: logoFile.type });
         if (uploadErr) throw new Error(`Erro ao fazer upload do logo: ${uploadErr.message}`);
         const { data: urlData } = supabase.storage.from('tenant-assets').getPublicUrl(path);
-        updates.logo_url = urlData.publicUrl;
+        updates.logo_url = `${urlData.publicUrl}?t=${Date.now()}`;
+      } else if (logoRemoved) {
+        updates.logo_url = null;
       }
 
       const { error } = await supabase.from('tenants').update(updates).eq('id', tenant.id);
       if (error) throw error;
 
       applyTenantBrand(data.primary_color);
+      refreshTenant();
       toast.success('Configurações salvas!', { description: 'As alterações foram aplicadas imediatamente.' });
     } catch (err: any) {
       toast.error('Erro ao salvar', { description: err.message });
@@ -122,7 +126,6 @@ export default function PlatformSettings() {
         <p className="text-sm text-muted-foreground">Personalize a identidade visual da plataforma NextAI.</p>
       </div>
 
-      {/* Platform Profile */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-border bg-muted/40">
           <h2 className="font-semibold text-foreground">Identidade da Plataforma</h2>
@@ -143,7 +146,7 @@ export default function PlatformSettings() {
                     : <span className="text-xl font-extrabold text-muted-foreground">N</span>
                   }
                 </div>
-                <div>
+                <div className="flex items-center gap-2 flex-wrap">
                   <input
                     ref={logoRef}
                     type="file"
@@ -160,7 +163,18 @@ export default function PlatformSettings() {
                   >
                     {logoPreview ? 'Trocar logo' : 'Selecionar logo'}
                   </Button>
-                  <p className="text-xs text-muted-foreground mt-1.5">PNG, JPEG ou WebP · máx. 2 MB</p>
+                  {logoPreview && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 rounded-lg text-xs font-semibold text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={handleLogoRemove}
+                    >
+                      Remover
+                    </Button>
+                  )}
+                  <p className="text-xs text-muted-foreground w-full mt-0.5">PNG, JPEG ou WebP · máx. 2 MB</p>
                 </div>
               </div>
             </div>
@@ -177,30 +191,41 @@ export default function PlatformSettings() {
               <Label className="text-sm font-semibold flex items-center gap-2">
                 <Palette className="h-4 w-4" /> Cor Primária
               </Label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  className="h-11 w-14 rounded-lg cursor-pointer border border-input bg-background p-1"
-                  {...register('primary_color')}
-                />
-                <Input
-                  placeholder="#0066CC"
-                  className="h-11 rounded-lg font-mono flex-1"
-                  value={colorValue}
-                  {...register('primary_color')}
-                />
-                <div
-                  className="h-11 w-11 rounded-lg border border-border shrink-0 shadow-sm"
-                  style={{ backgroundColor: colorValue }}
-                  title="Preview da cor"
-                />
-              </div>
+              <Controller
+                control={control}
+                name="primary_color"
+                render={({ field }) => (
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={field.value}
+                      onChange={(e) => field.onChange(e.target.value)}
+                      className="h-11 w-14 rounded-lg cursor-pointer border border-input bg-background p-1"
+                    />
+                    <Input
+                      placeholder="#0066CC"
+                      className="h-11 rounded-lg font-mono flex-1"
+                      value={field.value}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    />
+                    <div
+                      className="h-11 w-11 rounded-lg border border-border shrink-0 shadow-sm"
+                      style={{ backgroundColor: field.value }}
+                      title="Preview da cor"
+                    />
+                  </div>
+                )}
+              />
               <p className="text-xs text-muted-foreground">A cor é aplicada em OKLCH para manter o contraste em light e dark mode.</p>
             </div>
           </div>
 
           <div className="px-6 py-4 border-t border-border bg-muted/40 flex justify-end">
-            <Button type="submit" className="h-10 px-6 rounded-lg font-semibold" disabled={isSaving || (!isDirty && !logoFile)}>
+            <Button
+              type="submit"
+              className="h-10 px-6 rounded-lg font-semibold"
+              disabled={isSaving || (!isDirty && !logoFile && !logoRemoved)}
+            >
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
               Salvar Configurações
             </Button>

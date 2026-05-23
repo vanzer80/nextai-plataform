@@ -35,6 +35,7 @@ test.describe('PlatformTenants — edição', () => {
     await nameInput2.fill('Zambrano Engenharia');
     await page.getByRole('button', { name: /Salvar Alterações/i }).click();
     await expect(page.getByText('Empresa atualizada!')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByRole('cell', { name: /Zambrano Engenharia/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('table').getByText('Zambrano Engenharia EDITADO', { exact: true })).not.toBeVisible({ timeout: 5000 });
+    await expect(page.locator('table').getByText('Zambrano Engenharia', { exact: true })).toBeVisible({ timeout: 10000 });
   });
 });
