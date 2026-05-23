@@ -68,24 +68,34 @@ export default function App() {
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               
-              <Route path="/reports" element={<ReportsList />} />
-              <Route path="/reports/new" element={<NewReport />} />
-              <Route path="/reports/:id" element={<ReportDetail />} />
-              
-              <Route path="/reimbursements" element={<ReimbursementsList />} />
-              <Route path="/reimbursements/new" element={<NewReimbursement />} />
-              <Route path="/reimbursements/:id/edit" element={<NewReimbursement />} />
+              {/* OS — Técnico, Supervisor, Gestor, Admin, Master */}
+              <Route element={<RoleGuard allowedRoles={['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master']} />}>
+                <Route path="/reports" element={<ReportsList />} />
+                <Route path="/reports/new" element={<NewReport />} />
+                <Route path="/reports/:id" element={<ReportDetail />} />
+              </Route>
 
-              {/* Orçamentos - qualquer usuário autenticado */}
-              <Route path="/orcamentos" element={<OrcamentosList />} />
-              <Route path="/orcamentos/novo" element={<NovoOrcamento />} />
-              <Route path="/orcamentos/:id/editar" element={<NovoOrcamento />} />
-              <Route path="/orcamentos/:id" element={<OrcamentoDetail />} />
+              {/* Orçamentos — Técnico, Supervisor, Gestor, Admin, Master */}
+              <Route element={<RoleGuard allowedRoles={['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master']} />}>
+                <Route path="/orcamentos" element={<OrcamentosList />} />
+                <Route path="/orcamentos/novo" element={<NovoOrcamento />} />
+                <Route path="/orcamentos/:id/editar" element={<NovoOrcamento />} />
+                <Route path="/orcamentos/:id" element={<OrcamentoDetail />} />
+              </Route>
 
-              {/* Compras - qualquer usuário autenticado */}
-              <Route path="/materials" element={<MaterialsList />} />
-              <Route path="/materials/new" element={<NewMaterialRequest />} />
-              <Route path="/materials/:id/edit" element={<NewMaterialRequest />} />
+              {/* Reembolsos — Técnico, Administrativo, Financeiro, Supervisor, Gestor, Admin, Master */}
+              <Route element={<RoleGuard allowedRoles={['Tecnico', 'Administrativo', 'Financeiro', 'Supervisor', 'Gestor', 'Admin', 'Master']} />}>
+                <Route path="/reimbursements" element={<ReimbursementsList />} />
+                <Route path="/reimbursements/new" element={<NewReimbursement />} />
+                <Route path="/reimbursements/:id/edit" element={<NewReimbursement />} />
+              </Route>
+
+              {/* Compras — Técnico, Administrativo, Financeiro, Comprador, Supervisor, Gestor, Admin, Master */}
+              <Route element={<RoleGuard allowedRoles={['Tecnico', 'Administrativo', 'Financeiro', 'Comprador', 'Supervisor', 'Gestor', 'Admin', 'Master']} />}>
+                <Route path="/materials" element={<MaterialsList />} />
+                <Route path="/materials/new" element={<NewMaterialRequest />} />
+                <Route path="/materials/:id/edit" element={<NewMaterialRequest />} />
+              </Route>
 
               {/* Clientes - Gestor, Admin, Master, Supervisor */}
               <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor']} />}>
