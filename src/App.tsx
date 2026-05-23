@@ -75,8 +75,8 @@ export default function App() {
                 <Route path="/reports/:id" element={<ReportDetail />} />
               </Route>
 
-              {/* Orçamentos — Técnico, Supervisor, Gestor, Admin, Master */}
-              <Route element={<RoleGuard allowedRoles={['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master']} />}>
+              {/* Orçamentos — Supervisor, Gestor, Admin, Master */}
+              <Route element={<RoleGuard allowedRoles={['Supervisor', 'Gestor', 'Admin', 'Master']} />}>
                 <Route path="/orcamentos" element={<OrcamentosList />} />
                 <Route path="/orcamentos/novo" element={<NovoOrcamento />} />
                 <Route path="/orcamentos/:id/editar" element={<NovoOrcamento />} />

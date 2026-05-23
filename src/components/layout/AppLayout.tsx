@@ -57,7 +57,7 @@ const NAV_ONBOARDING: Record<string, string> = {
 const NAV_LINKS = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Financeiro', 'Comprador', 'Admin', 'Master'] },
   { name: 'Ordens de Serviço', path: '/reports', icon: ClipboardList, roles: ['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master'] },
-  { name: 'Orçamentos', path: '/orcamentos', icon: FileText, roles: ['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master'] },
+  { name: 'Orçamentos', path: '/orcamentos', icon: FileText, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
   { name: 'Reembolsos', path: '/reimbursements', icon: Receipt, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Financeiro', 'Admin', 'Master'] },
   { name: 'Compras', path: '/materials', icon: ShoppingCart, roles: ['Tecnico', 'Administrativo', 'Financeiro', 'Supervisor', 'Gestor', 'Comprador', 'Admin', 'Master'] },
   { name: 'Clientes', path: '/clients', icon: Building2, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
