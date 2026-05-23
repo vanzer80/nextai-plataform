@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import ThemeToggle from '@/src/components/theme/ThemeToggle';
+import { NextAILogo } from '@/src/components/brand/NextAILogo';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -61,8 +62,8 @@ export default function Login() {
       </div>
       <Card className="w-full max-w-sm border-border shadow-md">
         <CardHeader className="space-y-2 pb-6 text-center">
-          <div className="mb-4 flex justify-center text-2xl font-extrabold tracking-tight">
-            Next<span className="text-primary">AI</span>
+          <div className="mb-4 flex justify-center">
+            <NextAILogo height={44} />
           </div>
           <CardTitle className="text-xl font-semibold">Acesso ao Sistema</CardTitle>
           <CardDescription className="text-muted-foreground">

@@ -1,6 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#020617"/>
-  <text x="256" y="320" font-family="system-ui, sans-serif" font-size="260" font-weight="900" text-anchor="middle" fill="#ffffff">P</text>
-  <text x="256" y="320" font-family="system-ui, sans-serif" font-size="260" font-weight="900" text-anchor="middle" fill="none" stroke="#2563eb" stroke-width="0">M</text>
-  <rect x="60" y="340" width="392" height="24" rx="12" fill="#2563eb"/>
+  <rect width="512" height="512" rx="96" fill="#0F172A"/>
+  <g transform="translate(96.5,86) scale(2.1)">
+    <polygon points="27.5,21 44.5,21 34.5,141 17.5,141" fill="#2563EB"/>
+    <polygon points="117.5,21 134.5,21 124.5,141 107.5,141" fill="#2563EB"/>
+    <polygon points="37,25 52,17 115,137 100,145" fill="#2563EB"/>
+  </g>
 </svg>

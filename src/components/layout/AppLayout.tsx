@@ -36,6 +36,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import ThemeToggle from '@/src/components/theme/ThemeToggle';
 import clsx from 'clsx';
+import { NextAILogo } from '@/src/components/brand/NextAILogo';
 
 // Mapeamento path → chave data-onboarding para o tour
 const NAV_ONBOARDING: Record<string, string> = {
@@ -419,9 +420,7 @@ export default function AppLayout() {
       <aside className="hidden lg:flex w-[260px] flex-col bg-sidebar text-sidebar-foreground shrink-0 border-r border-sidebar-border z-50">
         <div className="flex items-center px-6 py-6 h-[80px]">
           {tenant?.isPlatform ? (
-            <div className="text-2xl font-extrabold tracking-tight text-sidebar-foreground">
-              Next<span className="opacity-50">AI</span>
-            </div>
+            <NextAILogo height={36} />
           ) : (
             <div className="text-2xl font-extrabold tracking-tight text-sidebar-foreground">
               {tenant?.name ?? 'Portal'}
@@ -446,9 +445,7 @@ export default function AppLayout() {
       {/* MOBILE TOP HEADER */}
       <header className="lg:hidden fixed top-0 w-full h-[64px] bg-sidebar text-sidebar-foreground z-40 flex items-center justify-between px-4 border-b border-sidebar-border">
         {tenant?.isPlatform ? (
-          <div className="text-xl font-extrabold tracking-tight text-sidebar-foreground">
-            NextAI
-          </div>
+          <NextAILogo height={28} />
         ) : (
           <div className="text-xl font-extrabold tracking-tight text-sidebar-foreground">
             {(tenant?.name ?? 'Portal').split(' ')[0]}

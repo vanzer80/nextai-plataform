@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import clsx from 'clsx';
+import { NextAILogo } from '@/src/components/brand/NextAILogo';
 
 const PLATFORM_NAV = [
   { name: 'Empresas', path: '/platform/tenants', icon: Building2 },
@@ -62,9 +63,7 @@ export default function PlatformLayout() {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-[260px] flex-col bg-sidebar text-sidebar-foreground shrink-0 border-r border-sidebar-border z-50">
         <div className="px-6 py-6 h-[80px] border-b border-sidebar-border flex items-center gap-3">
-          <span className="text-2xl font-extrabold tracking-tight text-sidebar-foreground">
-            Next<span className="opacity-50">AI</span>
-          </span>
+          <NextAILogo height={36} />
           <Badge className="text-[10px] px-2 py-0.5 bg-primary/15 text-primary border-0 font-bold">
             Platform
           </Badge>
@@ -121,9 +120,7 @@ export default function PlatformLayout() {
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 w-full h-[64px] bg-sidebar text-sidebar-foreground z-40 flex items-center justify-between px-4 border-b border-sidebar-border">
         <div className="flex items-center gap-2">
-          <span className="text-xl font-extrabold tracking-tight text-sidebar-foreground">
-            Next<span className="opacity-50">AI</span>
-          </span>
+          <NextAILogo height={28} />
           <Badge className="text-[10px] px-1.5 py-0.5 bg-primary/15 text-primary border-0 font-bold">
             Platform
           </Badge>
