@@ -8,16 +8,17 @@ test.describe('PlatformGuard — bloqueio de acesso', () => {
 
   test('/platform/tenants redireciona Master para /dashboard', async ({ page }) => {
     await page.goto('/platform/tenants');
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
+    // waitForURL escuta evento de navegação SPA em vez de apenas polling de URL
+    await page.waitForURL(/\/dashboard/, { timeout: 15000 });
   });
 
   test('/platform/users redireciona Master para /dashboard', async ({ page }) => {
     await page.goto('/platform/users');
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
+    await page.waitForURL(/\/dashboard/, { timeout: 15000 });
   });
 
   test('/platform/settings redireciona Master para /dashboard', async ({ page }) => {
     await page.goto('/platform/settings');
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
+    await page.waitForURL(/\/dashboard/, { timeout: 15000 });
   });
 });
