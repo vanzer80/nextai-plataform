@@ -92,14 +92,7 @@ export function RoleGuard({ allowedRoles }: { allowedRoles: string[] }) {
   if (loading) return null;
 
   if (!user?.role || !allowedRoles.includes(user.role)) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center p-6 text-center bg-card rounded-xl border border-border">
-        <h2 className="text-xl font-bold text-foreground">Acesso Restrito</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Seu nível de acesso atual ({user?.role || 'Desconhecido'}) não permite visualizar esta página.
-        </p>
-      </div>
-    );
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <Outlet />;

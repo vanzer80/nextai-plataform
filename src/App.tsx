@@ -68,41 +68,41 @@ export default function App() {
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               
-              {/* OS — Técnico, Supervisor, Gestor, Admin, Master */}
-              <Route element={<RoleGuard allowedRoles={['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master']} />}>
+              {/* OS — Master, Admin, Gestor, Supervisor, Técnico */}
+              <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor', 'Tecnico']} />}>
                 <Route path="/reports" element={<ReportsList />} />
                 <Route path="/reports/new" element={<NewReport />} />
                 <Route path="/reports/:id" element={<ReportDetail />} />
               </Route>
 
-              {/* Orçamentos — Supervisor, Gestor, Admin, Master */}
-              <Route element={<RoleGuard allowedRoles={['Supervisor', 'Gestor', 'Admin', 'Master']} />}>
+              {/* Orçamentos — Master, Admin, Gestor, Supervisor */}
+              <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor']} />}>
                 <Route path="/orcamentos" element={<OrcamentosList />} />
                 <Route path="/orcamentos/novo" element={<NovoOrcamento />} />
                 <Route path="/orcamentos/:id/editar" element={<NovoOrcamento />} />
                 <Route path="/orcamentos/:id" element={<OrcamentoDetail />} />
               </Route>
 
-              {/* Reembolsos — Técnico, Administrativo, Financeiro, Supervisor, Gestor, Admin, Master */}
-              <Route element={<RoleGuard allowedRoles={['Tecnico', 'Administrativo', 'Financeiro', 'Supervisor', 'Gestor', 'Admin', 'Master']} />}>
+              {/* Reembolsos — Master, Admin, Gestor, Supervisor, Financeiro, Administrativo, Técnico */}
+              <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor', 'Financeiro', 'Administrativo', 'Tecnico']} />}>
                 <Route path="/reimbursements" element={<ReimbursementsList />} />
                 <Route path="/reimbursements/new" element={<NewReimbursement />} />
                 <Route path="/reimbursements/:id/edit" element={<NewReimbursement />} />
               </Route>
 
-              {/* Compras — Técnico, Administrativo, Financeiro, Comprador, Supervisor, Gestor, Admin, Master */}
-              <Route element={<RoleGuard allowedRoles={['Tecnico', 'Administrativo', 'Financeiro', 'Comprador', 'Supervisor', 'Gestor', 'Admin', 'Master']} />}>
+              {/* Compras — Master, Admin, Gestor, Supervisor, Financeiro, Comprador, Administrativo, Técnico */}
+              <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor', 'Financeiro', 'Comprador', 'Administrativo', 'Tecnico']} />}>
                 <Route path="/materials" element={<MaterialsList />} />
                 <Route path="/materials/new" element={<NewMaterialRequest />} />
                 <Route path="/materials/:id/edit" element={<NewMaterialRequest />} />
               </Route>
 
-              {/* Clientes - Gestor, Admin, Master, Supervisor */}
+              {/* Clientes — Master, Admin, Gestor, Supervisor */}
               <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor']} />}>
                 <Route path="/clients" element={<ClientsList />} />
               </Route>
 
-              {/* Equipamentos - Gestor, Admin, Master, Supervisor */}
+              {/* Equipamentos — Master, Admin, Gestor, Supervisor */}
               <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor']} />}>
                 <Route path="/equipments" element={<EquipmentManagement />} />
               </Route>
