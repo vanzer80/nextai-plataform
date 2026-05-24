@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -16,11 +17,22 @@ export default function Step4Diagnosis({ form, assetDescription }: Step4Props) {
   const { register, setValue, watch, control } = form;
   const serviceType = watch('service_type');
   const reportedProblem = watch('reported_problem');
-  // useWatch é o hook correto para subscrição de campo isolado em concurrent mode
   const preliminaryDiagnosis = useWatch({ control, name: 'preliminary_diagnosis' }) ?? '';
 
+  // Estado React local para final_diagnosis: garante atualização da UI
+  // independentemente da camada de subscrição do RHF. O valor é sincronizado
+  // com o form via setValue em cada mudança para que getValues() funcione
+  // corretamente no envio e no draft autosave.
+  const [finalDiagnosisText, setFinalDiagnosisText] = useState<string>(
+    () => form.getValues('final_diagnosis') ?? ''
+  );
+
   const handleAiApply = (result: DiagnosticEnhancementResult) => {
+    // 1. React state → re-render imediato e garantido
+    setFinalDiagnosisText(result.final_diagnosis);
+    // 2. RHF store → getValues() e draft ficam corretos
     setValue('final_diagnosis', result.final_diagnosis, { shouldDirty: true });
+
     if (!preliminaryDiagnosis) {
       setValue('preliminary_diagnosis', result.technical_description, { shouldDirty: true });
     }
@@ -69,18 +81,15 @@ export default function Step4Diagnosis({ form, assetDescription }: Step4Props) {
 
         <div className="space-y-2">
           <Label className="text-sm font-semibold text-foreground">Diagnóstico final</Label>
-          <Controller
-            name="final_diagnosis"
-            control={control}
-            defaultValue=""
-            render={({ field }) => (
-              <Textarea
-                {...field}
-                value={field.value ?? ''}
-                placeholder="Diagnóstico técnico formal após análise completa..."
-                className="min-h-[110px] resize-none rounded-xl bg-muted border-border text-base focus-visible:ring-ring"
-              />
-            )}
+          <Textarea
+            value={finalDiagnosisText}
+            onChange={(e) => {
+              const v = e.target.value;
+              setFinalDiagnosisText(v);
+              setValue('final_diagnosis', v, { shouldDirty: true });
+            }}
+            placeholder="Diagnóstico técnico formal após análise completa..."
+            className="min-h-[110px] resize-none rounded-xl bg-muted border-border text-base focus-visible:ring-ring"
           />
           <AiDiagnosticAssistant
             rawInput={preliminaryDiagnosis}
