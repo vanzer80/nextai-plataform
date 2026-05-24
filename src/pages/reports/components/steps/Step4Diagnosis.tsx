@@ -1,4 +1,4 @@
-import { Controller, type UseFormReturn } from 'react-hook-form';
+import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,7 +16,8 @@ export default function Step4Diagnosis({ form, assetDescription }: Step4Props) {
   const { register, setValue, watch, control } = form;
   const serviceType = watch('service_type');
   const reportedProblem = watch('reported_problem');
-  const preliminaryDiagnosis = watch('preliminary_diagnosis') ?? '';
+  // useWatch é o hook correto para subscrição de campo isolado em concurrent mode
+  const preliminaryDiagnosis = useWatch({ control, name: 'preliminary_diagnosis' }) ?? '';
 
   const handleAiApply = (result: DiagnosticEnhancementResult) => {
     setValue('final_diagnosis', result.final_diagnosis, { shouldDirty: true });
