@@ -216,7 +216,6 @@ export default function NewReport() {
   };
 
   const isLastStep = currentStep === TOTAL_STEPS;
-  const progress = (currentStep / TOTAL_STEPS) * 100;
 
   return (
     <div className="flex flex-col gap-4 w-full max-w-2xl mx-auto pb-10 animate-in fade-in duration-300">
@@ -240,31 +239,32 @@ export default function NewReport() {
         <SyncStatusIndicator status={draft.syncStatus} />
       </div>
 
-      {/* Barra de progresso */}
-      <div className="w-full bg-muted rounded-full h-1.5">
-        <div
-          className="bg-primary h-1.5 rounded-full transition-all duration-300"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-
-      {/* Indicador de steps */}
-      <div className="flex items-center gap-1 overflow-x-auto pb-1" data-onboarding="wizard-step-indicator">
+      {/* Stepper unificado — progresso integrado nos conectores entre círculos */}
+      <div className="flex items-center w-full" data-onboarding="wizard-step-indicator">
         {STEP_LABELS.map((label, i) => {
           const step = i + 1;
           const isDone = step < currentStep;
           const isCurrent = step === currentStep;
+          const isLast = i === STEP_LABELS.length - 1;
           return (
-            <div key={step} className="flex items-center gap-1 shrink-0">
-              <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
-                isDone ? 'bg-primary text-primary-foreground' :
-                isCurrent ? 'bg-primary/15 text-primary ring-2 ring-primary' :
-                'bg-muted text-muted-foreground'
-              }`}>
+            <div key={step} className={`flex items-center ${isLast ? 'shrink-0' : 'flex-1'}`}>
+              <div
+                title={label}
+                className={`h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-colors ${
+                  isDone    ? 'bg-primary text-primary-foreground' :
+                  isCurrent ? 'bg-primary/15 text-primary ring-2 ring-primary' :
+                              'bg-muted text-muted-foreground'
+                }`}
+              >
                 {isDone ? '✓' : step}
               </div>
-              {i < STEP_LABELS.length - 1 && (
-                <div className={`h-0.5 w-4 ${isDone ? 'bg-primary' : 'bg-muted'}`} />
+              {!isLast && (
+                <div className="flex-1 h-0.5 mx-0.5 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-300"
+                    style={{ width: isDone ? '100%' : '0%' }}
+                  />
+                </div>
               )}
             </div>
           );
