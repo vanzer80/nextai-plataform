@@ -1,4 +1,4 @@
-import type { UseFormReturn } from 'react-hook-form';
+import { Controller, type UseFormReturn } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,15 +13,15 @@ interface Step4Props {
 }
 
 export default function Step4Diagnosis({ form, assetDescription }: Step4Props) {
-  const { register, setValue, watch } = form;
+  const { register, setValue, watch, control } = form;
   const serviceType = watch('service_type');
   const reportedProblem = watch('reported_problem');
   const preliminaryDiagnosis = watch('preliminary_diagnosis') ?? '';
 
   const handleAiApply = (result: DiagnosticEnhancementResult) => {
-    setValue('final_diagnosis', result.final_diagnosis, { shouldValidate: true });
+    setValue('final_diagnosis', result.final_diagnosis, { shouldDirty: true });
     if (!preliminaryDiagnosis) {
-      setValue('preliminary_diagnosis', result.technical_description);
+      setValue('preliminary_diagnosis', result.technical_description, { shouldDirty: true });
     }
   };
 
@@ -51,19 +51,35 @@ export default function Step4Diagnosis({ form, assetDescription }: Step4Props) {
 
         <div className="space-y-2">
           <Label className="text-sm font-semibold text-foreground">Diagnóstico preliminar</Label>
-          <Textarea
-            {...register('preliminary_diagnosis')}
-            placeholder="Observações iniciais do técnico ao chegar no local..."
-            className="min-h-[90px] resize-none rounded-xl bg-muted border-border text-base focus-visible:ring-ring"
+          <Controller
+            name="preliminary_diagnosis"
+            control={control}
+            defaultValue=""
+            render={({ field }) => (
+              <Textarea
+                {...field}
+                value={field.value ?? ''}
+                placeholder="Observações iniciais do técnico ao chegar no local..."
+                className="min-h-[90px] resize-none rounded-xl bg-muted border-border text-base focus-visible:ring-ring"
+              />
+            )}
           />
         </div>
 
         <div className="space-y-2">
           <Label className="text-sm font-semibold text-foreground">Diagnóstico final</Label>
-          <Textarea
-            {...register('final_diagnosis')}
-            placeholder="Diagnóstico técnico formal após análise completa..."
-            className="min-h-[110px] resize-none rounded-xl bg-muted border-border text-base focus-visible:ring-ring"
+          <Controller
+            name="final_diagnosis"
+            control={control}
+            defaultValue=""
+            render={({ field }) => (
+              <Textarea
+                {...field}
+                value={field.value ?? ''}
+                placeholder="Diagnóstico técnico formal após análise completa..."
+                className="min-h-[110px] resize-none rounded-xl bg-muted border-border text-base focus-visible:ring-ring"
+              />
+            )}
           />
           <AiDiagnosticAssistant
             rawInput={preliminaryDiagnosis}
