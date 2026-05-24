@@ -25,6 +25,8 @@ import {
   Package,
   ShieldCheck,
   CalendarDays,
+  BookOpen,
+  DollarSign,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
@@ -51,6 +53,8 @@ const NAV_ONBOARDING: Record<string, string> = {
   '/materials':                   'nav-compras',
   '/clients':                     'nav-clientes',
   '/equipments':                  'nav-equipamentos',
+  '/knowledge':                   'nav-knowledge',
+  '/admin/budget':                'nav-budget',
   '/admin/checklist-templates':   'nav-checklists',
   '/admin/service-types':         'nav-service-types',
   '/admin/usuarios':              'nav-admin-usuarios',
@@ -69,9 +73,11 @@ const NAV_LINKS = [
   { name: 'Fornecedores', path: '/suppliers', icon: Store, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
   { name: 'Peças / Estoque', path: '/parts', icon: Package, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
   { name: 'Agenda / Dispatch', path: '/agenda', icon: CalendarDays, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
+  { name: 'Base de Conhecimento', path: '/knowledge', icon: BookOpen, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Financeiro', 'Comprador', 'Admin', 'Master'] },
   { name: 'Checklists', path: '/admin/checklist-templates', icon: ListChecks, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'Tipos de Serviço', path: '/admin/service-types', icon: Settings2, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'SLA', path: '/admin/sla', icon: ShieldCheck, roles: ['Gestor', 'Admin', 'Master'] },
+  { name: 'Controle de Budget', path: '/admin/budget', icon: DollarSign, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'Administrador', path: '/admin/usuarios', icon: ShieldAlert, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'Tenants', path: '/admin/tenants', icon: Globe, roles: ['Master'] },
 ];

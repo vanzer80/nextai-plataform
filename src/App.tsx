@@ -36,6 +36,8 @@ const NovoOrcamento      = lazy(() => import('@/src/pages/orcamentos/NovoOrcamen
 const OrcamentoDetail    = lazy(() => import('@/src/pages/orcamentos/OrcamentoDetail'));
 const ClientPortal       = lazy(() => import('@/src/pages/portal/ClientPortal'));
 const AgendaPage         = lazy(() => import('@/src/pages/agenda/AgendaPage'));
+const KnowledgeBase      = lazy(() => import('@/src/pages/knowledge/KnowledgeBase'));
+const BudgetManagement   = lazy(() => import('@/src/pages/admin/BudgetManagement'));
 
 // Platform admin pages (SuperMaster only)
 const PlatformTenants  = lazy(() => import('@/src/pages/platform/PlatformTenants'));
@@ -138,6 +140,11 @@ export default function App() {
                 <Route path="/parts" element={<PartsManagement />} />
               </Route>
 
+              {/* Base de Conhecimento — todos os perfis operacionais */}
+              <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor', 'Tecnico', 'Financeiro', 'Administrativo', 'Comprador']} />}>
+                <Route path="/knowledge" element={<KnowledgeBase />} />
+              </Route>
+
               {/* Admin Area */}
               <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor']} />}>
                 <Route path="/admin/usuarios" element={<UserManagement />} />
@@ -146,6 +153,7 @@ export default function App() {
                 <Route path="/admin/checklist-templates/:id/edit" element={<TemplateEditor />} />
                 <Route path="/admin/service-types" element={<ServiceTypes />} />
                 <Route path="/admin/sla" element={<SlaManagement />} />
+                <Route path="/admin/budget" element={<BudgetManagement />} />
               </Route>
 
               {/* Master-only: tenant provisioning */}

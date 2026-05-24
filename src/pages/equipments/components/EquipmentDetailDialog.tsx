@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ExternalLink, Loader2 } from 'lucide-react';
+import { ExternalLink, Loader2, TrendingDown, AlertTriangle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { getEquipmentReports } from '@/src/services/equipmentService';
-import { maintenanceStatus } from '@/src/types/equipment';
+import { maintenanceStatus, calculateLifecycle } from '@/src/types/equipment';
 import type { Equipment, EquipmentReport } from '@/src/types/equipment';
+
+const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Rascunho', pending_review: 'Aguardando', returned: 'Devolvida',
@@ -54,6 +56,7 @@ export default function EquipmentDetailDialog({ equipment, open, onClose }: Prop
 
   const ms = maintenanceStatus(equipment);
   const msConfig = MAINT_CONFIG[ms];
+  const lifecycle = calculateLifecycle(equipment, 0);
 
   const warrantyExpired = equipment.warranty_until
     ? new Date(equipment.warranty_until) < new Date()
@@ -95,6 +98,48 @@ export default function EquipmentDetailDialog({ equipment, open, onClose }: Prop
           {ms !== 'sem-dados' && (
             <div className={`text-xs font-semibold px-3 py-1.5 rounded-full border inline-block ${msConfig.className}`}>
               {msConfig.label}
+            </div>
+          )}
+
+          {/* Ciclo de Vida Financeiro */}
+          {lifecycle && (
+            <div className="pt-1">
+              <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                <TrendingDown className="h-4 w-4 text-primary" />
+                Ciclo de Vida Financeiro
+              </h3>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Valor Contábil</span>
+                  <p className="font-medium">{BRL.format(lifecycle.currentBookValue)}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Custo de Aquisição</span>
+                  <p className="font-medium">{BRL.format(equipment.acquisition_cost!)}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Depreciação Acum.</span>
+                  <p className="font-medium">{BRL.format(lifecycle.totalDepreciation)}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Vida Útil Restante</span>
+                  <p className={`font-medium ${lifecycle.yearsRemaining <= 0 ? 'text-destructive' : lifecycle.yearsRemaining <= 1 ? 'text-amber-600' : ''}`}>
+                    {lifecycle.yearsRemaining <= 0 ? 'Esgotada' : `${lifecycle.yearsRemaining.toFixed(1)} anos`}
+                  </p>
+                </div>
+              </div>
+              {lifecycle.yearsRemaining <= 0 && (
+                <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-destructive bg-destructive/10 rounded-lg px-3 py-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  Vida útil encerrada — considere substituição ou reavaliação.
+                </div>
+              )}
+              {lifecycle.yearsRemaining > 0 && lifecycle.yearsRemaining <= 1 && (
+                <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/20 rounded-lg px-3 py-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  Menos de 1 ano de vida útil restante.
+                </div>
+              )}
             </div>
           )}
 

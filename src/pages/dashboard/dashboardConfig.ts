@@ -8,14 +8,14 @@ export const dashboardConfigByRole: Record<UserRole, string[]> = {
   // Apoio interno — vê reembolsos + compras; sem KPIs de OS (não acessa o módulo)
   Administrativo: ['reimbursements-kpi', 'reimbursements-pie'],
   // Financeiro — foco em custo e fluxo; ticket médio é KPI de receita relevante
-  Financeiro:     ['reimbursements-kpi', 'ticket-medio', 'reimbursements-pie'],
+  Financeiro:     ['reimbursements-kpi', 'ticket-medio', 'reimbursements-pie', 'budget-burn'],
   // Comprador — foco em suprimentos; reembolsos como proxy de gastos operacionais
   Comprador:      ['reimbursements-kpi', 'reimbursements-pie'],
   // Liderança operacional — visão completa incluindo taxa de retorno e ticket médio
   Supervisor:     ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'sla-rate', 'csat-avg', 'reports-bar', 'reimbursements-pie'],
-  Gestor:         ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'sla-rate', 'csat-avg', 'reports-bar', 'reimbursements-pie'],
-  Admin:          ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'sla-rate', 'csat-avg', 'reports-bar', 'reimbursements-pie'],
-  Master:         ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'sla-rate', 'csat-avg', 'reports-bar', 'reimbursements-pie'],
+  Gestor:         ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'sla-rate', 'csat-avg', 'reports-bar', 'reimbursements-pie', 'budget-burn'],
+  Admin:          ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'sla-rate', 'csat-avg', 'reports-bar', 'reimbursements-pie', 'budget-burn'],
+  Master:         ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'sla-rate', 'csat-avg', 'reports-bar', 'reimbursements-pie', 'budget-burn'],
   Cliente:        [],
 };
 

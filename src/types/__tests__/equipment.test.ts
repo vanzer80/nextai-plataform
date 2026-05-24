@@ -16,6 +16,10 @@ function makeEquipment(overrides: Partial<Equipment> = {}): Equipment {
     warranty_until: null,
     maintenance_interval_days: null,
     last_maintenance_at: null,
+    acquisition_cost: null,
+    acquisition_date: null,
+    useful_life_years: null,
+    residual_value: 0,
     created_at: '2025-01-01T00:00:00Z',
     ...overrides,
   };

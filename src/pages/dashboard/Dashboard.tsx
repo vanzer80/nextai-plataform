@@ -13,6 +13,7 @@ import { SlaWidget } from './widgets/SlaWidget';
 import { CsatWidget } from './widgets/CsatWidget';
 import { ReportsBarWidget } from './widgets/ReportsBarWidget';
 import { ReimbursementsPieWidget } from './widgets/ReimbursementsPieWidget';
+import { BudgetBurnWidget } from './widgets/BudgetBurnWidget';
 import type { WidgetId } from './widgetRegistry';
 
 export default function Dashboard() {
@@ -82,6 +83,13 @@ export default function Dashboard() {
           <CsatWidget isLoading={data.isLoading} csatAvg={data.csatAvg} responseCount={data.csatResponseCount} />
         )}
       </div>
+
+      {/* Budget Burn */}
+      {has('budget-burn') && (
+        <div className="max-w-sm">
+          <BudgetBurnWidget isLoading={data.isLoading} />
+        </div>
+      )}
 
       {/* Charts */}
       {(showBar || showPie) && (

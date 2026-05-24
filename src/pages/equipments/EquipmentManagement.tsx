@@ -41,10 +41,13 @@ const EMPTY_DRAFT: CreateEquipmentDTO = {
   status: 'ativo', manufacturer: null, model: null,
   installation_date: null, warranty_until: null,
   maintenance_interval_days: null, last_maintenance_at: null,
+  acquisition_cost: null, acquisition_date: null,
+  useful_life_years: null, residual_value: 0,
 };
 
 function nullify(v: string): string | null { return v.trim() || null; }
 function nullifyNum(v: string): number | null { const n = parseInt(v); return isNaN(n) ? null : n; }
+function nullifyFloat(v: string): number | null { const n = parseFloat(v.replace(',', '.')); return isNaN(n) ? null : n; }
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -82,6 +85,10 @@ export default function EquipmentManagement() {
       warranty_until: eq.warranty_until,
       maintenance_interval_days: eq.maintenance_interval_days,
       last_maintenance_at: eq.last_maintenance_at,
+      acquisition_cost: eq.acquisition_cost,
+      acquisition_date: eq.acquisition_date,
+      useful_life_years: eq.useful_life_years,
+      residual_value: eq.residual_value ?? 0,
     });
     setFormOpen(true);
   };
@@ -342,6 +349,47 @@ export default function EquipmentManagement() {
               <div className="space-y-1.5">
                 <Label>Última manutenção</Label>
                 <Input type="date" value={draft.last_maintenance_at ?? ''} onChange={e => set('last_maintenance_at', e.target.value || null)} className="h-11 rounded-xl" />
+              </div>
+            </div>
+
+            {/* Ciclo de Vida Financeiro */}
+            <div className="pt-2 border-t border-border">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Ciclo de Vida Financeiro</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Custo de Aquisição (R$)</Label>
+                  <Input
+                    type="number" min={0} step="0.01"
+                    value={draft.acquisition_cost ?? ''}
+                    onChange={e => set('acquisition_cost', nullifyFloat(e.target.value))}
+                    placeholder="Ex: 15000,00"
+                    className="h-11 rounded-xl"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Data de Aquisição</Label>
+                  <Input type="date" value={draft.acquisition_date ?? ''} onChange={e => set('acquisition_date', e.target.value || null)} className="h-11 rounded-xl" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Vida Útil (anos)</Label>
+                  <Input
+                    type="number" min={1}
+                    value={draft.useful_life_years ?? ''}
+                    onChange={e => set('useful_life_years', nullifyNum(e.target.value))}
+                    placeholder="Ex: 10"
+                    className="h-11 rounded-xl"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Valor Residual (R$)</Label>
+                  <Input
+                    type="number" min={0} step="0.01"
+                    value={draft.residual_value ?? 0}
+                    onChange={e => set('residual_value', nullifyFloat(e.target.value) ?? 0)}
+                    placeholder="Ex: 1000,00"
+                    className="h-11 rounded-xl"
+                  />
+                </div>
               </div>
             </div>
 

@@ -8,6 +8,7 @@ import { useAuth } from '@/src/contexts/AuthContext';
 import { useTenant } from '@/src/contexts/TenantContext';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
+import { checkBudget } from '@/src/services/budgetService';
 import { extractReceiptFromImages, extractReceiptFromVoice } from '@/src/services/aiService';
 import type { CapturedImage } from '@/src/components/capture/CaptureStep';
 import CaptureStep from '@/src/components/capture/CaptureStep';
@@ -260,6 +261,32 @@ export default function NewReimbursement() {
       if (dup) {
         setDuplicateWarning({ id: dup.id, createdAt: dup.created_at });
         return;
+      }
+    }
+
+    // Budget check (new submissions only)
+    if (!isEditMode) {
+      const categoryForBudget = values.category === 'Outros' ? customCategory.trim() : values.category;
+      const amountForBudget = parseFloat(values.amount.replace(',', '.'));
+      if (categoryForBudget && !isNaN(amountForBudget)) {
+        try {
+          const budgetResult = await checkBudget(categoryForBudget, amountForBudget);
+          if (budgetResult) {
+            const isManager = ['Gestor', 'Admin', 'Master'].includes(user.role ?? '');
+            if (budgetResult.status === 'exceeded') {
+              const pct = budgetResult.pct_used.toFixed(0);
+              if (!isManager) {
+                toast.error(`Budget de ${categoryForBudget} excedido (${pct}% utilizado). Solicite aprovação ao gestor.`);
+                return;
+              }
+              toast.warning(`Budget excedido (${pct}% utilizado). Submetendo como ${user.role}.`);
+            } else if (budgetResult.status === 'warning') {
+              toast.warning(`Atenção: ${budgetResult.pct_used.toFixed(0)}% do budget de ${categoryForBudget} já utilizado.`);
+            }
+          }
+        } catch {
+          // Budget check failure é não-bloqueante
+        }
       }
     }
 

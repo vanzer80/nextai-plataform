@@ -10,7 +10,8 @@ export type WidgetId =
   | 'sla-rate'
   | 'csat-avg'
   | 'reports-bar'
-  | 'reimbursements-pie';
+  | 'reimbursements-pie'
+  | 'budget-burn';
 
 export type QueryKey = 'repQuery' | 'rembQuery' | 'statsQuery' | 'barQry' | 'pieQry' | 'returnQry' | 'slaQry' | 'csatQry';
 
@@ -29,4 +30,5 @@ export const WIDGET_QUERY_DEPS: Record<WidgetId, QueryKey[]> = {
   'csat-avg':           ['csatQry'],
   'reports-bar':        ['barQry'],
   'reimbursements-pie': ['pieQry'],
+  'budget-burn':        [],
 };

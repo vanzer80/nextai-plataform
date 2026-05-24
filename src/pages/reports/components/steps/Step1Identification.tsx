@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -5,9 +6,11 @@ import { Label } from '@/components/ui/label';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, BookOpen } from 'lucide-react';
 import { useServiceTypes } from '@/src/hooks/useServiceTypes';
+import { getSuggestionsForServiceType } from '@/src/services/kbService';
 import type { ReportFormValues } from '@/src/pages/reports/NewReport';
+import type { KbArticle } from '@/src/types/kb';
 
 const PRIORITY_OPTIONS = [
   { value: 'baixa',   label: 'Baixa',   cls: 'text-slate-600' },
@@ -25,6 +28,14 @@ export default function Step1Identification({ form }: Step1Props) {
   const serviceType = watch('service_type');
   const priority = watch('priority') ?? 'normal';
   const { types: serviceTypes } = useServiceTypes();
+  const [kbSuggestions, setKbSuggestions] = useState<KbArticle[]>([]);
+
+  useEffect(() => {
+    if (!serviceType) { setKbSuggestions([]); return; }
+    getSuggestionsForServiceType(serviceType, 3)
+      .then(setKbSuggestions)
+      .catch(() => setKbSuggestions([]));
+  }, [serviceType]);
 
   return (
     <Card className="shadow-sm border-border">
@@ -56,6 +67,26 @@ export default function Step1Identification({ form }: Step1Props) {
           </Select>
           {errors.service_type && (
             <p className="text-sm text-rose-600">{errors.service_type.message}</p>
+          )}
+
+          {/* Sugestões KB */}
+          {kbSuggestions.length > 0 && (
+            <div className="mt-2 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <BookOpen className="h-3.5 w-3.5" />
+                <span className="font-medium">Artigos sugeridos para este tipo de serviço</span>
+              </div>
+              {kbSuggestions.map(a => (
+                <div key={a.id} className="text-xs p-2.5 bg-primary/5 rounded-lg border border-primary/20">
+                  <p className="font-semibold text-foreground mb-0.5">{a.title}</p>
+                  {a.content && (
+                    <p className="text-muted-foreground line-clamp-2 leading-snug">
+                      {a.content.slice(0, 120)}{a.content.length > 120 ? '...' : ''}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
