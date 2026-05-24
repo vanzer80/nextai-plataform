@@ -442,6 +442,9 @@ export default function ReimbursementsList() {
               </Button>
             </>
           )}
+          <Link to="/reimbursements/expense-reports" className="inline-flex items-center justify-center flex-1 sm:flex-none border border-border bg-card hover:bg-muted h-11 px-4 rounded-xl shadow-sm font-semibold transition-colors text-foreground text-sm">
+            <FileText className="mr-2 h-4 w-4" /> Relatórios
+          </Link>
           <Link to="/reimbursements/new" data-onboarding="reimb-novo" className="inline-flex items-center justify-center text-white flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 h-11 px-6 rounded-xl shadow-sm font-semibold transition-colors">
             <Plus className="mr-2 h-5 w-5" /> {isManager ? 'Novo' : 'Solicitar'}
           </Link>

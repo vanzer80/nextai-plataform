@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Wrench, Loader2, Pencil, Trash2, Eye, AlertTriangle } from 'lucide-react';
+import { Plus, Wrench, Loader2, Pencil, Trash2, Eye, AlertTriangle, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -227,6 +227,15 @@ export default function EquipmentManagement() {
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(eq)}>
                           <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary/70 hover:text-primary" title="Gerar Etiqueta QR"
+                          onClick={async () => {
+                            try {
+                              const { exportarEtiquetaQR } = await import('@/src/utils/gerarEtiquetaQR');
+                              await exportarEtiquetaQR(eq);
+                            } catch (e: any) { toast.error('Erro ao gerar QR: ' + e.message); }
+                          }}>
+                          <QrCode className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => openDelete(eq)}>
                           <Trash2 className="h-4 w-4" />

@@ -1,5 +1,5 @@
-import { useState, useCallback, lazy, Suspense } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useCallback, lazy, Suspense, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -85,6 +85,7 @@ const TOTAL_STEPS = 7;
 
 export default function NewReport() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { tenant } = useTenant();
   const [currentStep, setCurrentStep] = useState(1);
@@ -109,6 +110,16 @@ export default function NewReport() {
       asset_name_manual: '',
     },
   });
+
+  // Pre-fill from QR code deep link: /reports/new?asset_id=...&client_id=...
+  useEffect(() => {
+    const assetId  = searchParams.get('asset_id');
+    const clientId = searchParams.get('client_id');
+    if (assetId)  form.setValue('asset_id', assetId);
+    if (clientId) form.setValue('client_id', clientId);
+    if (assetId || clientId) setCurrentStep(2);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const draft = useReportDraft();
   const serviceType = form.watch('service_type');

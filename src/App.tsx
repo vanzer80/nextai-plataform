@@ -18,6 +18,7 @@ const ChecklistTemplates = lazy(() => import('@/src/pages/reports/admin/Checklis
 const TemplateEditor     = lazy(() => import('@/src/pages/reports/admin/TemplateEditor'));
 const ReimbursementsList = lazy(() => import('@/src/pages/reimbursements/ReimbursementsList'));
 const NewReimbursement   = lazy(() => import('@/src/pages/reimbursements/NewReimbursement'));
+const ExpenseReports     = lazy(() => import('@/src/pages/reimbursements/ExpenseReports'));
 const UserManagement     = lazy(() => import('@/src/pages/admin/UserManagement'));
 const TenantManagement   = lazy(() => import('@/src/pages/admin/TenantManagement'));
 const ServiceTypes       = lazy(() => import('@/src/pages/admin/ServiceTypes'));
@@ -91,6 +92,7 @@ export default function App() {
                 <Route path="/reimbursements" element={<ReimbursementsList />} />
                 <Route path="/reimbursements/new" element={<NewReimbursement />} />
                 <Route path="/reimbursements/:id/edit" element={<NewReimbursement />} />
+                <Route path="/reimbursements/expense-reports" element={<ExpenseReports />} />
               </Route>
 
               {/* Compras — Master, Admin, Gestor, Supervisor, Financeiro, Comprador, Administrativo, Técnico */}

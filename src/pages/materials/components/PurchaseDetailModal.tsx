@@ -13,9 +13,11 @@ import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/contexts/AuthContext';
 import {
   ExternalLink, Image as ImageIcon, Calendar, MapPin, Building2,
-  Package, Wrench, Loader2, User, Truck, Store,
+  Package, Wrench, Loader2, User, Truck, Store, FileText, Plus, Trash2,
 } from 'lucide-react';
 import clsx from 'clsx';
+import { generatePurchaseOrder } from '@/src/services/purchaseOrderService';
+import type { GeneratePOInput } from '@/src/types/purchaseOrder';
 
 export type PurchaseRequest = {
   id: string;
@@ -113,6 +115,14 @@ export default function PurchaseDetailModal({ request, canProcess, onClose, onUp
   const [supplierName, setSupplierName]   = useState(request?.supplier_name ?? '');
   const [pickupAddress, setPickupAddress] = useState(request?.pickup_address ?? '');
   const [saving, setSaving]               = useState(false);
+
+  // PO generation state
+  const [showPoForm, setShowPoForm] = useState(false);
+  const [poItems, setPoItems] = useState<GeneratePOInput[]>([
+    { description: request?.especificacao_tecnica || request?.item || '', qty: 1, unit: 'un', unit_price: request?.purchase_price ?? 0 },
+  ]);
+  const [poNotes, setPoNotes] = useState('');
+  const [generatingPO, setGeneratingPO] = useState(false);
 
   if (!request) return null;
 
@@ -417,6 +427,92 @@ export default function PurchaseDetailModal({ request, canProcess, onClose, onUp
                   </div>
                 )}
               </div>
+
+              {/* PO Generation — visible when status = Comprado */}
+              {(status === 'Comprado' || status === 'Entregue') && (
+                <div className="px-5 pb-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowPoForm(v => !v)}
+                    className="flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+                  >
+                    <FileText className="h-4 w-4" />
+                    {showPoForm ? 'Ocultar formulário de PO' : 'Gerar Ordem de Compra (PO)'}
+                  </button>
+
+                  {showPoForm && (
+                    <div className="mt-3 space-y-3 border border-border rounded-xl p-3 bg-background">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Itens da PO</p>
+                      {poItems.map((item, idx) => (
+                        <div key={idx} className="space-y-2">
+                          <Input
+                            placeholder="Descrição do item"
+                            value={item.description}
+                            onChange={e => setPoItems(items => items.map((it, i) => i === idx ? { ...it, description: e.target.value } : it))}
+                            className="h-9 rounded-lg bg-muted text-sm"
+                          />
+                          <div className="grid grid-cols-3 gap-2">
+                            <Input
+                              type="number" placeholder="Qtd" min={0.01} step={0.01}
+                              value={item.qty}
+                              onChange={e => setPoItems(items => items.map((it, i) => i === idx ? { ...it, qty: Number(e.target.value) } : it))}
+                              className="h-9 rounded-lg bg-muted text-sm"
+                            />
+                            <Input
+                              placeholder="Un"
+                              value={item.unit}
+                              onChange={e => setPoItems(items => items.map((it, i) => i === idx ? { ...it, unit: e.target.value } : it))}
+                              className="h-9 rounded-lg bg-muted text-sm"
+                            />
+                            <Input
+                              type="number" placeholder="R$ unit." min={0} step={0.01}
+                              value={item.unit_price}
+                              onChange={e => setPoItems(items => items.map((it, i) => i === idx ? { ...it, unit_price: Number(e.target.value) } : it))}
+                              className="h-9 rounded-lg bg-muted text-sm"
+                            />
+                          </div>
+                          {poItems.length > 1 && (
+                            <button type="button" onClick={() => setPoItems(items => items.filter((_, i) => i !== idx))}
+                              className="text-xs text-rose-500 flex items-center gap-1 hover:text-rose-600">
+                              <Trash2 className="h-3 w-3" /> Remover item
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button type="button" onClick={() => setPoItems(items => [...items, { description: '', qty: 1, unit: 'un', unit_price: 0 }])}
+                        className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-semibold">
+                        <Plus className="h-3.5 w-3.5" /> Adicionar item
+                      </button>
+                      <Input
+                        placeholder="Observações para o fornecedor (opcional)"
+                        value={poNotes}
+                        onChange={e => setPoNotes(e.target.value)}
+                        className="h-9 rounded-lg bg-muted text-sm"
+                      />
+                      <Button
+                        size="sm"
+                        disabled={generatingPO || !request}
+                        className="w-full rounded-lg gap-2"
+                        onClick={async () => {
+                          if (!request) return;
+                          setGeneratingPO(true);
+                          try {
+                            const result = await generatePurchaseOrder(request.id, poItems, poNotes || undefined);
+                            toast.success(`PO ${result.po_number} gerada com sucesso!`);
+                            setShowPoForm(false);
+                          } catch (e: any) {
+                            toast.error(e.message);
+                          } finally {
+                            setGeneratingPO(false);
+                          }
+                        }}
+                      >
+                        {generatingPO ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Gerando...</> : <><FileText className="h-3.5 w-3.5" /> Emitir PO</>}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Botão fixo na base do painel */}
               <div className="p-5 border-t border-border bg-card shrink-0 space-y-2">
