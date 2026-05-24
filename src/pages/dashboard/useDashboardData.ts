@@ -18,6 +18,8 @@ export interface DashboardData {
   approvalRate: number | null;
   returnRate: number | null;
   slaRate: number | null;
+  csatAvg: number | null;
+  csatResponseCount: number;
   barData: BarEntry[];
   pieData: PieEntry[];
   isTeamReports: boolean;
@@ -48,6 +50,8 @@ export function useDashboardData(
   const [approvalRate, setApprovalRate] = useState<number | null>(null);
   const [returnRate, setReturnRate] = useState<number | null>(null);
   const [slaRate, setSlaRate] = useState<number | null>(null);
+  const [csatAvg, setCsatAvg] = useState<number | null>(null);
+  const [csatResponseCount, setCsatResponseCount] = useState(0);
   const [barData, setBarData] = useState<BarEntry[]>([]);
   const [pieData, setPieData] = useState<PieEntry[]>([]);
 
@@ -96,6 +100,10 @@ export function useDashboardData(
       if (nq.has('returnQry')) {
         promises.push(supabase.rpc('get_dashboard_return_rate', { p_days: 30 }));
         keys.push('returnQry');
+      }
+      if (nq.has('csatQry')) {
+        promises.push(supabase.rpc('get_csat_avg', { p_days: 30 }));
+        keys.push('csatQry');
       }
       if (nq.has('slaQry')) {
         promises.push(
@@ -183,6 +191,15 @@ export function useDashboardData(
           setSlaRate(resolved.length > 0 ? (onTime / resolved.length) * 100 : null);
         }
       }
+
+      if (res.csatQry) {
+        if (res.csatQry.error) { console.warn('csatQry', res.csatQry.error); }
+        else {
+          const row = res.csatQry.data?.[0];
+          setCsatAvg(row?.avg_rating ?? null);
+          setCsatResponseCount(Number(row?.response_count ?? 0));
+        }
+      }
     } catch (err) {
       console.error('Dashboard fetch error:', err);
     } finally {
@@ -222,5 +239,5 @@ export function useDashboardData(
     return () => { supabase.removeChannel(ch); };
   }, [user?.id, isTeamReports, isTeamFinance, widgetKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { isLoading, reportsCount, reimbursementSum, productivity, avgTicket, approvalRate, returnRate, slaRate, barData, pieData, isTeamReports, isTeamFinance };
+  return { isLoading, reportsCount, reimbursementSum, productivity, avgTicket, approvalRate, returnRate, slaRate, csatAvg, csatResponseCount, barData, pieData, isTeamReports, isTeamFinance };
 }

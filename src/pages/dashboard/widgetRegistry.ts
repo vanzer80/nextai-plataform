@@ -8,10 +8,11 @@ export type WidgetId =
   | 'approval-rate'
   | 'return-rate'
   | 'sla-rate'
+  | 'csat-avg'
   | 'reports-bar'
   | 'reimbursements-pie';
 
-export type QueryKey = 'repQuery' | 'rembQuery' | 'statsQuery' | 'barQry' | 'pieQry' | 'returnQry' | 'slaQry';
+export type QueryKey = 'repQuery' | 'rembQuery' | 'statsQuery' | 'barQry' | 'pieQry' | 'returnQry' | 'slaQry' | 'csatQry';
 
 export const TEAM_REPORTS_ROLES: UserRole[] = ['Supervisor', 'Gestor', 'Admin', 'Master'];
 export const TEAM_FINANCE_ROLES: UserRole[] = ['Supervisor', 'Gestor', 'Admin', 'Master', 'Financeiro'];
@@ -25,6 +26,7 @@ export const WIDGET_QUERY_DEPS: Record<WidgetId, QueryKey[]> = {
   'approval-rate':      ['statsQuery'],
   'return-rate':        ['returnQry'],
   'sla-rate':           ['slaQry'],
+  'csat-avg':           ['csatQry'],
   'reports-bar':        ['barQry'],
   'reimbursements-pie': ['pieQry'],
 };

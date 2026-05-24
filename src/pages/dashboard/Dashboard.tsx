@@ -10,6 +10,7 @@ import { TicketMedioWidget } from './widgets/TicketMedioWidget';
 import { ApprovalRateWidget } from './widgets/ApprovalRateWidget';
 import { ReturnRateWidget } from './widgets/ReturnRateWidget';
 import { SlaWidget } from './widgets/SlaWidget';
+import { CsatWidget } from './widgets/CsatWidget';
 import { ReportsBarWidget } from './widgets/ReportsBarWidget';
 import { ReimbursementsPieWidget } from './widgets/ReimbursementsPieWidget';
 import type { WidgetId } from './widgetRegistry';
@@ -76,6 +77,9 @@ export default function Dashboard() {
         )}
         {has('sla-rate') && (
           <SlaWidget isLoading={data.isLoading} slaRate={data.slaRate} />
+        )}
+        {has('csat-avg') && (
+          <CsatWidget isLoading={data.isLoading} csatAvg={data.csatAvg} responseCount={data.csatResponseCount} />
         )}
       </div>
 

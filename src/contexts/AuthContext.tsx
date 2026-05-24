@@ -4,7 +4,7 @@ import { supabase } from '@/src/lib/supabase';
 import { toast } from 'sonner';
 import { withTimeout } from '@/src/lib/withTimeout';
 
-export type UserRole = 'Tecnico' | 'Administrativo' | 'Supervisor' | 'Gestor' | 'Financeiro' | 'Comprador' | 'Admin' | 'Master';
+export type UserRole = 'Tecnico' | 'Administrativo' | 'Supervisor' | 'Gestor' | 'Financeiro' | 'Comprador' | 'Admin' | 'Master' | 'Cliente';
 
 export interface AuthUser extends User {
   role?: UserRole;

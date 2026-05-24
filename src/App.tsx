@@ -6,7 +6,9 @@ import { OnboardingProvider } from '@/src/onboarding/OnboardingContext';
 import { ProtectedRoute, RoleGuard, PlatformGuard } from '@/src/components/auth/ProtectedRoute';
 import AppLayout from '@/src/components/layout/AppLayout';
 import PlatformLayout from '@/src/components/layout/PlatformLayout';
+import ClientPortalLayout from '@/src/components/layout/ClientPortalLayout';
 import Login from '@/src/pages/auth/Login';
+import CsatPage from '@/src/pages/csat/CsatPage';
 import { Toaster } from '@/components/ui/sonner';
 
 // All routes are lazy — only the shell (Login + AppLayout) is in the initial bundle
@@ -32,18 +34,22 @@ const NewMaterialRequest = lazy(() => import('@/src/pages/materials/NewMaterialR
 const OrcamentosList     = lazy(() => import('@/src/pages/orcamentos/OrcamentosList'));
 const NovoOrcamento      = lazy(() => import('@/src/pages/orcamentos/NovoOrcamento'));
 const OrcamentoDetail    = lazy(() => import('@/src/pages/orcamentos/OrcamentoDetail'));
+const ClientPortal       = lazy(() => import('@/src/pages/portal/ClientPortal'));
+const AgendaPage         = lazy(() => import('@/src/pages/agenda/AgendaPage'));
 
 // Platform admin pages (SuperMaster only)
 const PlatformTenants  = lazy(() => import('@/src/pages/platform/PlatformTenants'));
 const PlatformUsers    = lazy(() => import('@/src/pages/platform/PlatformUsers'));
 const PlatformSettings = lazy(() => import('@/src/pages/platform/PlatformSettings'));
 
-// Redirects SuperMaster to /platform/tenants, regular users to /dashboard
+// Redirects SuperMaster → /platform/tenants, Cliente → /portal, others → /dashboard
 function SmartRedirect() {
   const { user, loading } = useAuth();
   if (loading) return null;
   const isSuperMaster = user?.role === 'Master' && user?.isPlatform === true;
-  return <Navigate to={isSuperMaster ? '/platform/tenants' : '/dashboard'} replace />;
+  if (isSuperMaster) return <Navigate to="/platform/tenants" replace />;
+  if (user?.role === 'Cliente') return <Navigate to="/portal" replace />;
+  return <Navigate to="/dashboard" replace />;
 }
 
 export default function App() {
@@ -54,10 +60,19 @@ export default function App() {
         <OnboardingProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          {/* Public CSAT page — no auth required */}
+          <Route path="/csat/:token" element={<CsatPage />} />
           
           <Route element={<ProtectedRoute />}>
             {/* Root redirect: fora do AppLayout para evitar flash do menu operacional */}
             <Route path="/" element={<SmartRedirect />} />
+
+            {/* Cliente portal (read-only OS view for role='Cliente') */}
+            <Route element={<RoleGuard allowedRoles={['Cliente']} />}>
+              <Route element={<ClientPortalLayout />}>
+                <Route path="/portal" element={<ClientPortal />} />
+              </Route>
+            </Route>
 
             {/* Platform admin (SuperMaster only) */}
             <Route element={<PlatformGuard />}>
@@ -100,6 +115,11 @@ export default function App() {
                 <Route path="/materials" element={<MaterialsList />} />
                 <Route path="/materials/new" element={<NewMaterialRequest />} />
                 <Route path="/materials/:id/edit" element={<NewMaterialRequest />} />
+              </Route>
+
+              {/* Agenda/Dispatch — Master, Admin, Gestor, Supervisor */}
+              <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor']} />}>
+                <Route path="/agenda" element={<AgendaPage />} />
               </Route>
 
               {/* Clientes — Master, Admin, Gestor, Supervisor */}

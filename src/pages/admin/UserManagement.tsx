@@ -90,6 +90,8 @@ function getRoleBadge(role: string) {
       return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-500/15 dark:text-amber-300 border-0">Comprador</Badge>;
     case 'Administrativo':
       return <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary/80 border-0">Administrativo</Badge>;
+    case 'Cliente':
+      return <Badge className="bg-sky-100 text-sky-800 hover:bg-sky-200 dark:bg-sky-500/15 dark:text-sky-300 border-0">Portal Cliente</Badge>;
     default:
       return <Badge className="bg-muted text-muted-foreground hover:bg-muted/80 border-0">Técnico de Campo</Badge>;
   }
@@ -104,6 +106,7 @@ const ROLE_SELECT_OPTIONS = [
   { value: 'Gestor',        label: 'Gestor'           },
   { value: 'Admin',         label: 'Admin'            },
   { value: 'Master',        label: 'Master'           },
+  { value: 'Cliente',       label: 'Portal do Cliente'},
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -138,12 +141,15 @@ export default function UserManagement() {
     defaultValues: { full_name: '', email: '', role: '', password: '' },
   });
   const createRole = createForm.watch('role');
+  const [createLinkedClientId, setCreateLinkedClientId] = useState('');
 
   const editForm = useForm<EditFormValues>({
     resolver: zodResolver(editSchema),
     defaultValues: { full_name: '', role: '' },
   });
   const editRole = editForm.watch('role');
+  const [editLinkedClientId, setEditLinkedClientId] = useState('');
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
 
   const resetForm = useForm<ResetFormValues>({
     resolver: zodResolver(resetSchema),
@@ -158,7 +164,7 @@ export default function UserManagement() {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, full_name, email, role, status, team_id, created_at')
+        .select('id, full_name, email, role, status, team_id, created_at, linked_client_id')
         .eq('team_id', currentUser.team_id)
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -172,6 +178,12 @@ export default function UserManagement() {
 
   useEffect(() => {
     if (currentUser?.team_id) fetchUsers();
+  }, [currentUser?.team_id]);
+
+  useEffect(() => {
+    if (!currentUser?.team_id) return;
+    supabase.from('clients').select('id, name').order('name')
+      .then(({ data }) => setClients(data ?? []));
   }, [currentUser?.team_id]);
 
   const filteredUsers = users.filter(u =>
@@ -191,12 +203,20 @@ export default function UserManagement() {
       });
       if (error) throw new Error(error.message);
       if (result?.error) throw new Error(result.error);
+      // Link client if role is Cliente
+      if (data.role === 'Cliente' && createLinkedClientId) {
+        const { data: newUser } = await supabase.from('users').select('id').eq('email', data.email).single();
+        if (newUser) {
+          await supabase.from('users').update({ linked_client_id: createLinkedClientId }).eq('id', newUser.id);
+        }
+      }
       toast.success('Colaborador adicionado!', {
         description: `Acesso de ${data.full_name} (${data.role}) habilitado.`,
       });
       await fetchUsers();
       setIsCreateOpen(false);
       createForm.reset();
+      setCreateLinkedClientId('');
     } catch (err: any) {
       toast.error('Erro ao criar colaborador', { description: err.message });
     } finally {
@@ -220,8 +240,11 @@ export default function UserManagement() {
 
     setIsEditSubmitting(true);
     try {
-      const updates: Record<string, string> = { full_name: data.full_name };
-      if (!isSelf) updates.role = data.role;
+      const updates: Record<string, string | null> = { full_name: data.full_name };
+      if (!isSelf) {
+        updates.role = data.role;
+        updates.linked_client_id = data.role === 'Cliente' ? (editLinkedClientId || null) : null;
+      }
 
       const { error } = await supabase.from('users').update(updates).eq('id', editingUser.id);
       if (error) throw error;
@@ -350,7 +373,7 @@ export default function UserManagement() {
 
                 <div className="space-y-1">
                   <Label className="text-sm font-semibold text-foreground">Perfil de Acesso</Label>
-                  <Select onValueChange={(val) => createForm.setValue('role', val)} value={createRole}>
+                  <Select onValueChange={(val) => { createForm.setValue('role', val); if (val !== 'Cliente') setCreateLinkedClientId(''); }} value={createRole}>
                     <SelectTrigger className="h-11 rounded-lg focus:ring-ring">
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
@@ -364,13 +387,28 @@ export default function UserManagement() {
                     <p className="text-xs text-destructive font-medium">{createForm.formState.errors.role.message}</p>
                   )}
                 </div>
+
+                {createRole === 'Cliente' && (
+                  <div className="space-y-1">
+                    <Label className="text-sm font-semibold text-foreground">Cliente vinculado <span className="text-rose-500">*</span></Label>
+                    <Select value={createLinkedClientId} onValueChange={setCreateLinkedClientId}>
+                      <SelectTrigger className="h-11 rounded-lg focus:ring-ring">
+                        <SelectValue placeholder="Selecione o cliente..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">Este usuário só verá OS deste cliente.</p>
+                  </div>
+                )}
               </div>
 
               <DialogFooter className="p-6 pt-4 border-t border-border bg-muted/40 sm:justify-end gap-2">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => { setIsCreateOpen(false); createForm.reset(); }}
+                  onClick={() => { setIsCreateOpen(false); createForm.reset(); setCreateLinkedClientId(''); }}
                   className="rounded-lg h-11 font-semibold"
                   disabled={isCreateSubmitting}
                 >
@@ -465,6 +503,7 @@ export default function UserManagement() {
                             className="cursor-pointer font-medium flex items-center"
                             onClick={() => {
                               editForm.reset({ full_name: u.full_name, role: u.role });
+                              setEditLinkedClientId(u.linked_client_id ?? '');
                               setEditingUser(u);
                               setIsEditOpen(true);
                             }}
@@ -551,7 +590,7 @@ export default function UserManagement() {
               <div className="space-y-1">
                 <Label className="text-sm font-semibold text-foreground">Perfil de Acesso</Label>
                 <Select
-                  onValueChange={(val) => editForm.setValue('role', val)}
+                  onValueChange={(val) => { editForm.setValue('role', val); if (val !== 'Cliente') setEditLinkedClientId(''); }}
                   value={editRole}
                   disabled={editingUser?.id === currentUser?.id}
                 >
@@ -571,6 +610,21 @@ export default function UserManagement() {
                   <p className="text-xs text-destructive font-medium">{editForm.formState.errors.role.message}</p>
                 )}
               </div>
+
+              {editRole === 'Cliente' && (
+                <div className="space-y-1">
+                  <Label className="text-sm font-semibold text-foreground">Cliente vinculado</Label>
+                  <Select value={editLinkedClientId} onValueChange={setEditLinkedClientId} disabled={editingUser?.id === currentUser?.id}>
+                    <SelectTrigger className="h-11 rounded-lg focus:ring-ring">
+                      <SelectValue placeholder="Selecione o cliente..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Este usuário só verá OS deste cliente.</p>
+                </div>
+              )}
 
             </div>
             <DialogFooter className="p-6 pt-4 border-t border-border bg-muted/40 sm:justify-end gap-2">

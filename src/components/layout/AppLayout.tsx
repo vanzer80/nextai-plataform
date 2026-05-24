@@ -24,6 +24,7 @@ import {
   Store,
   Package,
   ShieldCheck,
+  CalendarDays,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
@@ -67,6 +68,7 @@ const NAV_LINKS = [
   { name: 'Equipamentos', path: '/equipments', icon: Wrench, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
   { name: 'Fornecedores', path: '/suppliers', icon: Store, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
   { name: 'Peças / Estoque', path: '/parts', icon: Package, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
+  { name: 'Agenda / Dispatch', path: '/agenda', icon: CalendarDays, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
   { name: 'Checklists', path: '/admin/checklist-templates', icon: ListChecks, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'Tipos de Serviço', path: '/admin/service-types', icon: Settings2, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'SLA', path: '/admin/sla', icon: ShieldCheck, roles: ['Gestor', 'Admin', 'Master'] },
