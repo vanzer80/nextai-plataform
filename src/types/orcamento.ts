@@ -10,6 +10,20 @@ export interface OrcamentoItem {
   created_at: string;
 }
 
+export interface OrcamentoVersion {
+  id: string;
+  orcamento_id: string;
+  version: number;
+  titulo: string | null;
+  observacoes: string | null;
+  validade: string | null;
+  desconto_pct: number;
+  itens: Array<{ descricao: string; quantidade: number; unidade: string; valor_unitario: number }>;
+  changed_by: string | null;
+  changed_at: string;
+  users?: { full_name: string } | null;
+}
+
 export interface Orcamento {
   id: string;
   report_id: string | null;
@@ -21,6 +35,10 @@ export interface Orcamento {
   rejection_reason: string | null;
   validade: string | null;
   desconto_pct: number;
+  version: number;
+  signed_at: string | null;
+  signer_name: string | null;
+  signer_email: string | null;
   created_at: string;
   updated_at: string;
   clients?: {
@@ -41,6 +59,7 @@ export interface Orcamento {
 
 export interface OrcamentoComItens extends Orcamento {
   orcamento_itens: OrcamentoItem[];
+  signature_data_url?: string | null;
 }
 
 export interface CreateOrcamentoPayload {

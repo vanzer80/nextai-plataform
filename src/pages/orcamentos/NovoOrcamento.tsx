@@ -118,7 +118,7 @@ export default function NovoOrcamento() {
           validade: values.validade || null,
           desconto_pct: values.desconto_pct,
           itens: values.itens,
-        });
+        }, user.id);
         toast.success('Orçamento atualizado!');
         navigate(`/orcamentos/${id}`);
       } else {

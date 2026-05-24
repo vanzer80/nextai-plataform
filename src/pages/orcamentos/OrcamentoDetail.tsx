@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, FileDown, Pencil, Loader2, AlertCircle, CheckCircle2, XCircle, SendHorizonal, Trash2 } from 'lucide-react';
+import { ArrowLeft, FileDown, Pencil, Loader2, AlertCircle, CheckCircle2, XCircle, SendHorizonal, Trash2, PenLine, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
 
@@ -21,6 +21,8 @@ import { useTenant } from '@/src/contexts/TenantContext';
 import { buscarOrcamento, atualizarStatus, excluirOrcamento } from '@/src/services/orcamentoService';
 import { gerarPdfOrcamento } from '@/src/utils/gerarPdfOrcamento';
 import { OrcamentoStatusBadge } from './components/OrcamentoStatusBadge';
+import OrcamentoSignDialog from './components/OrcamentoSignDialog';
+import OrcamentoVersionHistory from './components/OrcamentoVersionHistory';
 import type { OrcamentoComItens } from '@/src/types/orcamento';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -46,6 +48,7 @@ export default function OrcamentoDetail() {
   // Dialogs
   const [showReject, setShowReject] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [showSign, setShowSign] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
 
   const refresh = () => setTick(t => t + 1);
@@ -169,6 +172,9 @@ export default function OrcamentoDetail() {
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-xl font-bold text-slate-900">{titulo}</h1>
               <OrcamentoStatusBadge status={orcamento.status} />
+              <span className="text-xs font-medium bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md">
+                v{orcamento.version}
+              </span>
             </div>
             <p className="text-sm text-slate-500 mt-0.5">Criado em {formatDate(orcamento.created_at)}</p>
           </div>
@@ -179,7 +185,12 @@ export default function OrcamentoDetail() {
             variant="outline"
             size="sm"
             className="gap-1.5"
-            onClick={() => gerarPdfOrcamento(orcamento, tenant?.name ?? 'Portal')}
+            onClick={() => gerarPdfOrcamento(orcamento, tenant?.name ?? 'Portal', {
+              signatureDataUrl: orcamento.signature_data_url,
+              signerName: orcamento.signer_name,
+              signerEmail: orcamento.signer_email,
+              signedAt: orcamento.signed_at,
+            })}
           >
             <FileDown className="h-4 w-4" /> PDF
           </Button>
@@ -328,6 +339,43 @@ export default function OrcamentoDetail() {
         </Card>
       )}
 
+      {/* Assinatura eletrônica */}
+      {orcamento.signed_at ? (
+        <Card className="border-emerald-200 bg-emerald-50">
+          <CardHeader>
+            <CardTitle className="text-base text-emerald-800 flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" /> Assinado eletronicamente
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {orcamento.signature_data_url && (
+              <div className="flex justify-center">
+                <img
+                  src={orcamento.signature_data_url}
+                  alt="Assinatura do cliente"
+                  className="max-h-24 max-w-xs border border-emerald-200 rounded-lg bg-white p-2"
+                />
+              </div>
+            )}
+            <div className="text-sm text-emerald-800 space-y-0.5">
+              {orcamento.signer_name && (
+                <p><span className="font-medium">Signatário:</span> {orcamento.signer_name}</p>
+              )}
+              {orcamento.signer_email && (
+                <p><span className="font-medium">E-mail:</span> {orcamento.signer_email}</p>
+              )}
+              <p className="text-xs text-emerald-600 mt-1">
+                Assinado em {new Date(orcamento.signed_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                {' · '}Assinatura eletrônica simples · Lei 14.063/2020
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* Histórico de versões */}
+      {id && <OrcamentoVersionHistory orcamentoId={id} />}
+
       {/* Ações de fluxo */}
       <div className="flex flex-wrap gap-2 justify-end">
         {/* Técnico dono, rascunho → enviar */}
@@ -358,6 +406,17 @@ export default function OrcamentoDetail() {
               <XCircle className="h-4 w-4" /> Rejeitar
             </Button>
           </>
+        )}
+
+        {/* Coletar assinatura — aprovado e ainda não assinado */}
+        {orcamento.status === 'aprovado' && !orcamento.signed_at && (isOwner || isManager) && (
+          <Button
+            onClick={() => setShowSign(true)}
+            disabled={actionLoading}
+            className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+          >
+            <PenLine className="h-4 w-4" /> Coletar assinatura
+          </Button>
         )}
 
         {/* Excluir — apenas rascunho */}
@@ -425,6 +484,16 @@ export default function OrcamentoDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog: Assinatura */}
+      {id && (
+        <OrcamentoSignDialog
+          orcamentoId={id}
+          open={showSign}
+          onClose={() => setShowSign(false)}
+          onSigned={refresh}
+        />
+      )}
     </div>
   );
 }

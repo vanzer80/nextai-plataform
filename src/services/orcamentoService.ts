@@ -2,6 +2,7 @@ import { supabase } from '@/src/lib/supabase';
 import type {
   Orcamento,
   OrcamentoComItens,
+  OrcamentoVersion,
   OrcamentoStatus,
   CreateOrcamentoPayload,
   UpdateOrcamentoPayload,
@@ -10,6 +11,7 @@ import type {
 const ORCAMENTO_SELECT = `
   id, report_id, client_id, technician_id, status, titulo, observacoes,
   rejection_reason, validade, desconto_pct, created_at, updated_at,
+  version, signed_at, signer_name, signer_email,
   clients(name, cnpj, cidade, estado, logradouro, numero, bairro, contato_nome, contato_telefone, contato_email),
   users:technician_id(full_name),
   service_reports:report_id(os_number)
@@ -45,6 +47,7 @@ export async function buscarOrcamento(id: string): Promise<OrcamentoComItens | n
     .from('orcamentos')
     .select(`
       ${ORCAMENTO_SELECT},
+      signature_data_url,
       orcamento_itens(id, descricao, quantidade, unidade, valor_unitario, created_at)
     `)
     .eq('id', id)
@@ -81,16 +84,38 @@ export async function criarOrcamento(payload: CreateOrcamentoPayload): Promise<s
 export async function atualizarOrcamento(
   id: string,
   payload: UpdateOrcamentoPayload,
+  changedBy?: string,
 ): Promise<void> {
+  // Snapshot da versão atual antes de sobrescrever
+  const { data: current } = await supabase
+    .from('orcamentos')
+    .select('version, titulo, observacoes, validade, desconto_pct, orcamento_itens(descricao, quantidade, unidade, valor_unitario)')
+    .eq('id', id)
+    .single() as { data: { version: number; titulo: string | null; observacoes: string | null; validade: string | null; desconto_pct: number; orcamento_itens: unknown[] } | null };
+
+  const currentVersion = current?.version ?? 1;
+
+  await supabase.from('orcamento_versions').insert({
+    orcamento_id: id,
+    version:      currentVersion,
+    titulo:       current?.titulo ?? null,
+    observacoes:  current?.observacoes ?? null,
+    validade:     current?.validade ?? null,
+    desconto_pct: current?.desconto_pct ?? 0,
+    itens:        current?.orcamento_itens ?? [],
+    changed_by:   changedBy ?? null,
+  });
+
   const { error: errOrc } = await supabase
     .from('orcamentos')
     .update({
-      report_id: payload.report_id ?? null,
-      client_id: payload.client_id,
-      titulo: payload.titulo || null,
+      report_id:   payload.report_id ?? null,
+      client_id:   payload.client_id,
+      titulo:      payload.titulo || null,
       observacoes: payload.observacoes || null,
-      validade: payload.validade ?? null,
+      validade:    payload.validade ?? null,
       desconto_pct: payload.desconto_pct ?? 0,
+      version:     currentVersion + 1,
     })
     .eq('id', id) as { data: unknown; error: { message: string } | null };
 
@@ -106,10 +131,10 @@ export async function atualizarOrcamento(
 
   if (payload.itens.length > 0) {
     const itensPayload = payload.itens.map(item => ({
-      orcamento_id: id,
-      descricao: item.descricao,
-      quantidade: item.quantidade,
-      unidade: item.unidade || 'un',
+      orcamento_id:   id,
+      descricao:      item.descricao,
+      quantidade:     item.quantidade,
+      unidade:        item.unidade || 'un',
       valor_unitario: item.valor_unitario,
     }));
 
@@ -119,6 +144,35 @@ export async function atualizarOrcamento(
 
     if (errItens) throw new Error(errItens.message);
   }
+}
+
+export async function assinarOrcamento(
+  orcamentoId: string,
+  signerName: string,
+  signerEmail: string,
+  signatureDataUrl: string,
+): Promise<void> {
+  const { data, error } = await supabase.rpc('sign_orcamento', {
+    p_orcamento_id:       orcamentoId,
+    p_signer_name:        signerName,
+    p_signer_email:       signerEmail,
+    p_signature_data_url: signatureDataUrl,
+    p_ip:                 null,
+  }) as { data: { success: boolean; error?: string } | null; error: { message: string } | null };
+
+  if (error) throw new Error(error.message);
+  if (!data?.success) throw new Error(data?.error ?? 'Falha ao assinar orçamento.');
+}
+
+export async function listarVersoes(orcamentoId: string): Promise<OrcamentoVersion[]> {
+  const { data, error } = await supabase
+    .from('orcamento_versions')
+    .select('id, version, titulo, observacoes, validade, desconto_pct, itens, changed_by, changed_at, users:changed_by(full_name)')
+    .eq('orcamento_id', orcamentoId)
+    .order('version', { ascending: false }) as { data: unknown; error: { message: string } | null };
+
+  if (error) throw new Error(error.message);
+  return (data ?? []) as OrcamentoVersion[];
 }
 
 export async function atualizarStatus(

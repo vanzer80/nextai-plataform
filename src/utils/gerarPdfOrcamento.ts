@@ -11,12 +11,25 @@ function formatDate(iso: string | null | undefined): string {
   return `${d}/${m}/${y}`;
 }
 
-export function gerarPdfOrcamento(orcamento: OrcamentoComItens, tenantName: string): void {
+export interface PdfOrcamentoOptions {
+  signatureDataUrl?: string | null;
+  signerName?: string | null;
+  signerEmail?: string | null;
+  signedAt?: string | null;
+}
+
+export function gerarPdfOrcamento(
+  orcamento: OrcamentoComItens,
+  tenantName: string,
+  options: PdfOrcamentoOptions = {},
+): void {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const marginL = 15;
   const marginR = 15;
   const pageW = doc.internal.pageSize.getWidth();
   const contentW = pageW - marginL - marginR;
+
+  const { signatureDataUrl, signerName, signerEmail, signedAt } = options;
 
   const hoje = formatDate(new Date().toISOString().slice(0, 10));
   const numOrc = `ORC-${orcamento.id.slice(0, 8).toUpperCase()}`;
@@ -208,7 +221,7 @@ export function gerarPdfOrcamento(orcamento: OrcamentoComItens, tenantName: stri
 
   // ── Rodapé ──────────────────────────────────────────────────────────────
   const pageH = doc.internal.pageSize.getHeight();
-  const footerY = pageH - 30;
+  const footerY = pageH - 35;
 
   doc.setDrawColor(226, 232, 240);
   doc.setLineWidth(0.3);
@@ -217,10 +230,40 @@ export function gerarPdfOrcamento(orcamento: OrcamentoComItens, tenantName: stri
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(100, 116, 139);
-  doc.text('Assinatura do Cliente: _______________________________', pageW / 2, footerY + 10, { align: 'center' });
 
+  if (signatureDataUrl) {
+    // Assinatura eletrônica coletada
+    try {
+      const imgFormat = signatureDataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+      doc.addImage(signatureDataUrl, imgFormat, pageW / 2 - 30, footerY + 2, 60, 18);
+    } catch {
+      // fallback texto se imagem inválida
+      doc.text('_______________________________', pageW / 2, footerY + 12, { align: 'center' });
+    }
+
+    const assinadoPor = signerName ? `Assinado digitalmente por: ${signerName}` : 'Assinado digitalmente';
+    const assinadoEm = signedAt
+      ? ` em ${new Date(signedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}`
+      : '';
+
+    doc.setFontSize(7);
+    doc.setTextColor(71, 85, 105);
+    doc.text(assinadoPor + assinadoEm, pageW / 2, footerY + 22, { align: 'center' });
+    if (signerEmail) {
+      doc.setTextColor(100, 116, 139);
+      doc.text(signerEmail, pageW / 2, footerY + 26, { align: 'center' });
+    }
+    doc.setFontSize(6);
+    doc.setTextColor(148, 163, 184);
+    doc.text('Assinatura eletrônica simples · Lei 14.063/2020', pageW / 2, footerY + 30, { align: 'center' });
+  } else {
+    doc.text('Assinatura do Cliente: _______________________________', pageW / 2, footerY + 10, { align: 'center' });
+  }
+
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
-  doc.text(`Gerado em ${hoje} · ${numOrc}`, pageW / 2, footerY + 18, { align: 'center' });
+  doc.setTextColor(148, 163, 184);
+  doc.text(`Gerado em ${hoje} · ${numOrc}`, pageW / 2, footerY + 34, { align: 'center' });
 
   // ── Salvar ───────────────────────────────────────────────────────────────
   doc.save(`orcamento-${orcamento.id.slice(0, 8)}.pdf`);
