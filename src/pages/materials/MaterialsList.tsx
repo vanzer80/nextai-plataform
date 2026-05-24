@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom';
 import {
   Plus, Package, Clock, Truck, Loader2, ExternalLink, Image as ImageIcon,
-  ShoppingCart, XCircle, Search, RefreshCw, Filter, Pencil, Download,
+  ShoppingCart, XCircle, Search, RefreshCw, Filter, Pencil, Download, MapPin, Store,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
@@ -45,6 +45,7 @@ const QUERY_SELECT = `
   cidade, client_id, loja, maintenance_type, prazo, especificacao_tecnica,
   foto_url, link_referencia, obs,
   comprador_response, comprador_id, processed_at, purchase_price, purchase_link,
+  logistics_type, supplier_name, pickup_address,
   clients(name),
   users:tech_id(full_name)
 `;
@@ -175,6 +176,9 @@ export default function MaterialsList() {
         'Prazo':             r.prazo ? new Date(r.prazo).toLocaleDateString('pt-BR') : '-',
         'Status':            r.status,
         'Resposta Compras':  r.comprador_response || '-',
+        'Fornecedor':        r.supplier_name || '-',
+        'Logística':         r.logistics_type === 'retirada' ? 'Retirada' : r.logistics_type === 'entrega' ? 'Entrega' : '-',
+        'Endereço':          r.pickup_address || '-',
         'Valor Pago (R$)':   r.purchase_price ? Number(r.purchase_price) : '-',
         'Link Compra':       (r as any).purchase_link || '-',
       }));
@@ -386,7 +390,27 @@ export default function MaterialsList() {
                   {req.comprador_response && (
                     <div className="bg-blue-50 border-t border-blue-100 px-4 py-2.5 flex items-start gap-2">
                       <ShoppingCart className="h-3.5 w-3.5 text-blue-400 mt-0.5 shrink-0" />
-                      <p className="text-xs text-blue-700 line-clamp-1">{req.comprador_response}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-blue-700 line-clamp-1">{req.comprador_response}</p>
+                        {(req.logistics_type || req.supplier_name) && (
+                          <div className="flex flex-wrap gap-1.5 mt-1">
+                            {req.supplier_name && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">
+                                <Store className="h-2.5 w-2.5" /> {req.supplier_name}
+                              </span>
+                            )}
+                            {req.logistics_type && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">
+                                {req.logistics_type === 'retirada'
+                                  ? <Package className="h-2.5 w-2.5" />
+                                  : <Truck className="h-2.5 w-2.5" />}
+                                {req.logistics_type === 'retirada' ? 'Retirada' : 'Entrega'}
+                                {req.pickup_address ? ` — ${req.pickup_address}` : ''}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -543,11 +567,11 @@ export default function MaterialsList() {
                 {/* Devolutiva do Compras */}
                 {req.comprador_response && (
                   <div className={clsx(
-                    'border-t px-4 py-3',
+                    'border-t px-4 py-3 space-y-1.5',
                     req.status === 'Cancelado' ? 'bg-rose-50 border-rose-100' : 'bg-blue-50 border-blue-100'
                   )}>
                     <p className={clsx(
-                      'text-[10px] font-bold uppercase tracking-wide mb-1',
+                      'text-[10px] font-bold uppercase tracking-wide',
                       req.status === 'Cancelado' ? 'text-rose-400' : 'text-blue-400'
                     )}>
                       Resposta do Setor de Compras
@@ -555,15 +579,29 @@ export default function MaterialsList() {
                     <p className={clsx('text-sm', req.status === 'Cancelado' ? 'text-rose-700' : 'text-blue-700')}>
                       {req.comprador_response}
                     </p>
+                    {req.supplier_name && (
+                      <p className="text-xs font-semibold text-blue-700 flex items-center gap-1">
+                        <Store className="h-3.5 w-3.5 shrink-0" /> {req.supplier_name}
+                      </p>
+                    )}
+                    {req.logistics_type && (
+                      <p className="text-xs font-semibold text-blue-700 flex items-center gap-1">
+                        {req.logistics_type === 'retirada'
+                          ? <Package className="h-3.5 w-3.5 shrink-0" />
+                          : <Truck className="h-3.5 w-3.5 shrink-0" />}
+                        {req.logistics_type === 'retirada' ? 'Retirada' : 'Entrega'}
+                        {req.pickup_address ? ` — ${req.pickup_address}` : ''}
+                      </p>
+                    )}
                     {req.purchase_price && (
-                      <p className="text-xs font-bold text-blue-600 mt-1.5">
+                      <p className="text-xs font-bold text-blue-600">
                         Valor pago: R$ {Number(req.purchase_price).toFixed(2)}
                       </p>
                     )}
                     {req.purchase_link && (
                       <a href={req.purchase_link} target="_blank" rel="noreferrer"
                         onClick={e => e.stopPropagation()}
-                        className="inline-flex items-center gap-1 text-xs text-blue-600 font-semibold mt-1.5 hover:underline">
+                        className="inline-flex items-center gap-1 text-xs text-blue-600 font-semibold hover:underline">
                         <ExternalLink className="h-3 w-3" /> Ver produto comprado
                       </a>
                     )}

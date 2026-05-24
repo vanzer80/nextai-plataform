@@ -13,7 +13,7 @@ import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/contexts/AuthContext';
 import {
   ExternalLink, Image as ImageIcon, Calendar, MapPin, Building2,
-  Package, Wrench, Loader2, User,
+  Package, Wrench, Loader2, User, Truck, Store,
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -38,6 +38,9 @@ export type PurchaseRequest = {
   processed_at?: string;
   purchase_price?: number;
   purchase_link?: string;
+  logistics_type?: 'retirada' | 'entrega' | null;
+  supplier_name?: string | null;
+  pickup_address?: string | null;
   clients?: { name: string };
   users?: { full_name: string };
 };
@@ -64,13 +67,25 @@ const STATUS_BADGE: Record<string, string> = {
   'Cancelado':  'bg-rose-100 text-rose-800 border-0',
 };
 
-function buildNotification(newStatus: string, itemName: string, res: string) {
+function buildNotification(
+  newStatus: string,
+  itemName: string,
+  res: string,
+  logistics?: { type: string; supplier?: string; address?: string },
+) {
   const short = itemName.length > 60 ? itemName.substring(0, 60) + '…' : itemName;
   const resLine = res ? ` ${res}` : '';
+  let logLine = '';
+  if (logistics?.type) {
+    const verb = logistics.type === 'retirada' ? 'Retirada' : 'Entrega';
+    const sup = logistics.supplier ? ` em ${logistics.supplier}` : '';
+    const addr = logistics.address ? ` — ${logistics.address}` : '';
+    logLine = ` ${verb}${sup}${addr}.`;
+  }
   switch (newStatus) {
     case 'Em Análise': return { title: 'Solicitação em análise',  message: `Sua solicitação de "${short}" está sendo analisada pelo setor de compras.${resLine}` };
-    case 'Comprado':   return { title: 'Material comprado!',      message: `Sua solicitação de "${short}" foi atendida — o material foi comprado.${resLine}` };
-    case 'Entregue':   return { title: 'Material entregue!',      message: `O material "${short}" foi marcado como entregue.${resLine}` };
+    case 'Comprado':   return { title: 'Material comprado!',      message: `Sua solicitação de "${short}" foi atendida — o material foi comprado.${resLine}${logLine}` };
+    case 'Entregue':   return { title: 'Material entregue!',      message: `O material "${short}" foi marcado como entregue.${resLine}${logLine}` };
     case 'Cancelado':  return { title: 'Solicitação cancelada',   message: `Sua solicitação de "${short}" foi cancelada.${resLine}` };
     default:           return { title: 'Atualização de solicitação', message: `Status atualizado para ${newStatus}.` };
   }
@@ -90,11 +105,14 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 
 export default function PurchaseDetailModal({ request, canProcess, onClose, onUpdated }: Props) {
   const { user } = useAuth();
-  const [status, setStatus]             = useState(request?.status || '');
-  const [response, setResponse]         = useState(request?.comprador_response || '');
-  const [price, setPrice]               = useState(request?.purchase_price ? String(request.purchase_price) : '');
-  const [purchaseLink, setPurchaseLink] = useState(request?.purchase_link || '');
-  const [saving, setSaving]             = useState(false);
+  const [status, setStatus]               = useState(request?.status || '');
+  const [response, setResponse]           = useState(request?.comprador_response || '');
+  const [price, setPrice]                 = useState(request?.purchase_price ? String(request.purchase_price) : '');
+  const [purchaseLink, setPurchaseLink]   = useState(request?.purchase_link || '');
+  const [logisticsType, setLogisticsType] = useState<'retirada' | 'entrega' | ''>(request?.logistics_type ?? '');
+  const [supplierName, setSupplierName]   = useState(request?.supplier_name ?? '');
+  const [pickupAddress, setPickupAddress] = useState(request?.pickup_address ?? '');
+  const [saving, setSaving]               = useState(false);
 
   if (!request) return null;
 
@@ -115,11 +133,18 @@ export default function PurchaseDetailModal({ request, canProcess, onClose, onUp
         processed_at: new Date().toISOString(),
         purchase_price: showPriceFields && price ? parseFloat(price) : null,
         purchase_link: showPriceFields && purchaseLink.trim() ? purchaseLink.trim() : null,
+        logistics_type: logisticsType || null,
+        supplier_name: supplierName.trim() || null,
+        pickup_address: logisticsType && pickupAddress.trim() ? pickupAddress.trim() : null,
       };
       const { error } = await supabase.from('material_requests').update(payload).eq('id', request.id);
       if (error) throw error;
       const itemName = request.especificacao_tecnica || request.item;
-      const notif = buildNotification(status, itemName, response.trim());
+      const notif = buildNotification(status, itemName, response.trim(), {
+        type: logisticsType,
+        supplier: supplierName.trim(),
+        address: pickupAddress.trim(),
+      });
       await supabase.from('notifications').insert({ user_id: request.tech_id, ...notif });
       toast.success('Salvo!', { id: toastId, description: `Status: "${status}" — técnico notificado.` });
       onUpdated({ ...request, ...payload } as PurchaseRequest);
@@ -219,9 +244,23 @@ export default function PurchaseDetailModal({ request, canProcess, onClose, onUp
 
             {/* Devolutiva anterior para o Comprador */}
             {canProcess && request.comprador_response && (
-              <div className="bg-muted/40 rounded-xl p-3 border border-border">
-                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wide mb-1">Devolutiva anterior</p>
+              <div className="bg-muted/40 rounded-xl p-3 border border-border space-y-1">
+                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wide">Devolutiva anterior</p>
                 <p className="text-sm text-muted-foreground italic break-words">{request.comprador_response}</p>
+                {request.supplier_name && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Store className="h-3 w-3 shrink-0" /> {request.supplier_name}
+                  </p>
+                )}
+                {request.logistics_type && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    {request.logistics_type === 'retirada'
+                      ? <Package className="h-3 w-3 shrink-0" />
+                      : <Truck className="h-3 w-3 shrink-0" />}
+                    {request.logistics_type === 'retirada' ? 'Retirada' : 'Entrega'}
+                    {request.pickup_address ? ` — ${request.pickup_address}` : ''}
+                  </p>
+                )}
               </div>
             )}
 
@@ -229,18 +268,32 @@ export default function PurchaseDetailModal({ request, canProcess, onClose, onUp
             {!canProcess && request.comprador_response && (
               <div>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Resposta do Setor de Compras</p>
-                <div className={clsx('rounded-xl p-4 border', request.status === 'Cancelado' ? 'bg-rose-50 border-rose-200' : 'bg-blue-50 border-blue-200')}>
+                <div className={clsx('rounded-xl p-4 border space-y-2', request.status === 'Cancelado' ? 'bg-rose-50 border-rose-200' : 'bg-blue-50 border-blue-200')}>
                   <p className={clsx('text-sm leading-relaxed break-words', request.status === 'Cancelado' ? 'text-rose-800' : 'text-blue-800')}>
                     {request.comprador_response}
                   </p>
+                  {request.supplier_name && (
+                    <p className="text-xs font-semibold text-blue-700 flex items-center gap-1">
+                      <Store className="h-3.5 w-3.5 shrink-0" /> {request.supplier_name}
+                    </p>
+                  )}
+                  {request.logistics_type && (
+                    <p className="text-xs font-semibold text-blue-700 flex items-center gap-1">
+                      {request.logistics_type === 'retirada'
+                        ? <Package className="h-3.5 w-3.5 shrink-0" />
+                        : <Truck className="h-3.5 w-3.5 shrink-0" />}
+                      {request.logistics_type === 'retirada' ? 'Retirada' : 'Entrega'}
+                      {request.pickup_address ? ` — ${request.pickup_address}` : ''}
+                    </p>
+                  )}
                   {request.purchase_price && (
-                    <p className="text-xs font-bold text-blue-700 mt-2">
+                    <p className="text-xs font-bold text-blue-700">
                       Valor pago: R$ {Number(request.purchase_price).toFixed(2)}
                     </p>
                   )}
                   {request.purchase_link && (
                     <a href={request.purchase_link} target="_blank" rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-blue-600 font-semibold mt-2 hover:underline">
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 font-semibold hover:underline">
                       <ExternalLink className="h-3 w-3" /> Ver produto comprado
                     </a>
                   )}
@@ -307,6 +360,61 @@ export default function PurchaseDetailModal({ request, canProcess, onClose, onUp
                       />
                     </div>
                   </>
+                )}
+
+                {/* Logística */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-foreground">Fornecedor</Label>
+                  <Input
+                    placeholder="Nome da loja ou fornecedor..."
+                    value={supplierName}
+                    onChange={e => setSupplierName(e.target.value)}
+                    className="h-11 rounded-xl bg-background border-input focus-visible:ring-ring"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-foreground">Logística</Label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setLogisticsType(prev => prev === 'retirada' ? '' : 'retirada')}
+                      className={clsx(
+                        'flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-xl border text-sm font-semibold transition-colors',
+                        logisticsType === 'retirada'
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-background text-muted-foreground border-input hover:border-blue-400'
+                      )}
+                    >
+                      <Package className="h-4 w-4" /> Retirada
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLogisticsType(prev => prev === 'entrega' ? '' : 'entrega')}
+                      className={clsx(
+                        'flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-xl border text-sm font-semibold transition-colors',
+                        logisticsType === 'entrega'
+                          ? 'bg-emerald-600 text-white border-emerald-600'
+                          : 'bg-background text-muted-foreground border-input hover:border-emerald-400'
+                      )}
+                    >
+                      <Truck className="h-4 w-4" /> Entrega
+                    </button>
+                  </div>
+                </div>
+
+                {logisticsType && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-foreground">
+                      {logisticsType === 'retirada' ? 'Endereço de Retirada' : 'Endereço de Entrega'}
+                    </Label>
+                    <Input
+                      placeholder="Rua, número, cidade..."
+                      value={pickupAddress}
+                      onChange={e => setPickupAddress(e.target.value)}
+                      className="h-11 rounded-xl bg-background border-input focus-visible:ring-ring"
+                    />
+                  </div>
                 )}
               </div>
 
