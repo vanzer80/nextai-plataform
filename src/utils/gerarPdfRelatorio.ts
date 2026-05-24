@@ -132,12 +132,13 @@ export async function gerarPdfRelatorio({
   const assetName  = report.equipments?.name ?? report.asset_name_manual ?? null;
 
   // ── Cabeçalho ─────────────────────────────────────────────────────────────────
-  const logoW = 40;
+  const LOGO_H = 16;
+  const LOGO_OFFSET = 36;
   if (logoDataUrl) {
     const logoFmt = detectImageFormat(null, logoDataUrl);
-    doc.addImage(logoDataUrl, logoFmt, marginL, 10, logoW, 16);
+    doc.addImage(logoDataUrl, logoFmt, marginL, 10, 0, LOGO_H);
   }
-  const textX = logoDataUrl ? marginL + logoW + 4 : marginL;
+  const textX = logoDataUrl ? marginL + LOGO_OFFSET : marginL;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);

@@ -22,10 +22,8 @@ export async function listKbArticles(opts: {
   if (opts.serviceType)     q = q.eq('service_type', opts.serviceType);
   if (opts.tag)             q = q.contains('tags', [opts.tag]);
   if (opts.search) {
-    q = q.textSearch('title, content', opts.search, {
-      type: 'websearch',
-      config: 'portuguese',
-    });
+    const term = opts.search.replace(/[%_\\]/g, '\\$&');
+    q = q.or(`title.ilike.%${term}%,content.ilike.%${term}%`);
   }
 
   const { data, error } = await q;

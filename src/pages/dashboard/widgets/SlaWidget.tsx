@@ -26,7 +26,7 @@ export function SlaWidget({ isLoading, slaRate }: Props) {
             {slaRate === null ? '—' : `${slaRate.toFixed(1)}%`}
           </div>
         )}
-        <p className="text-xs text-muted-foreground mt-1 font-medium">OS dentro do prazo contratual (30d)</p>
+        <p className="text-xs text-muted-foreground mt-1 font-medium">OS abertas dentro do prazo SLA</p>
       </CardContent>
     </Card>
   );

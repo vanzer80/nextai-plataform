@@ -115,7 +115,7 @@ export default function EquipmentDetailDialog({ equipment, open, onClose }: Prop
                 </div>
                 <div>
                   <span className="text-muted-foreground">Custo de Aquisição</span>
-                  <p className="font-medium">{BRL.format(equipment.acquisition_cost!)}</p>
+                  <p className="font-medium">{BRL.format(equipment.acquisition_cost ?? 0)}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Depreciação Acum.</span>

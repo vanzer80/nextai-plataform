@@ -186,9 +186,10 @@ export function useDashboardData(
         if (res.slaQry.error) { console.warn('slaQry', res.slaQry.error); }
         else {
           const rows: { sla_due_at: string; status: string }[] = res.slaQry.data ?? [];
-          const resolved = rows.filter(r => ['approved', 'rejected'].includes(r.status));
-          const onTime = resolved.filter(r => new Date(r.sla_due_at) > new Date()).length;
-          setSlaRate(resolved.length > 0 ? (onTime / resolved.length) * 100 : null);
+          // SLA compliance = % of OPEN OS still within deadline (resolved OS have no meaningful current SLA state without a resolved_at timestamp)
+          const openWithSla = rows.filter(r => !['approved', 'rejected'].includes(r.status));
+          const onTime = openWithSla.filter(r => new Date(r.sla_due_at) > new Date()).length;
+          setSlaRate(openWithSla.length > 0 ? (onTime / openWithSla.length) * 100 : null);
         }
       }
 

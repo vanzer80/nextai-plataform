@@ -240,7 +240,7 @@ export default function EquipmentManagement() {
                             try {
                               const { exportarEtiquetaQR } = await import('@/src/utils/gerarEtiquetaQR');
                               await exportarEtiquetaQR(eq);
-                            } catch (e: any) { toast.error('Erro ao gerar QR: ' + e.message); }
+                            } catch (e) { toast.error('Erro ao gerar QR: ' + (e instanceof Error ? e.message : String(e))); }
                           }}>
                           <QrCode className="h-4 w-4" />
                         </Button>
