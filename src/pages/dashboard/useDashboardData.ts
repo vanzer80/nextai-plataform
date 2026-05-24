@@ -17,6 +17,7 @@ export interface DashboardData {
   avgTicket: number;
   approvalRate: number | null;
   returnRate: number | null;
+  slaRate: number | null;
   barData: BarEntry[];
   pieData: PieEntry[];
   isTeamReports: boolean;
@@ -46,6 +47,7 @@ export function useDashboardData(
   const [avgTicket, setAvgTicket] = useState(0);
   const [approvalRate, setApprovalRate] = useState<number | null>(null);
   const [returnRate, setReturnRate] = useState<number | null>(null);
+  const [slaRate, setSlaRate] = useState<number | null>(null);
   const [barData, setBarData] = useState<BarEntry[]>([]);
   const [pieData, setPieData] = useState<PieEntry[]>([]);
 
@@ -94,6 +96,17 @@ export function useDashboardData(
       if (nq.has('returnQry')) {
         promises.push(supabase.rpc('get_dashboard_return_rate', { p_days: 30 }));
         keys.push('returnQry');
+      }
+      if (nq.has('slaQry')) {
+        promises.push(
+          supabase
+            .from('service_reports')
+            .select('id, sla_due_at, status, created_at')
+            .not('sla_due_at', 'is', null)
+            .gte('created_at', thirtyDaysAgo)
+            .limit(500)
+        );
+        keys.push('slaQry');
       }
 
       const results = await Promise.all(promises);
@@ -160,6 +173,16 @@ export function useDashboardData(
           setReturnRate(total > 0 ? (returned / total) * 100 : null);
         }
       }
+
+      if (res.slaQry) {
+        if (res.slaQry.error) { console.warn('slaQry', res.slaQry.error); }
+        else {
+          const rows: { sla_due_at: string; status: string }[] = res.slaQry.data ?? [];
+          const resolved = rows.filter(r => ['approved', 'rejected'].includes(r.status));
+          const onTime = resolved.filter(r => new Date(r.sla_due_at) > new Date()).length;
+          setSlaRate(resolved.length > 0 ? (onTime / resolved.length) * 100 : null);
+        }
+      }
     } catch (err) {
       console.error('Dashboard fetch error:', err);
     } finally {
@@ -199,5 +222,5 @@ export function useDashboardData(
     return () => { supabase.removeChannel(ch); };
   }, [user?.id, isTeamReports, isTeamFinance, widgetKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { isLoading, reportsCount, reimbursementSum, productivity, avgTicket, approvalRate, returnRate, barData, pieData, isTeamReports, isTeamFinance };
+  return { isLoading, reportsCount, reimbursementSum, productivity, avgTicket, approvalRate, returnRate, slaRate, barData, pieData, isTeamReports, isTeamFinance };
 }

@@ -39,6 +39,11 @@ export interface ServiceReport {
   geo_accuracy: number | null;
   geo_captured_at: string | null;
 
+  priority: 'baixa' | 'normal' | 'alta' | 'critica';
+  sla_policy_id: string | null;
+  sla_due_at: string | null;
+  sla_responded_at: string | null;
+
   reviewer_id: string | null;
   reviewer_comment: string | null;
   reviewed_at: string | null;

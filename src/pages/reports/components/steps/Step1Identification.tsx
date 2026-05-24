@@ -9,6 +9,13 @@ import { ClipboardList } from 'lucide-react';
 import { useServiceTypes } from '@/src/hooks/useServiceTypes';
 import type { ReportFormValues } from '@/src/pages/reports/NewReport';
 
+const PRIORITY_OPTIONS = [
+  { value: 'baixa',   label: 'Baixa',   cls: 'text-slate-600' },
+  { value: 'normal',  label: 'Normal',  cls: 'text-blue-600' },
+  { value: 'alta',    label: 'Alta',    cls: 'text-amber-600' },
+  { value: 'critica', label: 'Crítica', cls: 'text-rose-600' },
+] as const;
+
 interface Step1Props {
   form: UseFormReturn<ReportFormValues>;
 }
@@ -16,6 +23,7 @@ interface Step1Props {
 export default function Step1Identification({ form }: Step1Props) {
   const { register, setValue, watch, formState: { errors } } = form;
   const serviceType = watch('service_type');
+  const priority = watch('priority') ?? 'normal';
   const { types: serviceTypes } = useServiceTypes();
 
   return (
@@ -74,6 +82,26 @@ export default function Step1Identification({ form }: Step1Props) {
           {errors.service_date && (
             <p className="text-sm text-rose-600">{errors.service_date.message}</p>
           )}
+        </div>
+
+        {/* Prioridade */}
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold text-foreground">Prioridade</Label>
+          <Select
+            value={priority}
+            onValueChange={val => setValue('priority', val as ReportFormValues['priority'], { shouldValidate: true })}
+          >
+            <SelectTrigger className="h-12 text-base rounded-xl bg-muted border-border focus:ring-ring">
+              <SelectValue placeholder="Selecione a prioridade" />
+            </SelectTrigger>
+            <SelectContent>
+              {PRIORITY_OPTIONS.map(opt => (
+                <SelectItem key={opt.value} value={opt.value} className="py-3 text-base">
+                  <span className={opt.cls}>{opt.label}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Hora de Início */}

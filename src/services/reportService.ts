@@ -139,6 +139,7 @@ export async function submitReport(payload: SubmitReportPayload): Promise<string
       parts_used: formValues.parts_used || null,
       pending_issues: formValues.pending_issues || null,
       technical_recommendation: formValues.technical_recommendation || null,
+      priority: formValues.priority ?? 'normal',
     },
     p_attachments: attachmentRows,
     p_signatures: signatureRows,

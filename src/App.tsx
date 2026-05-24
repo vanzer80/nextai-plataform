@@ -23,6 +23,9 @@ const TenantManagement   = lazy(() => import('@/src/pages/admin/TenantManagement
 const ServiceTypes       = lazy(() => import('@/src/pages/admin/ServiceTypes'));
 const ClientsList           = lazy(() => import('@/src/pages/clients/ClientsList'));
 const EquipmentManagement   = lazy(() => import('@/src/pages/equipments/EquipmentManagement'));
+const SupplierManagement    = lazy(() => import('@/src/pages/suppliers/SupplierManagement'));
+const PartsManagement       = lazy(() => import('@/src/pages/parts/PartsManagement'));
+const SlaManagement         = lazy(() => import('@/src/pages/admin/SlaManagement'));
 const MaterialsList      = lazy(() => import('@/src/pages/materials/MaterialsList'));
 const NewMaterialRequest = lazy(() => import('@/src/pages/materials/NewMaterialRequest'));
 const OrcamentosList     = lazy(() => import('@/src/pages/orcamentos/OrcamentosList'));
@@ -107,6 +110,12 @@ export default function App() {
                 <Route path="/equipments" element={<EquipmentManagement />} />
               </Route>
 
+              {/* Fornecedores e Peças — Master, Admin, Gestor, Supervisor */}
+              <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor']} />}>
+                <Route path="/suppliers" element={<SupplierManagement />} />
+                <Route path="/parts" element={<PartsManagement />} />
+              </Route>
+
               {/* Admin Area */}
               <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor']} />}>
                 <Route path="/admin/usuarios" element={<UserManagement />} />
@@ -114,6 +123,7 @@ export default function App() {
                 <Route path="/admin/checklist-templates/new" element={<TemplateEditor />} />
                 <Route path="/admin/checklist-templates/:id/edit" element={<TemplateEditor />} />
                 <Route path="/admin/service-types" element={<ServiceTypes />} />
+                <Route path="/admin/sla" element={<SlaManagement />} />
               </Route>
 
               {/* Master-only: tenant provisioning */}

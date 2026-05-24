@@ -7,10 +7,11 @@ export type WidgetId =
   | 'ticket-medio'
   | 'approval-rate'
   | 'return-rate'
+  | 'sla-rate'
   | 'reports-bar'
   | 'reimbursements-pie';
 
-export type QueryKey = 'repQuery' | 'rembQuery' | 'statsQuery' | 'barQry' | 'pieQry' | 'returnQry';
+export type QueryKey = 'repQuery' | 'rembQuery' | 'statsQuery' | 'barQry' | 'pieQry' | 'returnQry' | 'slaQry';
 
 export const TEAM_REPORTS_ROLES: UserRole[] = ['Supervisor', 'Gestor', 'Admin', 'Master'];
 export const TEAM_FINANCE_ROLES: UserRole[] = ['Supervisor', 'Gestor', 'Admin', 'Master', 'Financeiro'];
@@ -23,6 +24,7 @@ export const WIDGET_QUERY_DEPS: Record<WidgetId, QueryKey[]> = {
   'ticket-medio':       ['statsQuery'],
   'approval-rate':      ['statsQuery'],
   'return-rate':        ['returnQry'],
+  'sla-rate':           ['slaQry'],
   'reports-bar':        ['barQry'],
   'reimbursements-pie': ['pieQry'],
 };

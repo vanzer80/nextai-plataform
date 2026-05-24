@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Clock, MapPin, Wrench, ChevronRight, Timer } from 'lucide-react';
+import { Clock, MapPin, Wrench, ChevronRight, Timer, AlertTriangle } from 'lucide-react';
+import { differenceInMinutes, parseISO as _parseISO } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import ReportStatusBadge from './ReportStatusBadge';
@@ -33,6 +34,21 @@ export default function ReportCard({ report, localSyncStatus }: ReportCardProps)
     ? getAgingInfo(report.created_at, 2, 5)
     : null;
 
+  const slaInfo = (() => {
+    if (!report.sla_due_at) return null;
+    const minutesLeft = differenceInMinutes(_parseISO(report.sla_due_at), new Date());
+    if (minutesLeft < 0) return { label: 'SLA vencido', cls: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300', icon: 'breached' };
+    const hoursLeft = Math.floor(minutesLeft / 60);
+    const minsLeft  = minutesLeft % 60;
+    const label = hoursLeft > 0 ? `SLA ${hoursLeft}h ${minsLeft}min` : `SLA ${minsLeft}min`;
+    const cls = minutesLeft < 60
+      ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+      : minutesLeft < 240
+        ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
+        : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300';
+    return { label, cls, icon: 'ok' };
+  })();
+
   return (
     <Card className="overflow-hidden shadow-sm border-border hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
       <CardContent className="p-4">
@@ -46,6 +62,14 @@ export default function ReportCard({ report, localSyncStatus }: ReportCardProps)
             {aging && (
               <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${AGING_CLASSES[aging.level]}`}>
                 <Timer className="h-3 w-3" /> {aging.label} aguardando
+              </span>
+            )}
+            {slaInfo && (
+              <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${slaInfo.cls}`}>
+                {slaInfo.icon === 'breached'
+                  ? <AlertTriangle className="h-3 w-3" />
+                  : <Clock className="h-3 w-3" />}
+                {slaInfo.label}
               </span>
             )}
           </div>

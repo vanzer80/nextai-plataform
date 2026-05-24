@@ -31,6 +31,7 @@ export const reportSchema = z.object({
   service_date: z.string().min(1, 'Informe a data do serviço'),
   os_number:    z.string().optional(),
   started_at:   z.string().optional(),
+  priority:     z.enum(['baixa', 'normal', 'alta', 'critica']).optional(),
 
   // Step 2
   client_id:         z.string().optional(),
@@ -101,6 +102,7 @@ export default function NewReport() {
       service_date: new Date().toISOString().split('T')[0],
       os_number: '',
       started_at: '',
+      priority: 'normal' as const,
       client_id: undefined,
       site_location: '',
       asset_id: undefined,

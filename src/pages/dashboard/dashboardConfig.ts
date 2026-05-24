@@ -12,10 +12,10 @@ export const dashboardConfigByRole: Record<UserRole, string[]> = {
   // Comprador — foco em suprimentos; reembolsos como proxy de gastos operacionais
   Comprador:      ['reimbursements-kpi', 'reimbursements-pie'],
   // Liderança operacional — visão completa incluindo taxa de retorno e ticket médio
-  Supervisor:     ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'reports-bar', 'reimbursements-pie'],
-  Gestor:         ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'reports-bar', 'reimbursements-pie'],
-  Admin:          ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'reports-bar', 'reimbursements-pie'],
-  Master:         ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'reports-bar', 'reimbursements-pie'],
+  Supervisor:     ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'sla-rate', 'reports-bar', 'reimbursements-pie'],
+  Gestor:         ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'sla-rate', 'reports-bar', 'reimbursements-pie'],
+  Admin:          ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'sla-rate', 'reports-bar', 'reimbursements-pie'],
+  Master:         ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'sla-rate', 'reports-bar', 'reimbursements-pie'],
 };
 
 // Retorna lista vazia para role desconhecida — fallback seguro (não renderiza nada)

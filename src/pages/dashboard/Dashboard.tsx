@@ -9,6 +9,7 @@ import { ProductivityWidget } from './widgets/ProductivityWidget';
 import { TicketMedioWidget } from './widgets/TicketMedioWidget';
 import { ApprovalRateWidget } from './widgets/ApprovalRateWidget';
 import { ReturnRateWidget } from './widgets/ReturnRateWidget';
+import { SlaWidget } from './widgets/SlaWidget';
 import { ReportsBarWidget } from './widgets/ReportsBarWidget';
 import { ReimbursementsPieWidget } from './widgets/ReimbursementsPieWidget';
 import type { WidgetId } from './widgetRegistry';
@@ -72,6 +73,9 @@ export default function Dashboard() {
           <div data-onboarding="dashboard-taxa-retorno">
             <ReturnRateWidget isLoading={data.isLoading} returnRate={data.returnRate} />
           </div>
+        )}
+        {has('sla-rate') && (
+          <SlaWidget isLoading={data.isLoading} slaRate={data.slaRate} />
         )}
       </div>
 
