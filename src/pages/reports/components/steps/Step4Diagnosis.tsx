@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
+import { type UseFormReturn } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,27 +13,39 @@ interface Step4Props {
   assetDescription?: string;
 }
 
+// Monta o texto completo da IA para o campo "Diagnóstico final"
+export function buildAppliedText(r: DiagnosticEnhancementResult): string {
+  const parts = [r.final_diagnosis];
+  if (r.possible_causes?.length > 0) {
+    parts.push('Causas possíveis:\n' + r.possible_causes.map((c) => `• ${c}`).join('\n'));
+  }
+  if (r.recommendation) parts.push(`Recomendação técnica: ${r.recommendation}`);
+  return parts.join('\n\n');
+}
+
 export default function Step4Diagnosis({ form, assetDescription }: Step4Props) {
-  const { register, setValue, watch, control } = form;
+  const { register, setValue, watch } = form;
   const serviceType = watch('service_type');
   const reportedProblem = watch('reported_problem');
-  const preliminaryDiagnosis = useWatch({ control, name: 'preliminary_diagnosis' }) ?? '';
 
-  // Estado React local para final_diagnosis: garante atualização da UI
-  // independentemente da camada de subscrição do RHF. O valor é sincronizado
-  // com o form via setValue em cada mudança para que getValues() funcione
-  // corretamente no envio e no draft autosave.
+  // useState garante re-render imediato e garantido no React 19 concurrent mode.
+  // setValue mantém o RHF store em sincronia para getValues()/draft/submit.
+  const [preliminaryDiagnosisText, setPreliminaryDiagnosisText] = useState<string>(
+    () => form.getValues('preliminary_diagnosis') ?? ''
+  );
+
   const [finalDiagnosisText, setFinalDiagnosisText] = useState<string>(
     () => form.getValues('final_diagnosis') ?? ''
   );
 
   const handleAiApply = (result: DiagnosticEnhancementResult) => {
-    // 1. React state → re-render imediato e garantido
-    setFinalDiagnosisText(result.final_diagnosis);
-    // 2. RHF store → getValues() e draft ficam corretos
-    setValue('final_diagnosis', result.final_diagnosis, { shouldDirty: true });
+    const fullText = buildAppliedText(result);
 
-    if (!preliminaryDiagnosis) {
+    setFinalDiagnosisText(fullText);
+    setValue('final_diagnosis', fullText, { shouldDirty: true });
+
+    if (!preliminaryDiagnosisText) {
+      setPreliminaryDiagnosisText(result.technical_description);
       setValue('preliminary_diagnosis', result.technical_description, { shouldDirty: true });
     }
   };
@@ -64,18 +76,15 @@ export default function Step4Diagnosis({ form, assetDescription }: Step4Props) {
 
         <div className="space-y-2">
           <Label className="text-sm font-semibold text-foreground">Diagnóstico preliminar</Label>
-          <Controller
-            name="preliminary_diagnosis"
-            control={control}
-            defaultValue=""
-            render={({ field }) => (
-              <Textarea
-                {...field}
-                value={field.value ?? ''}
-                placeholder="Observações iniciais do técnico ao chegar no local..."
-                className="min-h-[90px] resize-none rounded-xl bg-muted border-border text-base focus-visible:ring-ring"
-              />
-            )}
+          <Textarea
+            value={preliminaryDiagnosisText}
+            onChange={(e) => {
+              const v = e.target.value;
+              setPreliminaryDiagnosisText(v);
+              setValue('preliminary_diagnosis', v, { shouldDirty: true });
+            }}
+            placeholder="Observações iniciais do técnico ao chegar no local..."
+            className="min-h-[90px] resize-none rounded-xl bg-muted border-border text-base focus-visible:ring-ring"
           />
         </div>
 
@@ -92,7 +101,7 @@ export default function Step4Diagnosis({ form, assetDescription }: Step4Props) {
             className="min-h-[110px] resize-none rounded-xl bg-muted border-border text-base focus-visible:ring-ring"
           />
           <AiDiagnosticAssistant
-            rawInput={preliminaryDiagnosis}
+            rawInput={preliminaryDiagnosisText}
             serviceType={serviceType}
             assetDescription={assetDescription}
             reportedProblem={reportedProblem}

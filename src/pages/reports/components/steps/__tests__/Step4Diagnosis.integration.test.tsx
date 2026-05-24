@@ -85,11 +85,16 @@ describe('Step4Diagnosis + AiDiagnosticAssistant — integração', () => {
       expect(screen.queryByText(/sugestão da ia/i)).not.toBeInTheDocument();
     });
 
-    // 6. CRÍTICO: textarea de diagnóstico final DEVE conter o texto da IA
+    // 6. CRÍTICO: textarea de diagnóstico final DEVE conter o texto completo da IA
     const finalDiagnosisTextarea = screen.getByPlaceholderText(
       'Diagnóstico técnico formal após análise completa...'
     );
-    expect(finalDiagnosisTextarea).toHaveValue(MOCK_RESULT.final_diagnosis);
+    const expectedFinal = [
+      MOCK_RESULT.final_diagnosis,
+      'Causas possíveis:\n' + MOCK_RESULT.possible_causes.map((c) => `• ${c}`).join('\n'),
+      `Recomendação técnica: ${MOCK_RESULT.recommendation}`,
+    ].join('\n\n');
+    expect(finalDiagnosisTextarea).toHaveValue(expectedFinal);
   });
 
   it('botão de melhoria fica desabilitado quando preliminary_diagnosis está vazio', () => {

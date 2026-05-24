@@ -10,7 +10,7 @@ import userEvent from '@testing-library/user-event';
 import { useForm } from 'react-hook-form';
 import { vi, describe, it, expect } from 'vitest';
 
-import Step4Diagnosis from '../Step4Diagnosis';
+import Step4Diagnosis, { buildAppliedText } from '../Step4Diagnosis';
 import type { DiagnosticEnhancementResult } from '@/src/services/aiService';
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
@@ -25,6 +25,9 @@ const MOCK_AI_RESULT: DiagnosticEnhancementResult = {
   possible_causes: ['Desgaste do compressor'],
   recommendation: 'Substituir compressor',
 };
+
+// Texto completo que deve aparecer no campo "Diagnóstico final" após Apply
+const EXPECTED_FINAL = buildAppliedText(MOCK_AI_RESULT);
 
 vi.mock('@/src/pages/reports/components/AiDiagnosticAssistant', () => ({
   default: ({ onApply }: { onApply: (r: DiagnosticEnhancementResult) => void }) => (
@@ -74,7 +77,7 @@ describe('Step4Diagnosis — AI apply', () => {
 
     expect(
       screen.getByPlaceholderText('Diagnóstico técnico formal após análise completa...')
-    ).toHaveValue(MOCK_AI_RESULT.final_diagnosis);
+    ).toHaveValue(EXPECTED_FINAL);
   });
 
   it('preenche preliminary_diagnosis quando está vazio', async () => {
@@ -107,7 +110,7 @@ describe('Step4Diagnosis — AI apply', () => {
 
     expect(
       screen.getByPlaceholderText('Diagnóstico técnico formal após análise completa...')
-    ).toHaveValue(MOCK_AI_RESULT.final_diagnosis);
+    ).toHaveValue(EXPECTED_FINAL);
   });
 
   it('permite aplicar IA múltiplas vezes consecutivas', async () => {
@@ -117,11 +120,11 @@ describe('Step4Diagnosis — AI apply', () => {
     const textarea = screen.getByPlaceholderText('Diagnóstico técnico formal após análise completa...');
 
     await user.click(screen.getByTestId('mock-ai-apply'));
-    expect(textarea).toHaveValue(MOCK_AI_RESULT.final_diagnosis);
+    expect(textarea).toHaveValue(EXPECTED_FINAL);
 
     await user.clear(textarea);
     await user.click(screen.getByTestId('mock-ai-apply'));
-    expect(textarea).toHaveValue(MOCK_AI_RESULT.final_diagnosis);
+    expect(textarea).toHaveValue(EXPECTED_FINAL);
   });
 });
 
@@ -134,7 +137,7 @@ describe('Step4Diagnosis — edição após apply', () => {
 
     // Aplica IA
     await user.click(screen.getByTestId('mock-ai-apply'));
-    expect(textarea).toHaveValue(MOCK_AI_RESULT.final_diagnosis);
+    expect(textarea).toHaveValue(EXPECTED_FINAL);
 
     // Edita manualmente
     await user.clear(textarea);
@@ -175,11 +178,10 @@ describe('Step4Diagnosis — edição após apply', () => {
 
     await user.click(screen.getByTestId('mock-ai-apply'));
 
-    // Tanto o textarea quanto o form.getValues devem ter o mesmo valor
-    expect(capturedForm!.getValues('final_diagnosis')).toBe(MOCK_AI_RESULT.final_diagnosis);
+    expect(capturedForm!.getValues('final_diagnosis')).toBe(EXPECTED_FINAL);
     expect(
       screen.getByPlaceholderText('Diagnóstico técnico formal após análise completa...')
-    ).toHaveValue(MOCK_AI_RESULT.final_diagnosis);
+    ).toHaveValue(EXPECTED_FINAL);
   });
 });
 

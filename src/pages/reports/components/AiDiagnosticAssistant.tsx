@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Sparkles, Loader2, CheckCircle, X, ChevronRight } from 'lucide-react';
+import { Sparkles, Loader2, CheckCircle, X, ChevronRight, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { enhanceDiagnostic, type DiagnosticEnhancementResult } from '@/src/services/aiService';
 import type { ServiceType } from '@/src/types/reports';
 
 interface AiDiagnosticAssistantProps {
-  rawInput: string;             // texto atual do campo diagnóstico
+  rawInput: string;
   serviceType: ServiceType | undefined;
   assetDescription?: string;
   reportedProblem?: string;
@@ -56,6 +56,21 @@ export default function AiDiagnosticAssistant({
       onApply(result);
       setResult(null);
       toast.success('Diagnóstico aplicado. Revise antes de continuar.');
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!result) return;
+    const parts = [result.final_diagnosis];
+    if (result.possible_causes?.length > 0) {
+      parts.push('Causas possíveis:\n' + result.possible_causes.map((c) => `• ${c}`).join('\n'));
+    }
+    if (result.recommendation) parts.push(`Recomendação técnica: ${result.recommendation}`);
+    try {
+      await navigator.clipboard.writeText(parts.join('\n\n'));
+      toast.success('Texto copiado para a área de transferência.');
+    } catch {
+      toast.error('Não foi possível copiar o texto.');
     }
   };
 
@@ -121,6 +136,14 @@ export default function AiDiagnosticAssistant({
               className="flex-1 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold gap-1.5"
             >
               <CheckCircle className="h-3.5 w-3.5" /> Aplicar sugestão
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCopy}
+              className="h-9 px-3 rounded-lg text-xs text-blue-700 border-blue-300 hover:bg-blue-50 gap-1.5"
+            >
+              <Copy className="h-3.5 w-3.5" /> Copiar
             </Button>
             <Button
               type="button"
