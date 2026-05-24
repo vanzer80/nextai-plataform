@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nextai-v1';
+const CACHE_NAME = 'nextai-v2';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -22,20 +22,31 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Only handle same-origin GET requests
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  // Network-first for Supabase
-  if (url.hostname.includes('supabase.co')) {
-    event.respondWith(fetch(request).catch(() => caches.match(request)));
+  // ── 1. Navigation requests (browser navigating to any SPA route) ──────────
+  // Network-first: fetch fresh page and cache it; fall back to cached index.html
+  // when offline. Without this handler, SPA routes like /reports or /dashboard
+  // are treated as static assets — they have no cache entry and a network failure
+  // causes event.respondWith() to reject, producing a blank page.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match('/index.html'))
+    );
     return;
   }
 
-  // Network-first for index.html and manifest — CRITICAL: index.html must always
-  // be fresh so it references the correct hashed chunk filenames from the latest deploy.
-  // Cache-first here is the root cause of "white screen after deploy" bugs.
-  const isHtml = url.pathname === '/' || url.pathname.endsWith('.html');
-  const isManifest = url.pathname === '/manifest.json';
-  if (isHtml || isManifest) {
+  // ── 2. manifest.json — network-first (keep fresh for PWA install) ─────────
+  if (url.pathname === '/manifest.json') {
     event.respondWith(
       fetch(request)
         .then((response) => {
@@ -50,7 +61,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for JS/CSS/images (Vite adds content hashes — immutable)
+  // ── 3. Hashed JS/CSS/images (Vite content hashes → immutable) ────────────
+  // Cache-first: these never change between deploys at the same URL.
   event.respondWith(
     caches.match(request).then(
       (cached) =>

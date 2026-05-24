@@ -19,7 +19,10 @@ export default function ReportsList() {
   const [filter, setFilter] = useState<ReportsFilter>(EMPTY_FILTER);
   const { reports, loading, error, hasMore, loadMore, refresh, updateItem } = useReports(filter);
   const [listRef] = useAutoAnimate({ duration: 200 });
-  const { isOnline, isSyncing, pendingCount } = useOutletContext<AppLayoutOutletContext>();
+  const outletCtx = useOutletContext<AppLayoutOutletContext | undefined>();
+  const isOnline    = outletCtx?.isOnline    ?? true;
+  const isSyncing   = outletCtx?.isSyncing   ?? false;
+  const pendingCount = outletCtx?.pendingCount ?? 0;
 
   // Realtime: atualiza o item afetado na lista sem refetch completo
   useEffect(() => {
