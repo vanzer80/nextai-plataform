@@ -65,13 +65,20 @@ Todas as chamadas IA passam pela Edge Function `ai-proxy` — nenhuma chave expo
 
 ## Módulos do Sistema
 
-- **Dashboard** — KPIs em tempo real por perfil (relatórios pendentes, reembolsos, produtividade semanal, ticket médio, taxa de aprovação), bar chart e pie chart via Recharts, ações rápidas para técnicos.
-- **Relatórios Técnicos** — Wizard de 7 etapas com checklist dinâmico, geolocalização GPS, upload de fotos para Storage, assinatura digital em canvas HTML5, draft autosave no IndexedDB e submissão atômica via RPC `submit_report`.
-- **Reembolsos** — Criação em 2 etapas (foto do comprovante → IA extrai valor/Pix/categoria), fluxo de aprovação/rejeição/revisão, aprovação em lote, exportação PDF e Excel, histórico de auditoria em `reimbursement_history`.
+- **Dashboard** — KPIs em tempo real por perfil (relatórios pendentes, reembolsos, produtividade semanal, ticket médio, taxa de aprovação, taxa de retorno, SLA), bar chart e pie chart via Recharts, ações rápidas para técnicos.
+- **Relatórios Técnicos** — Wizard de 7 etapas com stepper unificado, checklist dinâmico, geolocalização GPS, upload de fotos para Storage, assinatura digital em canvas HTML5, draft autosave no IndexedDB e submissão atômica via RPC `submit_report`.
+- **Reembolsos** — Criação em 2 etapas (foto do comprovante → IA extrai valor/Pix/categoria), fluxo de aprovação/rejeição/revisão, aprovação em lote, exportação PDF e Excel, histórico de auditoria em `reimbursement_history`. Integra controle de budget por categoria.
 - **Compras (Materiais)** — Solicitação com extração IA de foto do produto, ciclo Pendente → Em Análise → Comprado → Entregue, processamento e resposta pelo Comprador/Gestor.
-- **Orçamentos** — CRUD de itens dinâmicos via `useFieldArray`, fluxo rascunho → enviado → aprovado/rejeitado, geração de PDF profissional client-side com jsPDF.
-- **Clientes** — CRUD com cache em memória (`useClients`) para evitar N+1 queries nos seletores de outros módulos.
+- **Orçamentos** — CRUD de itens dinâmicos via `useFieldArray`, fluxo rascunho → enviado → aprovado/rejeitado, assinatura digital, versioning e geração de PDF profissional client-side com jsPDF.
+- **Equipamentos** — Gestão de ativos com vínculo por cliente, status (ativo/inativo/manutenção), ciclo de vida financeiro (depreciação linear), alertas de manutenção preventiva por intervalo configurável, histórico de OS por ativo e QR code de acesso rápido ao wizard.
+- **Base de Conhecimento** — Artigos técnicos com busca full-text (ilike multi-coluna), filtros por tipo de serviço e tags, controle de visibilidade (interno/público para portal do cliente), `view_count` via RPC.
+- **Agenda / Dispatch** — Calendário semanal de OS por técnico, filtro por técnico para gestores, atribuição rápida de técnico (dispatch) sem sair da agenda.
+- **Clientes** — CRUD com cache em memória (`useClients`) invalidado no logout para evitar vazamento cross-tenant.
+- **Fornecedores** — CRUD de fornecedores vinculados a peças do estoque.
+- **Peças (Estoque)** — Controle de estoque com baixa automática via RPC `use_part` ao vincular peças a OS.
+- **Budget** — Definição de limites de gasto por categoria com ativação/desativação; `BudgetBurnWidget` no dashboard com progress bars CSS por categoria.
 - **Checklist Templates** — CRUD de templates com editor de itens (texto livre, booleano, número, múltipla escolha, upload), reordenação ↑↓ e vinculação por tipo de serviço. Roles: Gestor, Admin, Master.
+- **Portal do Cliente** — Layout próprio (`ClientPortalLayout`) com listagem de OS do cliente e KB pública; acesso por convite isolado do app interno.
 - **Administração de Usuários** — Listagem, criação com convite via Supabase Auth, edição de role, exclusão. Roles: Gestor, Admin, Master.
 - **Gerenciamento de Tenants** — Exclusivo para SuperMaster (`is_platform = true`): tabela de tenants com thumbnails de logo, dialog de criação (slug, name, cor primária, logo) e dialog de edição. Ver seção Arquitetura Multi-Tenant abaixo.
 - **Notificações Realtime** — Sino com badge animado, dropdown com histórico de 10 notificações, marcação como lida ao clicar, atualização via canal `postgres_changes`.
@@ -142,3 +149,23 @@ npm run dev
 ```
 
 O servidor sobe na porta `http://localhost:3001`.
+
+---
+
+## Produção
+
+**URL:** https://nextai-plataform.vercel.app
+
+Deploys automáticos via Vercel a partir do branch `master`. Build: Vite · Runtime: Node 24.x.
+
+---
+
+## Segurança e RLS
+
+Todas as tabelas têm a policy RESTRICTIVE `team_isolation` (`team_id = get_caller_team_id()`) que garante isolamento absoluto entre tenants. Cada tabela possui adicionalmente policies PERMISSIVE que definem o nível de acesso por role:
+
+- **SELECT aberto a autenticados:** `clients`, `equipments`, `parts`, `suppliers`, `kb_articles` (públicas)
+- **ALL restrito a Gestão:** `clients`, `equipments`, `parts`, `suppliers`, `kb_articles`, `budgets`
+- **RPCs SECURITY INVOKER:** herdam RLS do caller — nenhuma escalada de privilégio
+
+Ao fazer logout, `AppLayout` chama `invalidateClientsCache()` antes de `signOut()` para evitar vazamento de dados em memória entre sessões de tenants diferentes no mesmo browser.
