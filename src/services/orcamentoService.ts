@@ -126,15 +126,19 @@ export async function atualizarStatus(
   status: OrcamentoStatus,
   rejection_reason?: string,
 ): Promise<void> {
-  const payload: Record<string, unknown> = { status };
-  if (rejection_reason !== undefined) payload.rejection_reason = rejection_reason || null;
-
-  const { error } = await supabase
-    .from('orcamentos')
-    .update(payload)
-    .eq('id', id) as { data: unknown; error: { message: string } | null };
+  const { data, error } = await supabase.rpc('process_orcamento_status', {
+    p_orcamento_id: id,
+    p_new_status:   status,
+    p_comment:      rejection_reason || null,
+  }) as { data: { success: boolean; error?: string } | null; error: { message: string } | null };
 
   if (error) throw new Error(error.message);
+  if (!data?.success) throw new Error(data?.error ?? 'Falha ao atualizar status.');
+
+  // Persiste rejection_reason no campo da tabela (o RPC salva no histórico; o campo denormalizado facilita exibição)
+  if (status === 'rejeitado' && rejection_reason !== undefined) {
+    await supabase.from('orcamentos').update({ rejection_reason: rejection_reason || null }).eq('id', id);
+  }
 }
 
 export async function excluirOrcamento(id: string): Promise<void> {

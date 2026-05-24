@@ -1,7 +1,8 @@
 import React from 'react';
-import { Receipt, Pencil } from 'lucide-react';
+import { Receipt, Pencil, Timer } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
+import { getAgingInfo, AGING_CLASSES } from '@/src/lib/aging';
 
 interface ReimbursementCardProps {
   item: any;
@@ -18,17 +19,28 @@ export default function ReimbursementCard({
   onOpenDetails,
   isManager
 }: ReimbursementCardProps) {
+  const aging = (item.status === 'Pendente' || item.status === 'Revisao')
+    ? getAgingInfo(item.created_at, 3, 7)
+    : null;
+
   return (
     <Card
       className="shadow-sm border-border mb-3 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.98]"
       onClick={() => onOpenDetails(item)}
     >
       <CardContent className="p-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <span className="text-xs font-semibold text-muted-foreground">
             {new Date(item.created_at).toLocaleDateString()}
           </span>
-          {getStatusBadge(item.status)}
+          <div className="flex items-center gap-2">
+            {aging && (
+              <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${AGING_CLASSES[aging.level]}`}>
+                <Timer className="h-3 w-3" /> {aging.label}
+              </span>
+            )}
+            {getStatusBadge(item.status)}
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 bg-muted rounded-full flex items-center justify-center shrink-0">

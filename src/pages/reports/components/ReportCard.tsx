@@ -1,13 +1,14 @@
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Clock, MapPin, Wrench, ChevronRight } from 'lucide-react';
+import { Clock, MapPin, Wrench, ChevronRight, Timer } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import ReportStatusBadge from './ReportStatusBadge';
 import SyncStatusIndicator from './SyncStatusIndicator';
 import type { ServiceReport } from '@/src/types/reports';
 import type { SyncStatus } from '@/src/lib/reportIndexedDB';
+import { getAgingInfo, AGING_CLASSES } from '@/src/lib/aging';
 
 interface ReportCardProps {
   report: ServiceReport;
@@ -28,6 +29,10 @@ export default function ReportCard({ report, localSyncStatus }: ReportCardProps)
     ? format(parseISO(report.service_date), "dd 'de' MMM, yyyy", { locale: ptBR })
     : format(parseISO(report.created_at), "dd 'de' MMM, yyyy", { locale: ptBR });
 
+  const aging = report.status === 'pending_review'
+    ? getAgingInfo(report.created_at, 2, 5)
+    : null;
+
   return (
     <Card className="overflow-hidden shadow-sm border-border hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
       <CardContent className="p-4">
@@ -37,6 +42,11 @@ export default function ReportCard({ report, localSyncStatus }: ReportCardProps)
             <ReportStatusBadge status={report.status} />
             {report.service_type && (
               <span className="text-xs text-muted-foreground font-medium">{report.service_type}</span>
+            )}
+            {aging && (
+              <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${AGING_CLASSES[aging.level]}`}>
+                <Timer className="h-3 w-3" /> {aging.label} aguardando
+              </span>
             )}
           </div>
           <div className="flex items-center text-muted-foreground text-xs shrink-0 gap-1">

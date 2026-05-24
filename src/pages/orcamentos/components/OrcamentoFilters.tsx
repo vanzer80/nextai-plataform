@@ -7,7 +7,7 @@ import { ORCAMENTO_STATUS_LABEL } from '@/src/types/orcamento';
 import type { OrcamentoStatus } from '@/src/types/orcamento';
 
 const ALL_SENTINEL = '__all__';
-const STATUS_OPTIONS: OrcamentoStatus[] = ['rascunho', 'enviado', 'aprovado', 'rejeitado'];
+const STATUS_OPTIONS: OrcamentoStatus[] = ['rascunho', 'enviado', 'aprovado', 'rejeitado', 'expirado'];
 
 interface Props {
   filter: OrcamentosFilter;

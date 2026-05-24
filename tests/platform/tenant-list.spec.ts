@@ -9,7 +9,7 @@ test.describe('PlatformTenants — lista de empresas', () => {
 
   test('exibe os 3 tenants na tabela', async ({ page }) => {
     await expect(page.getByRole('cell', { name: /Mopar Engenharia/i })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole('cell', { name: /Zambrano/i })).toBeVisible();
+    await expect(page.getByRole('cell', { name: /Zambrano/i }).first()).toBeVisible();
     // NextAI aparece na linha que também tem o slug "nextai"
     await expect(page.locator('tr').filter({ hasText: /nextai/ })).toBeVisible();
   });

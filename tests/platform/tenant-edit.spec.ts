@@ -5,7 +5,7 @@ test.describe('PlatformTenants — edição', () => {
   test('edita nome de Zambrano Engenharia e reverte', async ({ page }) => {
     await loginAs(page, SUPERMASTER.email, SUPERMASTER.password);
     await expect(page).toHaveURL(/\/platform\/tenants/, { timeout: 15000 });
-    await expect(page.getByRole('cell', { name: /Zambrano/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('cell', { name: /Zambrano/i }).first()).toBeVisible({ timeout: 15000 });
 
     // Abre dropdown da linha Zambrano
     const zambranoRow = page.locator('tr').filter({ hasText: /Zambrano/i });

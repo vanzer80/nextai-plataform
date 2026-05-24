@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
-import { CalendarDays, User, Building2, AlertTriangle } from 'lucide-react';
+import { CalendarDays, User, Building2, AlertTriangle, Timer } from 'lucide-react';
 import { OrcamentoStatusBadge } from './OrcamentoStatusBadge';
 import type { Orcamento } from '@/src/types/orcamento';
+import { getAgingInfo, AGING_CLASSES } from '@/src/lib/aging';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR');
@@ -15,6 +16,9 @@ function isExpired(validade: string | null): boolean {
 export function OrcamentoCard({ orcamento }: { orcamento: Orcamento }) {
   const titulo = orcamento.titulo || `Orçamento #${orcamento.id.slice(0, 8).toUpperCase()}`;
   const expired = isExpired(orcamento.validade);
+  const aging = orcamento.status === 'enviado'
+    ? getAgingInfo(orcamento.updated_at ?? orcamento.created_at, 3, 7)
+    : null;
 
   return (
     <Link
@@ -28,7 +32,14 @@ export function OrcamentoCard({ orcamento }: { orcamento: Orcamento }) {
             <p className="text-xs text-muted-foreground mt-0.5">OS: {orcamento.service_reports.os_number}</p>
           )}
         </div>
-        <OrcamentoStatusBadge status={orcamento.status} />
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <OrcamentoStatusBadge status={orcamento.status} />
+          {aging && (
+            <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${AGING_CLASSES[aging.level]}`}>
+              <Timer className="h-3 w-3" /> {aging.label}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
