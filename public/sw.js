@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nextai-v2';
+const CACHE_NAME = 'nextai-v3';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
