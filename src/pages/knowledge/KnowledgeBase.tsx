@@ -281,6 +281,7 @@ export default function KnowledgeBase() {
           />
           {search && (
             <button
+              aria-label="Limpar pesquisa"
               onClick={() => setSearch('')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >

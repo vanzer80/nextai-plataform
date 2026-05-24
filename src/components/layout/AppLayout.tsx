@@ -32,6 +32,7 @@ import { useTheme } from 'next-themes';
 
 import { supabase } from '@/src/lib/supabase';
 import { useAuth, type AuthUser } from '@/src/contexts/AuthContext';
+import { invalidateClientsCache } from '@/src/hooks/useClients';
 import { useTenant } from '@/src/contexts/TenantContext';
 import { OnboardingButton } from '@/src/onboarding/OnboardingButton';
 import { useOfflineSync } from '@/src/hooks/useOfflineSync';
@@ -332,6 +333,7 @@ export default function AppLayout() {
   });
 
   const handleSignOut = async () => {
+    invalidateClientsCache();
     await signOut();
   };
 

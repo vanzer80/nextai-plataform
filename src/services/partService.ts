@@ -57,7 +57,7 @@ export async function usePart(
   return data as { success: boolean; error?: string; os_part_id?: string };
 }
 
-export async function removeOsPart(osPardId: string): Promise<void> {
-  const { error } = await supabase.from('os_parts').delete().eq('id', osPardId);
+export async function removeOsPart(osPartId: string): Promise<void> {
+  const { error } = await supabase.from('os_parts').delete().eq('id', osPartId);
   if (error) throw new Error(error.message);
 }

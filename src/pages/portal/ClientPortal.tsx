@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, ChevronRight, Building2 } from 'lucide-react';
+import { ClipboardList, ChevronRight, Building2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -92,7 +92,9 @@ export default function ClientPortal() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Carregando...</p>
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-7 w-7 animate-spin text-primary" />
+        </div>
       ) : filtered.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16 gap-3">

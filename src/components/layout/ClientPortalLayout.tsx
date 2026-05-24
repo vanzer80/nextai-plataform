@@ -3,18 +3,17 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { LogOut, Building2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/src/lib/supabase';
 import { useTenant } from '@/src/contexts/TenantContext';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { NextAILogo } from '@/src/components/brand/NextAILogo';
 
 export default function ClientPortalLayout() {
   const { tenant } = useTenant();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     navigate('/login');
   };
 

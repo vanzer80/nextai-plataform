@@ -90,7 +90,7 @@ export default function AgendaPage() {
     setLoading(true);
     try {
       const from = format(weekStart, 'yyyy-MM-dd');
-      const to   = format(weekEnd,   'yyyy-MM-dd');
+      const to   = format(addDays(weekStart, 6), 'yyyy-MM-dd');
 
       let q = supabase
         .from('service_reports')
@@ -110,7 +110,7 @@ export default function AgendaPage() {
     } finally {
       setLoading(false);
     }
-  }, [weekStart, weekEnd, isManager, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [weekStart, isManager, user?.id]);
 
   // Load team users for dispatch dropdown (managers only)
   useEffect(() => {
