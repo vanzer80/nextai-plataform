@@ -1,20 +1,17 @@
 import { supabase } from '@/src/lib/supabase';
 import type {
   PlatformIntelligenceStats,
-  PlatformDiagnosticRow,
-  PlatformKbRow,
-  CorpusFilters,
-  PlatformReportRow,
-  PlatformReimbursementRow,
-  PlatformClientRow,
-  PlatformOrcamentoRow,
-  PlatformEquipmentRow,
-  PlatformMaterialRow,
-  RawFilters,
-  ExportResource,
+  PlatformDiagnosticRow, PlatformKbRow, CorpusFilters,
+  PlatformReportRow, PlatformReimbursementRow, PlatformClientRow,
+  PlatformOrcamentoRow, PlatformEquipmentRow, PlatformMaterialRow,
+  PlatformChecklistItemRow, PlatformAttachmentRow,
+  PlatformReportStatusHistoryRow, PlatformSignatureRow,
+  PlatformReimbursementHistoryRow, PlatformClientLocationRow,
+  PlatformNotificationRow,
+  RawFilters, ExportResource,
 } from '@/src/types/platformIntelligence';
 
-// ── Corpus (anonymized) ───────────────────────────────────────────────────────
+// ── Corpus (anonimizado) ──────────────────────────────────────────────────────
 
 export async function getIntelligenceStats(): Promise<PlatformIntelligenceStats> {
   const { data, error } = await supabase.rpc('platform_get_intelligence_stats');
@@ -24,10 +21,8 @@ export async function getIntelligenceStats(): Promise<PlatformIntelligenceStats>
 
 export async function getDiagnosticCorpus(f: CorpusFilters = {}): Promise<PlatformDiagnosticRow[]> {
   const { data, error } = await supabase.rpc('platform_get_diagnostic_corpus', {
-    p_tenant_id:    f.tenantId    ?? null,
-    p_service_type: f.serviceType ?? null,
-    p_limit:        f.limit       ?? 50,
-    p_offset:       f.offset      ?? 0,
+    p_tenant_id: f.tenantId ?? null, p_service_type: f.serviceType ?? null,
+    p_limit: f.limit ?? 50, p_offset: f.offset ?? 0,
   });
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as PlatformDiagnosticRow[];
@@ -35,22 +30,18 @@ export async function getDiagnosticCorpus(f: CorpusFilters = {}): Promise<Platfo
 
 export async function getKbCorpus(f: CorpusFilters = {}): Promise<PlatformKbRow[]> {
   const { data, error } = await supabase.rpc('platform_get_kb_corpus', {
-    p_tenant_id:    f.tenantId    ?? null,
-    p_service_type: f.serviceType ?? null,
-    p_limit:        f.limit       ?? 50,
-    p_offset:       f.offset      ?? 0,
+    p_tenant_id: f.tenantId ?? null, p_service_type: f.serviceType ?? null,
+    p_limit: f.limit ?? 50, p_offset: f.offset ?? 0,
   });
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as PlatformKbRow[];
 }
 
-// ── Raw data (full access) ────────────────────────────────────────────────────
+// ── Raw — tabelas principais ──────────────────────────────────────────────────
 
 export async function getAllReports(f: RawFilters = {}): Promise<PlatformReportRow[]> {
   const { data, error } = await supabase.rpc('platform_get_all_reports', {
-    p_tenant_id: f.tenantId ?? null,
-    p_limit:     f.limit    ?? 50,
-    p_offset:    f.offset   ?? 0,
+    p_tenant_id: f.tenantId ?? null, p_limit: f.limit ?? 50, p_offset: f.offset ?? 0,
   });
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as PlatformReportRow[];
@@ -58,9 +49,7 @@ export async function getAllReports(f: RawFilters = {}): Promise<PlatformReportR
 
 export async function getAllReimbursements(f: RawFilters = {}): Promise<PlatformReimbursementRow[]> {
   const { data, error } = await supabase.rpc('platform_get_all_reimbursements', {
-    p_tenant_id: f.tenantId ?? null,
-    p_limit:     f.limit    ?? 50,
-    p_offset:    f.offset   ?? 0,
+    p_tenant_id: f.tenantId ?? null, p_limit: f.limit ?? 50, p_offset: f.offset ?? 0,
   });
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as PlatformReimbursementRow[];
@@ -68,9 +57,7 @@ export async function getAllReimbursements(f: RawFilters = {}): Promise<Platform
 
 export async function getAllClients(f: RawFilters = {}): Promise<PlatformClientRow[]> {
   const { data, error } = await supabase.rpc('platform_get_all_clients', {
-    p_tenant_id: f.tenantId ?? null,
-    p_limit:     f.limit    ?? 50,
-    p_offset:    f.offset   ?? 0,
+    p_tenant_id: f.tenantId ?? null, p_limit: f.limit ?? 50, p_offset: f.offset ?? 0,
   });
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as PlatformClientRow[];
@@ -78,9 +65,7 @@ export async function getAllClients(f: RawFilters = {}): Promise<PlatformClientR
 
 export async function getAllOrcamentos(f: RawFilters = {}): Promise<PlatformOrcamentoRow[]> {
   const { data, error } = await supabase.rpc('platform_get_all_orcamentos', {
-    p_tenant_id: f.tenantId ?? null,
-    p_limit:     f.limit    ?? 50,
-    p_offset:    f.offset   ?? 0,
+    p_tenant_id: f.tenantId ?? null, p_limit: f.limit ?? 50, p_offset: f.offset ?? 0,
   });
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as PlatformOrcamentoRow[];
@@ -88,9 +73,7 @@ export async function getAllOrcamentos(f: RawFilters = {}): Promise<PlatformOrca
 
 export async function getAllEquipments(f: RawFilters = {}): Promise<PlatformEquipmentRow[]> {
   const { data, error } = await supabase.rpc('platform_get_all_equipments', {
-    p_tenant_id: f.tenantId ?? null,
-    p_limit:     f.limit    ?? 50,
-    p_offset:    f.offset   ?? 0,
+    p_tenant_id: f.tenantId ?? null, p_limit: f.limit ?? 50, p_offset: f.offset ?? 0,
   });
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as PlatformEquipmentRow[];
@@ -98,15 +81,71 @@ export async function getAllEquipments(f: RawFilters = {}): Promise<PlatformEqui
 
 export async function getAllMaterials(f: RawFilters = {}): Promise<PlatformMaterialRow[]> {
   const { data, error } = await supabase.rpc('platform_get_all_materials', {
-    p_tenant_id: f.tenantId ?? null,
-    p_limit:     f.limit    ?? 50,
-    p_offset:    f.offset   ?? 0,
+    p_tenant_id: f.tenantId ?? null, p_limit: f.limit ?? 50, p_offset: f.offset ?? 0,
   });
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as PlatformMaterialRow[];
 }
 
-// ── Audit ─────────────────────────────────────────────────────────────────────
+// ── Raw — tabelas secundárias/históricas ─────────────────────────────────────
+
+export async function getAllChecklistItems(f: RawFilters = {}): Promise<PlatformChecklistItemRow[]> {
+  const { data, error } = await supabase.rpc('platform_get_all_checklist_items', {
+    p_tenant_id: f.tenantId ?? null, p_limit: f.limit ?? 50, p_offset: f.offset ?? 0,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as PlatformChecklistItemRow[];
+}
+
+export async function getAllAttachments(f: RawFilters = {}): Promise<PlatformAttachmentRow[]> {
+  const { data, error } = await supabase.rpc('platform_get_all_attachments', {
+    p_tenant_id: f.tenantId ?? null, p_limit: f.limit ?? 50, p_offset: f.offset ?? 0,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as PlatformAttachmentRow[];
+}
+
+export async function getAllReportStatusHistory(f: RawFilters = {}): Promise<PlatformReportStatusHistoryRow[]> {
+  const { data, error } = await supabase.rpc('platform_get_all_report_status_history', {
+    p_tenant_id: f.tenantId ?? null, p_limit: f.limit ?? 50, p_offset: f.offset ?? 0,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as PlatformReportStatusHistoryRow[];
+}
+
+export async function getAllSignatures(f: RawFilters = {}): Promise<PlatformSignatureRow[]> {
+  const { data, error } = await supabase.rpc('platform_get_all_signatures', {
+    p_tenant_id: f.tenantId ?? null, p_limit: f.limit ?? 50, p_offset: f.offset ?? 0,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as PlatformSignatureRow[];
+}
+
+export async function getAllReimbursementHistory(f: RawFilters = {}): Promise<PlatformReimbursementHistoryRow[]> {
+  const { data, error } = await supabase.rpc('platform_get_all_reimbursement_history', {
+    p_tenant_id: f.tenantId ?? null, p_limit: f.limit ?? 50, p_offset: f.offset ?? 0,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as PlatformReimbursementHistoryRow[];
+}
+
+export async function getAllClientLocations(f: RawFilters = {}): Promise<PlatformClientLocationRow[]> {
+  const { data, error } = await supabase.rpc('platform_get_all_client_locations', {
+    p_tenant_id: f.tenantId ?? null, p_limit: f.limit ?? 50, p_offset: f.offset ?? 0,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as PlatformClientLocationRow[];
+}
+
+export async function getAllNotifications(f: RawFilters = {}): Promise<PlatformNotificationRow[]> {
+  const { data, error } = await supabase.rpc('platform_get_all_notifications', {
+    p_tenant_id: f.tenantId ?? null, p_limit: f.limit ?? 50, p_offset: f.offset ?? 0,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as PlatformNotificationRow[];
+}
+
+// ── Auditoria ─────────────────────────────────────────────────────────────────
 
 export async function logExport(
   resource: ExportResource,
@@ -114,9 +153,7 @@ export async function logExport(
   rowCount: number,
 ): Promise<void> {
   await supabase.rpc('platform_log_export', {
-    p_resource:      resource,
-    p_tenant_filter: tenantFilter ?? null,
-    p_row_count:     rowCount,
+    p_resource: resource, p_tenant_filter: tenantFilter ?? null, p_row_count: rowCount,
   });
 }
 
@@ -124,11 +161,11 @@ export async function logExport(
 
 const PAGE = 1000;
 
-export async function fetchAllDiagnosticsForExport(f: Omit<CorpusFilters, 'limit' | 'offset'>): Promise<PlatformDiagnosticRow[]> {
-  const all: PlatformDiagnosticRow[] = [];
+async function paginate<T>(fetch: (o: number) => Promise<T[]>): Promise<T[]> {
+  const all: T[] = [];
   let offset = 0;
   while (true) {
-    const page = await getDiagnosticCorpus({ ...f, limit: PAGE, offset });
+    const page = await fetch(offset);
     all.push(...page);
     if (page.length < PAGE) break;
     offset += PAGE;
@@ -136,98 +173,32 @@ export async function fetchAllDiagnosticsForExport(f: Omit<CorpusFilters, 'limit
   return all;
 }
 
-export async function fetchAllKbForExport(f: Omit<CorpusFilters, 'limit' | 'offset'>): Promise<PlatformKbRow[]> {
-  const all: PlatformKbRow[] = [];
-  let offset = 0;
-  while (true) {
-    const page = await getKbCorpus({ ...f, limit: PAGE, offset });
-    all.push(...page);
-    if (page.length < PAGE) break;
-    offset += PAGE;
-  }
-  return all;
-}
+export const fetchAllDiagnosticsForExport = (f: Omit<CorpusFilters, 'limit' | 'offset'>) =>
+  paginate(o => getDiagnosticCorpus({ ...f, limit: PAGE, offset: o }));
 
-export async function fetchAllReportsForExport(tenantId: string | null): Promise<PlatformReportRow[]> {
-  const all: PlatformReportRow[] = [];
-  let offset = 0;
-  while (true) {
-    const page = await getAllReports({ tenantId, limit: PAGE, offset });
-    all.push(...page);
-    if (page.length < PAGE) break;
-    offset += PAGE;
-  }
-  return all;
-}
+export const fetchAllKbForExport = (f: Omit<CorpusFilters, 'limit' | 'offset'>) =>
+  paginate(o => getKbCorpus({ ...f, limit: PAGE, offset: o }));
 
-export async function fetchAllReimbursementsForExport(tenantId: string | null): Promise<PlatformReimbursementRow[]> {
-  const all: PlatformReimbursementRow[] = [];
-  let offset = 0;
-  while (true) {
-    const page = await getAllReimbursements({ tenantId, limit: PAGE, offset });
-    all.push(...page);
-    if (page.length < PAGE) break;
-    offset += PAGE;
-  }
-  return all;
-}
-
-export async function fetchAllClientsForExport(tenantId: string | null): Promise<PlatformClientRow[]> {
-  const all: PlatformClientRow[] = [];
-  let offset = 0;
-  while (true) {
-    const page = await getAllClients({ tenantId, limit: PAGE, offset });
-    all.push(...page);
-    if (page.length < PAGE) break;
-    offset += PAGE;
-  }
-  return all;
-}
-
-export async function fetchAllOrcamentosForExport(tenantId: string | null): Promise<PlatformOrcamentoRow[]> {
-  const all: PlatformOrcamentoRow[] = [];
-  let offset = 0;
-  while (true) {
-    const page = await getAllOrcamentos({ tenantId, limit: PAGE, offset });
-    all.push(...page);
-    if (page.length < PAGE) break;
-    offset += PAGE;
-  }
-  return all;
-}
-
-export async function fetchAllEquipmentsForExport(tenantId: string | null): Promise<PlatformEquipmentRow[]> {
-  const all: PlatformEquipmentRow[] = [];
-  let offset = 0;
-  while (true) {
-    const page = await getAllEquipments({ tenantId, limit: PAGE, offset });
-    all.push(...page);
-    if (page.length < PAGE) break;
-    offset += PAGE;
-  }
-  return all;
-}
-
-export async function fetchAllMaterialsForExport(tenantId: string | null): Promise<PlatformMaterialRow[]> {
-  const all: PlatformMaterialRow[] = [];
-  let offset = 0;
-  while (true) {
-    const page = await getAllMaterials({ tenantId, limit: PAGE, offset });
-    all.push(...page);
-    if (page.length < PAGE) break;
-    offset += PAGE;
-  }
-  return all;
-}
+export const fetchAllReportsForExport        = (tid: string | null) => paginate(o => getAllReports({ tenantId: tid, limit: PAGE, offset: o }));
+export const fetchAllReimbursementsForExport = (tid: string | null) => paginate(o => getAllReimbursements({ tenantId: tid, limit: PAGE, offset: o }));
+export const fetchAllClientsForExport        = (tid: string | null) => paginate(o => getAllClients({ tenantId: tid, limit: PAGE, offset: o }));
+export const fetchAllOrcamentosForExport     = (tid: string | null) => paginate(o => getAllOrcamentos({ tenantId: tid, limit: PAGE, offset: o }));
+export const fetchAllEquipmentsForExport     = (tid: string | null) => paginate(o => getAllEquipments({ tenantId: tid, limit: PAGE, offset: o }));
+export const fetchAllMaterialsForExport      = (tid: string | null) => paginate(o => getAllMaterials({ tenantId: tid, limit: PAGE, offset: o }));
+export const fetchAllChecklistForExport      = (tid: string | null) => paginate(o => getAllChecklistItems({ tenantId: tid, limit: PAGE, offset: o }));
+export const fetchAllAttachmentsForExport    = (tid: string | null) => paginate(o => getAllAttachments({ tenantId: tid, limit: PAGE, offset: o }));
+export const fetchAllRptStatusHxForExport    = (tid: string | null) => paginate(o => getAllReportStatusHistory({ tenantId: tid, limit: PAGE, offset: o }));
+export const fetchAllSignaturesForExport     = (tid: string | null) => paginate(o => getAllSignatures({ tenantId: tid, limit: PAGE, offset: o }));
+export const fetchAllReimHxForExport         = (tid: string | null) => paginate(o => getAllReimbursementHistory({ tenantId: tid, limit: PAGE, offset: o }));
+export const fetchAllLocationsForExport      = (tid: string | null) => paginate(o => getAllClientLocations({ tenantId: tid, limit: PAGE, offset: o }));
+export const fetchAllNotificationsForExport  = (tid: string | null) => paginate(o => getAllNotifications({ tenantId: tid, limit: PAGE, offset: o }));
 
 // ── Blobs ─────────────────────────────────────────────────────────────────────
 
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
+  a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
 }
 
@@ -238,12 +209,10 @@ export function toJsonBlob(rows: unknown[]): Blob {
 export function toCsvBlob(rows: Record<string, unknown>[]): Blob {
   if (!rows.length) return new Blob([''], { type: 'text/csv' });
   const headers = Object.keys(rows[0]);
-  const escape = (v: unknown) => {
+  const esc = (v: unknown) => {
     const s = v == null ? '' : String(v);
-    return s.includes(',') || s.includes('"') || s.includes('\n')
-      ? `"${s.replace(/"/g, '""')}"`
-      : s;
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const lines = [headers.join(','), ...rows.map(r => headers.map(h => escape(r[h])).join(','))];
+  const lines = [headers.join(','), ...rows.map(r => headers.map(h => esc(r[h])).join(','))];
   return new Blob([lines.join('\n')], { type: 'text/csv' });
 }

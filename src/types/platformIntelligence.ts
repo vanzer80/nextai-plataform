@@ -39,7 +39,7 @@ export interface CorpusFilters {
   offset?: number;
 }
 
-// ── Raw data interfaces (SuperMaster full access) ────────────────────────────
+// ── Raw data — tabelas principais ─────────────────────────────────────────────
 
 export interface PlatformReportRow {
   id: string;
@@ -152,6 +152,107 @@ export interface PlatformMaterialRow {
   created_at: string;
 }
 
+// ── Raw data — tabelas secundárias/históricas ─────────────────────────────────
+
+export interface PlatformChecklistItemRow {
+  id: string;
+  team_id: string;
+  report_id: string;
+  os_number: string | null;
+  label: string;
+  item_type: string;
+  value_boolean: boolean | null;
+  value_text: string | null;
+  value_number: number | null;
+  value_option: string | null;
+  attachment_url: string | null;
+  is_conformant: boolean | null;
+  created_at: string;
+}
+
+export interface PlatformAttachmentRow {
+  id: string;
+  team_id: string;
+  report_id: string;
+  os_number: string | null;
+  uploader_name: string | null;
+  url: string;
+  filename: string | null;
+  mime_type: string | null;
+  size_bytes: number | null;
+  caption: string | null;
+  created_at: string;
+}
+
+export interface PlatformReportStatusHistoryRow {
+  id: string;
+  team_id: string;
+  report_id: string;
+  os_number: string | null;
+  from_status: string | null;
+  to_status: string;
+  changed_by_name: string | null;
+  comment: string | null;
+  created_at: string;
+}
+
+export interface PlatformSignatureRow {
+  id: string;
+  team_id: string;
+  report_id: string;
+  os_number: string | null;
+  signature_type: string;
+  signer_name: string | null;
+  signer_role: string | null;
+  image_url: string;
+  geo_lat: number | null;
+  geo_lng: number | null;
+  signed_at: string | null;
+}
+
+export interface PlatformReimbursementHistoryRow {
+  id: string;
+  team_id: string;
+  reimbursement_id: string;
+  reimbursement_desc: string | null;
+  changed_by_name: string | null;
+  old_status: string | null;
+  new_status: string;
+  reason: string | null;
+  created_at: string;
+}
+
+export interface PlatformClientLocationRow {
+  id: string;
+  team_id: string;
+  client_id: string;
+  client_name: string;
+  nome: string;
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cep: string | null;
+  cidade: string | null;
+  estado: string | null;
+  contato_nome: string | null;
+  contato_telefone: string | null;
+  is_principal: boolean | null;
+  created_at: string | null;
+}
+
+export interface PlatformNotificationRow {
+  id: string;
+  team_id: string;
+  user_name: string | null;
+  title: string;
+  message: string;
+  is_read: boolean | null;
+  created_at: string | null;
+}
+
+// ── Filtros ───────────────────────────────────────────────────────────────────
+
 export interface RawFilters {
   tenantId?: string | null;
   limit?: number;
@@ -161,4 +262,7 @@ export interface RawFilters {
 export type ExportResource =
   | 'diagnostics' | 'kb'
   | 'reports' | 'reimbursements' | 'clients'
-  | 'orcamentos' | 'equipments' | 'materials';
+  | 'orcamentos' | 'equipments' | 'materials'
+  | 'checklist_items' | 'attachments' | 'report_status_history'
+  | 'signatures' | 'reimbursement_history' | 'client_locations'
+  | 'notifications';
