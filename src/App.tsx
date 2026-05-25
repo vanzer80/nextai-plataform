@@ -1,4 +1,4 @@
-import { lazy } from 'react';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/src/contexts/AuthContext';
 import { TenantProvider } from '@/src/contexts/TenantContext';
@@ -9,6 +9,7 @@ import PlatformLayout from '@/src/components/layout/PlatformLayout';
 import ClientPortalLayout from '@/src/components/layout/ClientPortalLayout';
 import Login from '@/src/pages/auth/Login';
 import CsatPage from '@/src/pages/csat/CsatPage';
+const PrivacyPolicy = lazy(() => import('@/src/pages/PrivacyPolicy'));
 import { Toaster } from '@/components/ui/sonner';
 
 // All routes are lazy — only the shell (Login + AppLayout) is in the initial bundle
@@ -63,8 +64,9 @@ export default function App() {
         <OnboardingProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
-          {/* Public CSAT page — no auth required */}
+          {/* Public pages — no auth required */}
           <Route path="/csat/:token" element={<CsatPage />} />
+          <Route path="/privacy" element={<Suspense fallback={null}><PrivacyPolicy /></Suspense>} />
           
           <Route element={<ProtectedRoute />}>
             {/* Root redirect: fora do AppLayout para evitar flash do menu operacional */}

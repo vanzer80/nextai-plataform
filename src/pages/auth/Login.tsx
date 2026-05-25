@@ -121,6 +121,14 @@ export default function Login() {
           </form>
         </CardContent>
       </Card>
+
+      <p className="mt-6 text-center text-xs text-muted-foreground">
+        Ao acessar a plataforma, você concorda com a nossa{' '}
+        <a href="/privacy" className="underline hover:text-foreground transition-colors">
+          Política de Privacidade
+        </a>
+        .
+      </p>
     </div>
   );
 }
