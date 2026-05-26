@@ -55,7 +55,6 @@ export interface PlatformReportRow {
   reported_problem: string | null;
   final_diagnosis: string | null;
   services_performed: string | null;
-  total_minutes: number | null;
   priority: string;
   created_at: string;
   updated_at: string;
@@ -129,7 +128,7 @@ export interface PlatformMaterialRow {
   maintenance_type: string;
   status: string;
   especificacao_tecnica: string;
-  quantidade: string;
+  quantity: number | null;
   prazo: string;
   urgency: string | null;
   client_id: string | null;
@@ -205,7 +204,6 @@ export interface PlatformNotificationRow {
   title: string;
   message: string;
   is_read: boolean;
-  type: string | null;
   created_at: string;
 }
 

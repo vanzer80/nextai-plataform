@@ -220,7 +220,7 @@ const TAB_META: TabMeta[] = [
     id: 'notifications', label: 'Notificações', icon: Bell, exportResource: 'notifications',
     columns: [
       { key: 'title', label: 'Título', truncate: true },
-      { key: 'type', label: 'Tipo', isBadge: true },
+      { key: 'message', label: 'Mensagem', truncate: true },
       { key: 'is_read', label: 'Lida' },
       { key: 'created_at', label: 'Data', isDate: true },
     ],

@@ -60,75 +60,77 @@ export default function Login() {
       <div className="absolute right-4 top-4">
         <ThemeToggle />
       </div>
-      <Card className="w-full max-w-sm border-border shadow-md">
-        <CardHeader className="space-y-2 pb-6 text-center">
-          <div className="mb-4 flex justify-center">
-            <NextAILogo height={44} />
-          </div>
-          <CardTitle className="text-xl font-semibold">Acesso ao Sistema</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Insira suas credenciais corporativas.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2 text-left">
-              <Label htmlFor="email">E-mail</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="seu@email.com.br"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="focus-visible:ring-ring"
-                disabled={loading}
-              />
+      <div className="flex flex-col items-center gap-4 w-full max-w-sm">
+        <Card className="w-full border-border shadow-md">
+          <CardHeader className="space-y-2 pb-6 text-center">
+            <div className="mb-4 flex justify-center">
+              <NextAILogo height={44} />
             </div>
-            <div className="space-y-2 text-left">
-              <Label htmlFor="password">Senha</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="focus-visible:ring-ring"
-                disabled={loading}
-              />
-            </div>
-
-            {errorMsg && (
-              <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm font-medium text-destructive shadow-sm">
-                {errorMsg}
+            <CardTitle className="text-xl font-semibold">Acesso ao Sistema</CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Insira suas credenciais corporativas.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2 text-left">
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com.br"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="focus-visible:ring-ring"
+                  disabled={loading}
+                />
               </div>
-            )}
+              <div className="space-y-2 text-left">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="focus-visible:ring-ring"
+                  disabled={loading}
+                />
+              </div>
 
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Autenticando...
-                </>
-              ) : (
-                'Entrar'
+              {errorMsg && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm font-medium text-destructive shadow-sm">
+                  {errorMsg}
+                </div>
               )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
 
-      <p className="mt-6 text-center text-xs text-muted-foreground">
-        Ao acessar a plataforma, você concorda com a nossa{' '}
-        <a href="/privacy" className="underline hover:text-foreground transition-colors">
-          Política de Privacidade
-        </a>
-        .
-      </p>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Autenticando...
+                  </>
+                ) : (
+                  'Entrar'
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <p className="text-center text-xs text-muted-foreground">
+          Ao acessar a plataforma, você concorda com a nossa{' '}
+          <a href="/privacy" className="underline hover:text-foreground transition-colors">
+            Política de Privacidade
+          </a>
+          .
+        </p>
+      </div>
     </div>
   );
 }

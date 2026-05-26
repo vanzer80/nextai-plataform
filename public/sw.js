@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nextai-v4';
+const CACHE_NAME = 'nextai-v5';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -64,16 +64,18 @@ self.addEventListener('fetch', (event) => {
   // ── 3. Hashed JS/CSS/images (Vite content hashes → immutable) ────────────
   // Cache-first: these never change between deploys at the same URL.
   event.respondWith(
-    caches.match(request).then(
-      (cached) =>
-        cached ||
-        fetch(request).then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        })
-    )
+    caches.match(request).then(async (cached) => {
+      if (cached) return cached;
+      try {
+        const response = await fetch(request);
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return response;
+      } catch {
+        return new Response('', { status: 503, statusText: 'Offline' });
+      }
+    })
   );
 });
