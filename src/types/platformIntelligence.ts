@@ -128,7 +128,7 @@ export interface PlatformMaterialRow {
   maintenance_type: string;
   status: string;
   especificacao_tecnica: string;
-  quantity: number | null;
+  quantity: string | null;
   prazo: string;
   urgency: string | null;
   client_id: string | null;
