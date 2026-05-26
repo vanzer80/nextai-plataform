@@ -180,20 +180,19 @@ export interface PlatformSignatureRow {
 export interface PlatformReimbursementHistoryRow {
   id: string;
   reimbursement_id: string;
-  from_status: string | null;
-  to_status: string;
-  comment: string | null;
+  old_status: string | null;
+  new_status: string;
+  reason: string | null;
   created_at: string;
 }
 
 export interface PlatformClientLocationRow {
   id: string;
   client_id: string;
-  label: string;
-  address: string | null;
-  city: string | null;
-  lat: number | null;
-  lng: number | null;
+  nome: string;
+  logradouro: string | null;
+  cidade: string | null;
+  estado: string | null;
   created_at: string;
 }
 

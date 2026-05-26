@@ -161,9 +161,9 @@ const TAB_META: TabMeta[] = [
   {
     id: 'reimbursement_history', label: 'Hist. Reembolso', icon: History, exportResource: 'reimbursement_history',
     columns: [
-      { key: 'from_status', label: 'De', isBadge: true },
-      { key: 'to_status', label: 'Para', isBadge: true },
-      { key: 'comment', label: 'Comentário', truncate: true },
+      { key: 'old_status', label: 'De', isBadge: true },
+      { key: 'new_status', label: 'Para', isBadge: true },
+      { key: 'reason', label: 'Motivo', truncate: true },
       { key: 'created_at', label: 'Data', isDate: true },
     ],
   },
@@ -180,9 +180,9 @@ const TAB_META: TabMeta[] = [
   {
     id: 'client_locations', label: 'Unidades', icon: MapPin, exportResource: 'client_locations',
     columns: [
-      { key: 'label', label: 'Unidade' },
-      { key: 'address', label: 'Endereço', truncate: true },
-      { key: 'city', label: 'Cidade' },
+      { key: 'nome', label: 'Unidade' },
+      { key: 'logradouro', label: 'Endereço', truncate: true },
+      { key: 'cidade', label: 'Cidade' },
       { key: 'created_at', label: 'Cadastro', isDate: true },
     ],
   },
