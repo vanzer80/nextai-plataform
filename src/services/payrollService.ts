@@ -85,8 +85,8 @@ export async function getPayrollEntries(periodId: string): Promise<PayrollEntry[
       *,
       employee:employees(
         id, full_name, matricula, cpf, banco, agencia, conta, tipo_conta, pis_pasep,
-        department:departments(name),
-        position:positions(title)
+        department:department_id(name),
+        position:position_id(title)
       )
     `)
     .eq('period_id', periodId)
@@ -102,8 +102,8 @@ export async function getPayrollEntry(id: string): Promise<PayrollEntry> {
       *,
       employee:employees(
         id, full_name, matricula, cpf, banco, agencia, conta, tipo_conta, pis_pasep,
-        department:departments(name),
-        position:positions(title)
+        department:department_id(name),
+        position:position_id(title)
       )
     `)
     .eq('id', id)
@@ -210,7 +210,7 @@ export async function getVacationSchedules(filters?: {
 }): Promise<VacationSchedule[]> {
   let q = supabase
     .from('vacation_schedules')
-    .select('*, employee:employees(full_name, matricula, department:departments(name))');
+    .select('*, employee:employees(full_name, matricula, department:department_id(name))');
 
   if (filters?.employee_id) q = q.eq('employee_id', filters.employee_id);
   if (filters?.status) q = q.eq('status', filters.status);
@@ -240,7 +240,7 @@ export async function createVacationSchedule(dto: CreateVacationDTO): Promise<Va
       abono_pecuniario: dto.abono_pecuniario ?? false,
       status: 'agendada',
     })
-    .select('*, employee:employees(full_name, matricula, department:departments(name))')
+    .select('*, employee:employees(full_name, matricula, department:department_id(name))')
     .single();
   if (error) throw error;
   return data;

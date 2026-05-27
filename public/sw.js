@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nextai-v6';
+const CACHE_NAME = 'nextai-v7';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -40,7 +40,20 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => caches.match('/index.html'))
+        .catch(async () => {
+          // caches.match can return undefined if cache was cleared (e.g. after SW version bump).
+          // Never pass undefined to respondWith — it causes a 503 network error in the browser.
+          const cached = await caches.match('/index.html');
+          if (cached) return cached;
+          // Last resort: a minimal shell that auto-retries — avoids a blank/error page.
+          return new Response(
+            '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Carregando…</title></head>' +
+            '<body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">' +
+            '<div style="text-align:center"><p style="color:#6b7280">Sem conexão. Tentando novamente…</p>' +
+            '<script>setTimeout(()=>location.reload(),4000)</script></div></body></html>',
+            { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+          );
+        })
     );
     return;
   }

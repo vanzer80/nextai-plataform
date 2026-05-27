@@ -42,7 +42,7 @@ export async function getDepartmentWithHeadcount(): Promise<(Department & { empl
     .select(`
       *,
       manager:manager_id(id, full_name, matricula),
-      employee_count:employees(count)
+      employee_count:employees!employees_department_id_fkey(count)
     `);
   if (error) throw new Error(error.message);
   return (data ?? []).map((d: any) => ({

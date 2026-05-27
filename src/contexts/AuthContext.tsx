@@ -23,6 +23,17 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Persists the user's role/team_id across cold-start DB timeouts.
+// Key is user-scoped so multi-account sessions don't bleed into each other.
+const profileCacheKey = (uid: string) => `nextai-profile-v1-${uid}`;
+
+interface CachedProfile {
+  role: UserRole;
+  full_name: string;
+  team_id: string | null;
+  isPlatform: boolean;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -173,21 +184,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         fetchedUserIdRef.current = authUser.id; // mark as successfully loaded
 
-        setUser({
-          ...authUser,
+        const profile: CachedProfile = {
           role: data.role as UserRole,
           full_name: data.full_name || defaultProfile.full_name,
-          team_id: data.team_id,
+          team_id: data.team_id ?? null,
           isPlatform: data.tenant?.is_platform ?? false,
-          setup_pending: false
-        });
+        };
+
+        // Persist profile so cold-start timeouts fall back to real role, not Tecnico
+        try { localStorage.setItem(profileCacheKey(authUser.id), JSON.stringify(profile)); } catch { /* storage unavailable */ }
+
+        setUser({ ...authUser, ...profile, setup_pending: false });
       }
     } catch (error: any) {
       if (error.message === 'TIMEOUT_EXCEEDED') {
-        console.warn("⚠️ Database Timeout: Preservando role atual ou usando fallback de primeiro acesso");
-        // Se já temos o perfil correto deste usuário em memória (outra chamada paralela resolveu antes),
-        // não sobrescrever com fallback 'Tecnico'.
-        setUser(prev => (prev?.id === authUser.id && prev?.role) ? prev : defaultProfile);
+        console.warn("⚠️ Database Timeout: Preservando role atual ou usando cache de perfil");
+        setUser(prev => {
+          // Priority 1: already have the correct profile in React state
+          if (prev?.id === authUser.id && prev?.role) return prev;
+          // Priority 2: last known profile from localStorage (survives cold-start)
+          try {
+            const raw = localStorage.getItem(profileCacheKey(authUser.id));
+            if (raw) {
+              const cached: CachedProfile = JSON.parse(raw);
+              return { ...authUser, ...cached, setup_pending: false };
+            }
+          } catch { /* parse error / storage unavailable */ }
+          // Priority 3: safe fallback — user can still reach the login screen
+          return defaultProfile;
+        });
       } else {
         console.error('[AuthContext] Erro Severo validando perfil RBAC:', error);
         setUser(null); // Conforme sua ordem, forçamos um reset do profile (volta para o login) no caso de falhas letais diferentes de timeout
@@ -202,7 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
         // Limpeza de cache local agressiva antes de invocar o SDK
         for (const key of Object.keys(localStorage)) {
-            if (key.includes('supabase.auth.token') || key.startsWith('sb-')) {
+            if (key.includes('supabase.auth.token') || key.startsWith('sb-') || key.startsWith('nextai-profile-v1-')) {
                 localStorage.removeItem(key);
             }
         }
