@@ -10,11 +10,11 @@ async function getTeamId(): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Não autenticado');
   const { data } = await supabase
-    .from('team_members')
+    .from('users')
     .select('team_id')
-    .eq('user_id', user.id)
+    .eq('id', user.id)
     .single();
-  if (!data) throw new Error('Usuário sem equipe');
+  if (!data?.team_id) throw new Error('Usuário sem equipe');
   return data.team_id;
 }
 
@@ -37,11 +37,9 @@ export interface PayableFilters {
 }
 
 export async function getPayables(filters: PayableFilters = {}): Promise<Payable[]> {
-  const teamId = await getTeamId();
   let q = supabase
     .from('payables')
-    .select(PAYABLE_SELECT)
-    .eq('team_id', teamId);
+    .select(PAYABLE_SELECT);
 
   if (filters.status)      q = q.eq('status', filters.status);
   if (filters.tipo)        q = q.eq('tipo', filters.tipo);
@@ -184,14 +182,12 @@ export async function getCashflowProjection(days = 90): Promise<CashflowWeek[]> 
 }
 
 export async function getPayableKPIs(): Promise<PayableKPIs> {
-  const teamId = await getTeamId();
   const today = new Date().toISOString().split('T')[0];
   const firstOfMonth = today.substring(0, 7) + '-01';
 
   const { data, error } = await supabase
     .from('payables')
-    .select('status, valor_total, data_vencimento')
-    .eq('team_id', teamId);
+    .select('status, valor_total, data_vencimento');
   if (error) throw error;
 
   const rows = data ?? [];

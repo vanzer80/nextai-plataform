@@ -10,22 +10,20 @@ async function getTeamId(): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Não autenticado');
   const { data } = await supabase
-    .from('team_members')
+    .from('users')
     .select('team_id')
-    .eq('user_id', user.id)
+    .eq('id', user.id)
     .single();
-  if (!data) throw new Error('Usuário sem equipe');
+  if (!data?.team_id) throw new Error('Usuário sem equipe');
   return data.team_id;
 }
 
 // ── Payroll Periods ───────────────────────────────────────────────────────────
 
 export async function getPayrollPeriods(): Promise<PayrollPeriod[]> {
-  const teamId = await getTeamId();
   const { data, error } = await supabase
     .from('payroll_periods')
     .select('*, entry_count:payroll_entries(count)')
-    .eq('team_id', teamId)
     .order('competencia', { ascending: false });
   if (error) throw error;
   return (data ?? []).map(d => ({
@@ -210,11 +208,9 @@ export async function getVacationSchedules(filters?: {
   status?: string;
   year?: number;
 }): Promise<VacationSchedule[]> {
-  const teamId = await getTeamId();
   let q = supabase
     .from('vacation_schedules')
-    .select('*, employee:employees(full_name, matricula, department:departments(name))')
-    .eq('team_id', teamId);
+    .select('*, employee:employees(full_name, matricula, department:departments(name))');
 
   if (filters?.employee_id) q = q.eq('employee_id', filters.employee_id);
   if (filters?.status) q = q.eq('status', filters.status);
