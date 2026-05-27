@@ -1,6 +1,7 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useTenant } from '@/src/contexts/TenantContext';
+import { HrSummaryWidget } from './widgets/HrSummaryWidget';
 import { getWidgetIds } from './dashboardConfig';
 import { useDashboardData } from './useDashboardData';
 import { ReportsKpiWidget } from './widgets/ReportsKpiWidget';
@@ -89,6 +90,11 @@ export default function Dashboard() {
         <div className="max-w-sm">
           <BudgetBurnWidget isLoading={data.isLoading} />
         </div>
+      )}
+
+      {/* RH / DP / CP Summary — Gestor/Admin/Master only */}
+      {['Gestor','Admin','Master'].includes(user?.role ?? '') && (
+        <HrSummaryWidget />
       )}
 
       {/* Charts */}

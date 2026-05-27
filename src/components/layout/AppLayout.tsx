@@ -27,6 +27,12 @@ import {
   CalendarDays,
   BookOpen,
   DollarSign,
+  Users,
+  Network,
+  Banknote,
+  Umbrella,
+  Landmark,
+  Clock,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
@@ -75,6 +81,12 @@ const NAV_LINKS = [
   { name: 'Peças / Estoque', path: '/parts', icon: Package, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
   { name: 'Agenda / Dispatch', path: '/agenda', icon: CalendarDays, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
   { name: 'Base de Conhecimento', path: '/knowledge', icon: BookOpen, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Financeiro', 'Comprador', 'Admin', 'Master'] },
+  { name: 'Colaboradores',      path: '/rh/employees',           icon: Users,      roles: ['Gestor', 'Admin', 'Master'] },
+  { name: 'Departamentos',      path: '/rh/departments',          icon: Network,    roles: ['Gestor', 'Admin', 'Master'] },
+  { name: 'Folha de Pagamento', path: '/dp/payroll',              icon: Landmark,   roles: ['Gestor', 'Admin', 'Master'] },
+  { name: 'Férias',              path: '/dp/vacation',             icon: Umbrella,   roles: ['Gestor', 'Admin', 'Master'] },
+  { name: 'Registro de Ponto',  path: '/dp/timerecords',          icon: Clock,      roles: ['Gestor', 'Admin', 'Master'] },
+  { name: 'Contas a Pagar',     path: '/cp/payables',             icon: Banknote,   roles: ['Financeiro', 'Gestor', 'Admin', 'Master'] },
   { name: 'Checklists', path: '/admin/checklist-templates', icon: ListChecks, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'Tipos de Serviço', path: '/admin/service-types', icon: Settings2, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'SLA', path: '/admin/sla', icon: ShieldCheck, roles: ['Gestor', 'Admin', 'Master'] },

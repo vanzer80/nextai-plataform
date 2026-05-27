@@ -40,6 +40,22 @@ const AgendaPage         = lazy(() => import('@/src/pages/agenda/AgendaPage'));
 const KnowledgeBase      = lazy(() => import('@/src/pages/knowledge/KnowledgeBase'));
 const BudgetManagement   = lazy(() => import('@/src/pages/admin/BudgetManagement'));
 
+// RH — Recursos Humanos
+const EmployeesList      = lazy(() => import('@/src/pages/rh/EmployeesList'));
+const EmployeeForm       = lazy(() => import('@/src/pages/rh/EmployeeForm'));
+const DepartmentsList    = lazy(() => import('@/src/pages/rh/DepartmentsList'));
+
+// DP — Departamento Pessoal
+const PayrollList        = lazy(() => import('@/src/pages/dp/PayrollList'));
+const PayrollDetail      = lazy(() => import('@/src/pages/dp/PayrollDetail'));
+const VacationSchedule   = lazy(() => import('@/src/pages/dp/VacationSchedule'));
+const TimeRecordsPage    = lazy(() => import('@/src/pages/dp/TimeRecordsPage'));
+
+// CP — Contas a Pagar
+const PayablesList       = lazy(() => import('@/src/pages/cp/PayablesList'));
+const PayableForm        = lazy(() => import('@/src/pages/cp/PayableForm'));
+const PayableDetail      = lazy(() => import('@/src/pages/cp/PayableDetail'));
+
 // Platform admin pages (SuperMaster only)
 const PlatformTenants       = lazy(() => import('@/src/pages/platform/PlatformTenants'));
 const PlatformUsers         = lazy(() => import('@/src/pages/platform/PlatformUsers'));
@@ -163,6 +179,33 @@ export default function App() {
               {/* Master-only: tenant provisioning */}
               <Route element={<RoleGuard allowedRoles={['Master']} />}>
                 <Route path="/admin/tenants" element={<TenantManagement />} />
+              </Route>
+
+              {/* RH — Recursos Humanos */}
+              <Route element={<RoleGuard allowedRoles={['Gestor', 'Admin', 'Master']} />}>
+                <Route path="/rh"                        element={<Navigate to="/rh/employees" replace />} />
+                <Route path="/rh/employees"              element={<EmployeesList />} />
+                <Route path="/rh/employees/new"          element={<EmployeeForm />} />
+                <Route path="/rh/employees/:id/edit"     element={<EmployeeForm />} />
+                <Route path="/rh/departments"            element={<DepartmentsList />} />
+              </Route>
+
+              {/* DP — Departamento Pessoal */}
+              <Route element={<RoleGuard allowedRoles={['Gestor', 'Admin', 'Master']} />}>
+                <Route path="/dp"                        element={<Navigate to="/dp/payroll" replace />} />
+                <Route path="/dp/payroll"                element={<PayrollList />} />
+                <Route path="/dp/payroll/:id"            element={<PayrollDetail />} />
+                <Route path="/dp/vacation"               element={<VacationSchedule />} />
+                <Route path="/dp/timerecords"            element={<TimeRecordsPage />} />
+              </Route>
+
+              {/* CP — Contas a Pagar */}
+              <Route element={<RoleGuard allowedRoles={['Financeiro', 'Gestor', 'Admin', 'Master']} />}>
+                <Route path="/cp"                        element={<Navigate to="/cp/payables" replace />} />
+                <Route path="/cp/payables"               element={<PayablesList />} />
+                <Route path="/cp/new"                    element={<PayableForm />} />
+                <Route path="/cp/:id"                    element={<PayableDetail />} />
+                <Route path="/cp/:id/edit"               element={<PayableForm />} />
               </Route>
             </Route>
           </Route>
