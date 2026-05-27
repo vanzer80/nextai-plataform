@@ -103,7 +103,9 @@ export async function getEmployeeKPIs(): Promise<{
 // ── Create ────────────────────────────────────────────────────────────────────
 
 export async function createEmployee(dto: CreateEmployeeDTO): Promise<Employee> {
-  const teamRes = await supabase.from('users').select('team_id').eq('id', (await supabase.auth.getUser()).data.user!.id).single();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  if (!authUser) throw new Error('Não autenticado');
+  const teamRes = await supabase.from('users').select('team_id').eq('id', authUser.id).single();
   if (teamRes.error) throw new Error(teamRes.error.message);
   const team_id = teamRes.data.team_id;
 
@@ -183,7 +185,9 @@ export async function deleteCertification(id: string): Promise<void> {
 }
 
 export async function getExpiringCerts(days = 30): Promise<ExpiringCertRow[]> {
-  const teamRes = await supabase.from('users').select('team_id').eq('id', (await supabase.auth.getUser()).data.user!.id).single();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  if (!authUser) return [];
+  const teamRes = await supabase.from('users').select('team_id').eq('id', authUser.id).single();
   if (teamRes.error) return [];
   const { data, error } = await supabase.rpc('get_employees_with_expiring_certs', {
     p_team_id: teamRes.data.team_id,

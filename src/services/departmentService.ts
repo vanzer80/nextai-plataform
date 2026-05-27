@@ -4,6 +4,14 @@ import type {
   CreateDepartmentDTO, UpdateDepartmentDTO, CreatePositionDTO,
 } from '@/src/types/employee';
 
+async function getTeamId(): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Não autenticado');
+  const { data } = await supabase.from('users').select('team_id').eq('id', user.id).single();
+  if (!data?.team_id) throw new Error('Usuário sem equipe');
+  return data.team_id;
+}
+
 // ── Departments ───────────────────────────────────────────────────────────────
 
 export async function getDepartments(): Promise<Department[]> {
@@ -52,9 +60,10 @@ export async function getDepartmentWithHeadcount(): Promise<(Department & { empl
 }
 
 export async function createDepartment(dto: CreateDepartmentDTO): Promise<Department> {
+  const team_id = await getTeamId();
   const { data, error } = await supabase
     .from('departments')
-    .insert(dto)
+    .insert({ ...dto, team_id })
     .select()
     .single();
   if (error) throw new Error(error.message);
@@ -95,9 +104,10 @@ export async function getPositions(): Promise<Position[]> {
 }
 
 export async function createPosition(dto: CreatePositionDTO): Promise<Position> {
+  const team_id = await getTeamId();
   const { data, error } = await supabase
     .from('positions')
-    .insert(dto)
+    .insert({ ...dto, team_id })
     .select()
     .single();
   if (error) throw new Error(error.message);

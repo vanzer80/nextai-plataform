@@ -135,7 +135,7 @@ export interface VacationSchedule {
   approved_at?: string;
   notes?: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   // Joined
   employee?: { full_name: string; matricula?: string; department?: { name: string } | null };
 }

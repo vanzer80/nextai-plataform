@@ -32,13 +32,17 @@ interface CachedProfile {
   full_name: string;
   team_id: string | null;
   isPlatform: boolean;
+  cached_at: number;
 }
+
+const PROFILE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const absoluteSafetyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Guards: prevent concurrent fetches and duplicate SIGNED_IN re-fetches.
   // Supabase fires SIGNED_IN on every tab-focus / storage-event after load.
   const isFetchingRef   = useRef(false);
@@ -140,6 +144,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearTimeout(absoluteSafetyTimeoutRef.current);
         absoluteSafetyTimeoutRef.current = null;
       }
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -189,6 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           full_name: data.full_name || defaultProfile.full_name,
           team_id: data.team_id ?? null,
           isPlatform: data.tenant?.is_platform ?? false,
+          cached_at: Date.now(),
         };
 
         // Persist profile so cold-start timeouts fall back to real role, not Tecnico
@@ -202,17 +211,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(prev => {
           // Priority 1: already have the correct profile in React state
           if (prev?.id === authUser.id && prev?.role) return prev;
-          // Priority 2: last known profile from localStorage (survives cold-start)
+          // Priority 2: last known profile from localStorage, respecting TTL
           try {
             const raw = localStorage.getItem(profileCacheKey(authUser.id));
             if (raw) {
               const cached: CachedProfile = JSON.parse(raw);
-              return { ...authUser, ...cached, setup_pending: false };
+              if (Date.now() - (cached.cached_at ?? 0) < PROFILE_CACHE_TTL_MS) {
+                return { ...authUser, ...cached, setup_pending: false };
+              }
+              localStorage.removeItem(profileCacheKey(authUser.id));
             }
           } catch { /* parse error / storage unavailable */ }
           // Priority 3: safe fallback — user can still reach the login screen
           return defaultProfile;
         });
+        // Retry in background after DB has had time to wake from hibernate
+        if (!retryTimerRef.current) {
+          retryTimerRef.current = setTimeout(() => {
+            retryTimerRef.current = null;
+            isFetchingRef.current = false;
+            fetchUserData(authUser);
+          }, 20_000);
+        }
       } else {
         console.error('[AuthContext] Erro Severo validando perfil RBAC:', error);
         setUser(null); // Conforme sua ordem, forçamos um reset do profile (volta para o login) no caso de falhas letais diferentes de timeout
