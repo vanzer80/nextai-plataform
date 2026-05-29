@@ -16,7 +16,13 @@ export async function loginAs(page: Page, email: string, password: string): Prom
   await page.fill('#email', email);
   await page.fill('#password', password);
   await page.click('button[type="submit"]');
-  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 20000 });
+  // React Router usa history.replaceState (SPA) — não dispara evento 'load'.
+  // Pooling via waitForFunction é mais confiável para SPAs.
+  // Timeout 45s cobre cold-start do Supabase free tier (hiberna após inatividade).
+  await page.waitForFunction(
+    () => !window.location.pathname.includes('/login'),
+    { timeout: 45_000 }
+  );
 
   // Suppress onboarding modal so it doesn't block test interactions
   await page.evaluate(() => {
