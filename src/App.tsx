@@ -38,7 +38,8 @@ const OrcamentoDetail    = lazy(() => import('@/src/pages/orcamentos/OrcamentoDe
 const ClientPortal       = lazy(() => import('@/src/pages/portal/ClientPortal'));
 const AgendaPage         = lazy(() => import('@/src/pages/agenda/AgendaPage'));
 const KnowledgeBase      = lazy(() => import('@/src/pages/knowledge/KnowledgeBase'));
-const BudgetManagement   = lazy(() => import('@/src/pages/admin/BudgetManagement'));
+const BudgetManagement      = lazy(() => import('@/src/pages/admin/BudgetManagement'));
+const MaintenancePlans      = lazy(() => import('@/src/pages/admin/MaintenancePlans'));
 
 // RH — Recursos Humanos
 const EmployeesList      = lazy(() => import('@/src/pages/rh/EmployeesList'));
@@ -174,6 +175,7 @@ export default function App() {
                 <Route path="/admin/service-types" element={<ServiceTypes />} />
                 <Route path="/admin/sla" element={<SlaManagement />} />
                 <Route path="/admin/budget" element={<BudgetManagement />} />
+                <Route path="/admin/maintenance-plans" element={<MaintenancePlans />} />
               </Route>
 
               {/* Master-only: tenant provisioning */}

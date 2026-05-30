@@ -38,6 +38,7 @@ import { useTheme } from 'next-themes';
 
 import { supabase } from '@/src/lib/supabase';
 import { useAuth, type AuthUser } from '@/src/contexts/AuthContext';
+import { usePushNotification } from '@/src/hooks/usePushNotification';
 import { invalidateClientsCache } from '@/src/hooks/useClients';
 import { useTenant } from '@/src/contexts/TenantContext';
 import { OnboardingButton } from '@/src/onboarding/OnboardingButton';
@@ -92,6 +93,7 @@ const NAV_LINKS = [
   { name: 'Tipos de Serviço', path: '/admin/service-types', icon: Settings2, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'SLA', path: '/admin/sla', icon: ShieldCheck, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'Controle de Budget', path: '/admin/budget', icon: DollarSign, roles: ['Gestor', 'Admin', 'Master'] },
+  { name: 'Manutenção Preventiva', path: '/admin/maintenance-plans', icon: CalendarDays, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'Administrador', path: '/admin/usuarios', icon: ShieldAlert, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'Tenants', path: '/admin/tenants', icon: Globe, roles: ['Master'] },
 ];
@@ -353,6 +355,18 @@ export default function AppLayout() {
     invalidateClientsCache();
     await signOut();
   };
+
+  // Push notifications: pede permissão automaticamente para técnicos após login
+  const { permission: pushPermission, requestAndSubscribe } = usePushNotification();
+  React.useEffect(() => {
+    if (!user?.id) return;
+    if (pushPermission !== 'default') return;
+    // Aguarda 8s para não competir com a carga inicial da página
+    const timer = setTimeout(() => {
+      if (user.role === 'Tecnico' || user.role === 'Supervisor') requestAndSubscribe();
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [user?.id, user?.role, pushPermission, requestAndSubscribe]);
 
   const [notifications, setNotifications] = useState<any[]>([]);
 

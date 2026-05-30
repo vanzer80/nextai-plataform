@@ -43,6 +43,7 @@ export interface ServiceReport {
   sla_policy_id: string | null;
   sla_due_at: string | null;
   sla_responded_at: string | null;
+  maintenance_plan_id: string | null;
 
   reviewer_id: string | null;
   reviewer_comment: string | null;

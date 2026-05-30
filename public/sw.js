@@ -1,5 +1,38 @@
 const CACHE_NAME = 'nextai-v7';
 
+// ── Push Notifications ────────────────────────────────────────────────────────
+
+self.addEventListener('push', (event) => {
+  let data = { title: 'NextAI', body: '', data: {} };
+  try { data = event.data?.json() ?? data; } catch {}
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body:     data.body,
+      icon:     '/icons/icon-192.png',
+      badge:    '/icons/badge-72.png',
+      data:     data.data,
+      tag:      'nextai-notification',
+      renotify: true,
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const reportId = event.notification.data?.report_id;
+  const url = reportId
+    ? `${self.location.origin}/reports/${reportId}`
+    : `${self.location.origin}/dashboard`;
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+      for (const w of wins) {
+        if ('focus' in w) { w.navigate(url); return w.focus(); }
+      }
+      if (clients.openWindow) return clients.openWindow(url);
+    })
+  );
+});
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>

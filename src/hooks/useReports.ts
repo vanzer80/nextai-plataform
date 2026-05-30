@@ -38,7 +38,7 @@ export function useReports(filter: ReportsFilter = {}) {
           id, created_at, updated_at, status, service_type, os_number,
           service_date, site_location, technician_id, client_id, asset_id,
           reported_problem, final_diagnosis, local_draft_id, last_synced_at,
-          priority, sla_due_at,
+          priority, sla_due_at, maintenance_plan_id,
           clients(name), users:technician_id(full_name), equipments:asset_id(name)
         `)
         .order(sortCol, { ascending: sortAsc, nullsFirst: false })

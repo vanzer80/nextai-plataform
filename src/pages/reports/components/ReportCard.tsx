@@ -62,6 +62,11 @@ export default function ReportCard({ report, localSyncStatus }: ReportCardProps)
         <div className="flex items-start justify-between mb-3 gap-2">
           <div className="flex items-center gap-2 flex-wrap" data-onboarding="os-status-badge">
             <ReportStatusBadge status={report.status} />
+            {report.maintenance_plan_id && (
+              <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">
+                Preventiva
+              </span>
+            )}
             {report.os_number && (
               <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
                 {report.os_number}
