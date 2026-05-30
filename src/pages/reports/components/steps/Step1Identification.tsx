@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,9 +6,11 @@ import { Label } from '@/components/ui/label';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { ClipboardList, BookOpen } from 'lucide-react';
+import { ClipboardList, BookOpen, Hash, RefreshCw, Loader2 } from 'lucide-react';
 import { useServiceTypes } from '@/src/hooks/useServiceTypes';
 import { getSuggestionsForServiceType } from '@/src/services/kbService';
+import { useAuth } from '@/src/contexts/AuthContext';
+import { supabase } from '@/src/lib/supabase';
 import type { ReportFormValues } from '@/src/pages/reports/NewReport';
 import type { KbArticle } from '@/src/types/kb';
 
@@ -26,9 +28,17 @@ interface Step1Props {
 export default function Step1Identification({ form }: Step1Props) {
   const { register, setValue, watch, formState: { errors } } = form;
   const serviceType = watch('service_type');
+  const osNumber = watch('os_number');
   const priority = watch('priority') ?? 'normal';
   const { types: serviceTypes } = useServiceTypes();
   const [kbSuggestions, setKbSuggestions] = useState<KbArticle[]>([]);
+  const [generating, setGenerating] = useState(false);
+  const [osError, setOsError] = useState(false);
+  const { user } = useAuth();
+  // Cancela respostas de chamadas obsoletas quando serviceType muda rapidamente.
+  // Cada invocação captura sua própria geração; se outra começou antes de retornar,
+  // o resultado é descartado silenciosamente (o gap no contador é tolerado — padrão ERP).
+  const generationRef = useRef(0);
 
   useEffect(() => {
     if (!serviceType) { setKbSuggestions([]); return; }
@@ -36,6 +46,35 @@ export default function Step1Identification({ form }: Step1Props) {
       .then(setKbSuggestions)
       .catch(() => setKbSuggestions([]));
   }, [serviceType]);
+
+  const generateOsNumber = useCallback(async () => {
+    const teamId = user?.team_id;
+    if (!teamId) { setOsError(true); return; }
+
+    generationRef.current += 1;
+    const myGen = generationRef.current;
+
+    setGenerating(true);
+    setOsError(false);
+    try {
+      const { data, error } = await supabase.rpc('reserve_os_number', { p_team_id: teamId });
+      if (myGen !== generationRef.current) return; // resposta obsoleta — descarta
+      if (error) throw error;
+      setValue('os_number', data as string, { shouldDirty: true });
+    } catch {
+      if (myGen !== generationRef.current) return;
+      setOsError(true);
+    } finally {
+      if (myGen === generationRef.current) setGenerating(false);
+    }
+  }, [user?.team_id, setValue]);
+
+  // Gera o número automaticamente na primeira seleção de tipo de serviço.
+  // Idempotente: se já existe um número (rascunho restaurado), não regenera.
+  useEffect(() => {
+    if (!serviceType || osNumber) return;
+    generateOsNumber();
+  }, [serviceType]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Card className="shadow-sm border-border">
@@ -92,12 +131,51 @@ export default function Step1Identification({ form }: Step1Props) {
 
         {/* Número da OS */}
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-foreground">Número da OS</Label>
-          <Input
-            {...register('os_number')}
-            placeholder="Ex: OS-2024-001"
-            className="h-12 text-base rounded-xl bg-muted border-border focus-visible:ring-ring"
-          />
+          <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
+            Número da OS
+            <span className="text-xs font-normal text-muted-foreground">(gerado automaticamente)</span>
+          </Label>
+
+          {generating ? (
+            <div className="h-12 flex items-center gap-2 px-4 rounded-xl bg-muted border border-border text-muted-foreground text-sm">
+              <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+              Reservando número...
+            </div>
+          ) : osNumber && !osError ? (
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-12 flex items-center gap-2 px-4 rounded-xl bg-primary/10 border border-primary/20">
+                <Hash className="h-4 w-4 text-primary shrink-0" />
+                <span className="font-mono font-semibold text-primary text-base tracking-wide">
+                  {osNumber}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={generateOsNumber}
+                title="Gerar novo número"
+                className="h-12 w-12 flex items-center justify-center rounded-xl border border-border bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <Input
+                {...register('os_number')}
+                placeholder="Ex: OS-202605-00001"
+                className="h-12 text-base rounded-xl bg-muted border-border focus-visible:ring-ring"
+              />
+              {osError && (
+                <p className="text-xs text-amber-600">
+                  Não foi possível gerar automaticamente — digite manualmente ou{' '}
+                  <button type="button" onClick={generateOsNumber} className="underline hover:no-underline">
+                    tente novamente
+                  </button>
+                  .
+                </p>
+              )}
+            </>
+          )}
         </div>
 
         {/* Data do Serviço */}

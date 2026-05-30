@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { Plus, ClipboardList, AlertCircle, Loader2, Wifi, WifiOff } from 'lucide-react';
@@ -6,18 +6,38 @@ import { supabase } from '@/src/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { useReports } from '@/src/hooks/useReports';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { useClients } from '@/src/hooks/useClients';
 import type { AppLayoutOutletContext } from '@/src/components/layout/AppLayout';
 import ReportCard from './components/ReportCard';
 import ReportFilters from './components/ReportFilters';
 import type { ReportsFilter } from '@/src/hooks/useReports';
 import type { ServiceReport } from '@/src/types/reports';
 
-const EMPTY_FILTER: ReportsFilter = { status: '', dateFrom: undefined, dateTo: undefined };
+const EMPTY_FILTER: ReportsFilter = { status: '', dateFrom: undefined, dateTo: undefined, query: undefined };
 
 export default function ReportsList() {
   const { user } = useAuth();
   const [filter, setFilter] = useState<ReportsFilter>(EMPTY_FILTER);
-  const { reports, loading, error, hasMore, loadMore, refresh, updateItem } = useReports(filter);
+  const clients = useClients();
+
+  // Resolve clientIds a partir do nome digitado (cache em memória, zero latência).
+  // Quando o texto bate com um cliente, passa clientIds ao invés de textSearch,
+  // pois GENERATED COLUMN não inclui client_name (cross-table não suportado).
+  const matchingClientIds = useMemo(() => {
+    if (!filter.query?.trim()) return undefined;
+    const q = filter.query.trim().toLowerCase();
+    const ids = clients
+      .filter(c => c.name.toLowerCase().includes(q))
+      .map(c => c.id);
+    return ids.length > 0 ? ids : undefined;
+  }, [filter.query, clients]);
+
+  const resolvedFilter = useMemo(
+    () => ({ ...filter, clientIds: matchingClientIds }),
+    [filter, matchingClientIds],
+  );
+
+  const { reports, loading, error, hasMore, loadMore, refresh, updateItem } = useReports(resolvedFilter);
   const [listRef] = useAutoAnimate({ duration: 200 });
   const outletCtx = useOutletContext<AppLayoutOutletContext | undefined>();
   const isOnline    = outletCtx?.isOnline    ?? true;

@@ -8,6 +8,8 @@ export interface ReportsFilter {
   dateFrom?: string;
   dateTo?: string;
   technicianId?: string;
+  query?: string;
+  clientIds?: string[];
 }
 
 const PAGE_SIZE = 20;
@@ -40,6 +42,17 @@ export function useReports(filter: ReportsFilter = {}) {
       if (filter.dateTo) query = query.lte('service_date', filter.dateTo);
       if (filter.technicianId) query = query.eq('technician_id', filter.technicianId);
 
+      // Busca semântica: cliente por nome (via cache) tem prioridade sobre text-search,
+      // pois GENERATED COLUMN não inclui dados de outras tabelas.
+      if (filter.clientIds?.length) {
+        query = query.in('client_id', filter.clientIds);
+      } else if (filter.query?.trim()) {
+        query = query.textSearch('search_vector', filter.query.trim(), {
+          type: 'websearch',
+          config: 'simple',
+        });
+      }
+
       const { data, error: err } = await query;
       if (err) throw err;
 
@@ -54,7 +67,8 @@ export function useReports(filter: ReportsFilter = {}) {
     } finally {
       setLoading(false);
     }
-  }, [filter.status, filter.dateFrom, filter.dateTo, filter.technicianId]); // eslint-disable-line
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter.status, filter.dateFrom, filter.dateTo, filter.technicianId, filter.query, filter.clientIds?.join(',')]);
 
   useEffect(() => {
     setPage(0);
