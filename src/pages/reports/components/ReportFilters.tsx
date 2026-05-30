@@ -9,11 +9,13 @@ import { Search, X } from 'lucide-react';
 import { REPORT_STATUS_LABEL } from '@/src/types/reports';
 import type { ReportStatus } from '@/src/types/reports';
 import type { ReportsFilter } from '@/src/hooks/useReports';
+import type { Technician } from '@/src/hooks/useTechnicians';
 
 interface ReportFiltersProps {
   filter: ReportsFilter;
   onChange: (filter: ReportsFilter) => void;
   onClear: () => void;
+  technicians?: Technician[];
 }
 
 const STATUS_OPTIONS: { value: ReportStatus | ''; label: string }[] = [
@@ -25,8 +27,16 @@ const STATUS_OPTIONS: { value: ReportStatus | ''; label: string }[] = [
   { value: 'rejected', label: REPORT_STATUS_LABEL.rejected },
 ];
 
-export default function ReportFilters({ filter, onChange, onClear }: ReportFiltersProps) {
-  const hasActiveFilter = filter.status || filter.dateFrom || filter.dateTo || filter.query;
+const PRIORITY_OPTIONS = [
+  { value: '',        label: 'Todas as prioridades' },
+  { value: 'critica', label: 'Crítica' },
+  { value: 'alta',    label: 'Alta' },
+  { value: 'normal',  label: 'Normal' },
+  { value: 'baixa',   label: 'Baixa' },
+];
+
+export default function ReportFilters({ filter, onChange, onClear, technicians }: ReportFiltersProps) {
+  const hasActiveFilter = filter.status || filter.priority || filter.dateFrom || filter.dateTo || filter.query || filter.technicianId;
   const [inputValue, setInputValue] = useState(filter.query ?? '');
   const isMounted = useRef(false);
 
@@ -66,7 +76,8 @@ export default function ReportFilters({ filter, onChange, onClear }: ReportFilte
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* Filtros principais — 4 colunas em telas grandes */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Status */}
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</Label>
@@ -80,6 +91,26 @@ export default function ReportFilters({ filter, onChange, onClear }: ReportFilte
             <SelectContent>
               {STATUS_OPTIONS.map(opt => (
                 <SelectItem key={opt.value} value={opt.value || '__all__'}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Prioridade */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Prioridade</Label>
+          <Select
+            value={filter.priority ?? ''}
+            onValueChange={(val: string) => onChange({ ...filter, priority: (val === '__all_p__' ? '' : val) as ReportsFilter['priority'] })}
+          >
+            <SelectTrigger className="h-10 rounded-lg bg-background border-input text-sm">
+              <SelectValue placeholder="Todas as prioridades" />
+            </SelectTrigger>
+            <SelectContent>
+              {PRIORITY_OPTIONS.map(opt => (
+                <SelectItem key={opt.value} value={opt.value || '__all_p__'}>
                   {opt.label}
                 </SelectItem>
               ))}
@@ -109,6 +140,27 @@ export default function ReportFilters({ filter, onChange, onClear }: ReportFilte
           />
         </div>
       </div>
+
+      {/* Filtro por técnico — visível apenas para gestores */}
+      {technicians && technicians.length > 0 && (
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Técnico</Label>
+          <Select
+            value={filter.technicianId ?? ''}
+            onValueChange={val => onChange({ ...filter, technicianId: val === '__all_t__' ? undefined : val })}
+          >
+            <SelectTrigger className="h-10 rounded-lg bg-background border-input text-sm">
+              <SelectValue placeholder="Todos os técnicos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all_t__">Todos os técnicos</SelectItem>
+              {technicians.map(t => (
+                <SelectItem key={t.id} value={t.id}>{t.full_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {hasActiveFilter && (
         <div className="flex justify-end">

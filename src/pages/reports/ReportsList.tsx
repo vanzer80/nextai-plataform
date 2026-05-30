@@ -7,18 +7,21 @@ import { Button } from '@/components/ui/button';
 import { useReports } from '@/src/hooks/useReports';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useClients } from '@/src/hooks/useClients';
+import { useTechnicians } from '@/src/hooks/useTechnicians';
 import type { AppLayoutOutletContext } from '@/src/components/layout/AppLayout';
 import ReportCard from './components/ReportCard';
 import ReportFilters from './components/ReportFilters';
 import type { ReportsFilter } from '@/src/hooks/useReports';
 import type { ServiceReport } from '@/src/types/reports';
 
-const EMPTY_FILTER: ReportsFilter = { status: '', dateFrom: undefined, dateTo: undefined, query: undefined };
+const EMPTY_FILTER: ReportsFilter = { status: '', priority: '', dateFrom: undefined, dateTo: undefined, query: undefined, technicianId: undefined };
 
 export default function ReportsList() {
   const { user } = useAuth();
   const [filter, setFilter] = useState<ReportsFilter>(EMPTY_FILTER);
   const clients = useClients();
+  const technicians = useTechnicians();
+  const isManager = user?.role && ['Gestor', 'Supervisor', 'Admin', 'Master'].includes(user.role);
 
   // Resolve clientIds a partir do nome digitado (cache em memória, zero latência).
   // Quando o texto bate com um cliente, passa clientIds ao invés de textSearch,
@@ -64,8 +67,6 @@ export default function ReportsList() {
     return () => { supabase.removeChannel(channel); };
   }, [refresh, updateItem]);
 
-  const isManager = user?.role && ['Gestor', 'Supervisor', 'Admin', 'Master'].includes(user.role);
-
   return (
     <div className="flex flex-col gap-4 w-full pb-8 animate-in fade-in duration-300">
       {/* Cabeçalho */}
@@ -107,6 +108,7 @@ export default function ReportsList() {
         filter={filter}
         onChange={setFilter}
         onClear={() => setFilter(EMPTY_FILTER)}
+        technicians={isManager ? technicians : undefined}
       />
       </div>
 

@@ -5,6 +5,7 @@ import type { ServiceReport, ReportStatus } from '@/src/types/reports';
 
 export interface ReportsFilter {
   status?: ReportStatus | '';
+  priority?: 'baixa' | 'normal' | 'alta' | 'critica' | '';
   dateFrom?: string;
   dateTo?: string;
   technicianId?: string;
@@ -32,14 +33,16 @@ export function useReports(filter: ReportsFilter = {}) {
           id, created_at, updated_at, status, service_type, os_number,
           service_date, site_location, technician_id, client_id, asset_id,
           reported_problem, final_diagnosis, local_draft_id, last_synced_at,
+          priority, sla_due_at,
           clients(name), users:technician_id(full_name), equipments:asset_id(name)
         `)
         .order('created_at', { ascending: false })
         .range(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE - 1);
 
-      if (filter.status) query = query.eq('status', filter.status);
-      if (filter.dateFrom) query = query.gte('service_date', filter.dateFrom);
-      if (filter.dateTo) query = query.lte('service_date', filter.dateTo);
+      if (filter.status)      query = query.eq('status', filter.status);
+      if (filter.priority)    query = query.eq('priority', filter.priority);
+      if (filter.dateFrom)    query = query.gte('service_date', filter.dateFrom);
+      if (filter.dateTo)      query = query.lte('service_date', filter.dateTo);
       if (filter.technicianId) query = query.eq('technician_id', filter.technicianId);
 
       // Busca semântica: cliente por nome (via cache) tem prioridade sobre text-search,
@@ -68,7 +71,7 @@ export function useReports(filter: ReportsFilter = {}) {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter.status, filter.dateFrom, filter.dateTo, filter.technicianId, filter.query, filter.clientIds?.join(',')]);
+  }, [filter.status, filter.priority, filter.dateFrom, filter.dateTo, filter.technicianId, filter.query, filter.clientIds?.join(',')]);
 
   useEffect(() => {
     setPage(0);

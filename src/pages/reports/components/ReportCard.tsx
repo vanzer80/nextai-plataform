@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Clock, MapPin, Wrench, ChevronRight, Timer, AlertTriangle } from 'lucide-react';
+import { Clock, MapPin, Wrench, ChevronRight, Timer, AlertTriangle, Flame } from 'lucide-react';
 import { differenceInMinutes, parseISO as _parseISO } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -15,6 +15,12 @@ interface ReportCardProps {
   report: ServiceReport;
   localSyncStatus?: SyncStatus;
 }
+
+const PRIORITY_CHIP: Record<string, { cls: string; label: string; icon?: boolean }> = {
+  baixa:   { cls: 'bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-400', label: 'Baixa' },
+  alta:    { cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300', label: 'Alta' },
+  critica: { cls: 'bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300',   label: 'Crítica', icon: true },
+};
 
 function initials(name?: string | null) {
   if (!name) return 'T';
@@ -63,6 +69,12 @@ export default function ReportCard({ report, localSyncStatus }: ReportCardProps)
             )}
             {report.service_type && (
               <span className="text-xs text-muted-foreground font-medium">{report.service_type}</span>
+            )}
+            {report.priority && report.priority !== 'normal' && PRIORITY_CHIP[report.priority] && (
+              <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${PRIORITY_CHIP[report.priority].cls}`}>
+                {PRIORITY_CHIP[report.priority].icon && <Flame className="h-3 w-3" />}
+                {PRIORITY_CHIP[report.priority].label}
+              </span>
             )}
             {aging && (
               <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${AGING_CLASSES[aging.level]}`}>
