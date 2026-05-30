@@ -1,11 +1,11 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   ArrowLeft, AlertTriangle, Calendar, MapPin, Wrench,
   Stethoscope, ClipboardList, Camera, PenLine, History,
-  CheckCircle2, XCircle, Loader2, FileDown,
+  CheckCircle2, XCircle, Loader2, FileDown, SquarePen, Send,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +19,9 @@ import ApprovalPanel from './components/ApprovalPanel';
 import type { ReportChecklistItem, ReportStatusHistory } from '@/src/types/reports';
 import { REPORT_STATUS_LABEL } from '@/src/types/reports';
 import { gerarPdfRelatorio } from '@/src/utils/gerarPdfRelatorio';
+import { resubmitReport } from '@/src/services/reportService';
+import { toast } from 'sonner';
+import { Textarea } from '@/components/ui/textarea';
 
 const REVIEWER_ROLES = ['Gestor', 'Supervisor', 'Admin', 'Master'] as const;
 
@@ -116,6 +119,52 @@ export default function ReportDetail() {
 
   const isReviewer = REVIEWER_ROLES.includes(user?.role as typeof REVIEWER_ROLES[number]);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+
+  // ── Correção inline para OS devolvidas ───────────────────────
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSendingCorrection, setIsSendingCorrection] = useState(false);
+  const [editData, setEditData] = useState({
+    reported_problem: '',
+    preliminary_diagnosis: '',
+    final_diagnosis: '',
+    services_performed: '',
+    parts_used: '',
+    pending_issues: '',
+    technical_recommendation: '',
+    internal_notes: '',
+  });
+
+  useEffect(() => {
+    if (isEditing && report) {
+      setEditData({
+        reported_problem:         report.reported_problem ?? '',
+        preliminary_diagnosis:    report.preliminary_diagnosis ?? '',
+        final_diagnosis:          report.final_diagnosis ?? '',
+        services_performed:       report.services_performed ?? '',
+        parts_used:               report.parts_used ?? '',
+        pending_issues:           report.pending_issues ?? '',
+        technical_recommendation: report.technical_recommendation ?? '',
+        internal_notes:           report.internal_notes ?? '',
+      });
+    }
+  }, [isEditing, report]);
+
+  const handleSubmitCorrection = useCallback(async () => {
+    if (!report) return;
+    setIsSendingCorrection(true);
+    try {
+      await resubmitReport({ reportId: report.id, ...editData });
+      toast.success('OS reenviada para revisão.', {
+        description: 'O gestor será notificado para nova análise.',
+      });
+      setIsEditing(false);
+      refresh();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao reenviar OS.');
+    } finally {
+      setIsSendingCorrection(false);
+    }
+  }, [report, editData, refresh]);
 
   const handleExportPdf = async () => {
     if (!report) return;
@@ -217,15 +266,88 @@ export default function ReportDetail() {
         </div>
       )}
 
-      {/* Alerta de devolução */}
-      {report.status === 'returned' && report.reviewer_comment && (
-        <div className="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-100/70 dark:bg-amber-500/15 p-4 flex gap-3">
-          <AlertTriangle className="h-5 w-5 text-amber-700 dark:text-amber-300 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">OS devolvida para ajuste</p>
-            <p className="text-sm text-amber-800 dark:text-amber-300 mt-0.5">{report.reviewer_comment}</p>
-          </div>
-        </div>
+      {/* Alerta de devolução + form de correção inline */}
+      {report.status === 'returned' && (
+        <>
+          {report.reviewer_comment && (
+            <div className="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-100/70 dark:bg-amber-500/15 p-4 flex gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-700 dark:text-amber-300 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">OS devolvida para ajuste</p>
+                <p className="text-sm text-amber-800 dark:text-amber-300 mt-0.5">{report.reviewer_comment}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Form de correção — visível apenas para o técnico responsável */}
+          {user?.id === report.technician_id && (
+            <Card className="shadow-sm border-orange-200 dark:border-orange-700/40">
+              <CardHeader className="pb-3 border-b border-orange-200 dark:border-orange-700/40 bg-orange-50/60 dark:bg-orange-900/20 rounded-t-xl">
+                <CardTitle className="text-base flex items-center gap-2 text-orange-800 dark:text-orange-300">
+                  <SquarePen className="h-4 w-4" />
+                  Corrigir e Reenviar OS
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {!isEditing ? (
+                  <Button
+                    onClick={() => setIsEditing(true)}
+                    className="w-full h-11 rounded-xl font-semibold bg-orange-600 hover:bg-orange-700 text-white gap-2"
+                  >
+                    <SquarePen className="h-4 w-4" />
+                    Abrir para correção
+                  </Button>
+                ) : (
+                  <div className="space-y-4">
+                    {(
+                      [
+                        { key: 'reported_problem',         label: 'Problema relatado' },
+                        { key: 'preliminary_diagnosis',    label: 'Diagnóstico preliminar' },
+                        { key: 'final_diagnosis',          label: 'Diagnóstico final' },
+                        { key: 'services_performed',       label: 'Serviços executados' },
+                        { key: 'parts_used',               label: 'Peças / Materiais' },
+                        { key: 'pending_issues',           label: 'Pendências' },
+                        { key: 'technical_recommendation', label: 'Recomendação técnica' },
+                        { key: 'internal_notes',           label: 'Notas internas' },
+                      ] as const
+                    ).map(({ key, label }) => (
+                      <div key={key} className="space-y-1.5">
+                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{label}</p>
+                        <Textarea
+                          value={editData[key]}
+                          onChange={e => setEditData(prev => ({ ...prev, [key]: e.target.value }))}
+                          placeholder={label}
+                          className="resize-none rounded-xl bg-background border-input text-sm focus-visible:ring-ring min-h-[72px]"
+                        />
+                      </div>
+                    ))}
+
+                    <div className="flex gap-3 pt-2">
+                      <Button
+                        onClick={handleSubmitCorrection}
+                        disabled={isSendingCorrection}
+                        className="flex-1 h-11 rounded-xl font-semibold bg-orange-600 hover:bg-orange-700 text-white gap-2"
+                      >
+                        {isSendingCorrection
+                          ? <><Loader2 className="h-4 w-4 animate-spin" /> Reenviando...</>
+                          : <><Send className="h-4 w-4" /> Reenviar para revisão</>
+                        }
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setIsEditing(false)}
+                        disabled={isSendingCorrection}
+                        className="h-11 px-4 rounded-xl text-sm"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
 
       {/* Identificação */}

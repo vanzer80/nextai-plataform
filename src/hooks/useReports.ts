@@ -65,7 +65,26 @@ export function useReports(filter: ReportsFilter = {}) {
     } catch (err: unknown) {
       console.warn('[useReports] Supabase falhou, usando cache IndexedDB');
       const cached = await getAllCachedReports();
-      setReports(cached.map(c => c.data) as ServiceReport[]);
+      // Aplica filtros client-side no cache offline (JavaScript ILIKE simples)
+      let rows = cached.map(c => c.data) as ServiceReport[];
+      if (filter.status)       rows = rows.filter(r => r.status === filter.status);
+      if (filter.priority)     rows = rows.filter(r => r.priority === filter.priority);
+      if (filter.technicianId) rows = rows.filter(r => r.technician_id === filter.technicianId);
+      if (filter.dateFrom)     rows = rows.filter(r => r.service_date != null && r.service_date >= filter.dateFrom!);
+      if (filter.dateTo)       rows = rows.filter(r => r.service_date != null && r.service_date <= filter.dateTo!);
+      if (filter.clientIds?.length) rows = rows.filter(r => r.client_id != null && filter.clientIds!.includes(r.client_id));
+      if (filter.query?.trim()) {
+        const q = filter.query.trim().toLowerCase();
+        rows = rows.filter(r =>
+          r.os_number?.toLowerCase().includes(q) ||
+          r.service_type?.toLowerCase().includes(q) ||
+          r.reported_problem?.toLowerCase().includes(q) ||
+          r.final_diagnosis?.toLowerCase().includes(q) ||
+          r.site_location?.toLowerCase().includes(q) ||
+          r.asset_name_manual?.toLowerCase().includes(q)
+        );
+      }
+      setReports(prev => pageIndex === 0 ? rows : [...prev, ...rows]);
       setError('Exibindo dados em cache — verifique sua conexão.');
     } finally {
       setLoading(false);

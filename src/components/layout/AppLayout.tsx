@@ -49,6 +49,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import ThemeToggle from '@/src/components/theme/ThemeToggle';
 import clsx from 'clsx';
+import { toast } from 'sonner';
 import { NextAILogo } from '@/src/components/brand/NextAILogo';
 
 // Mapeamento path → chave data-onboarding para o tour
@@ -360,6 +361,11 @@ export default function AppLayout() {
         setNotifications(prev => {
           if (prev.some(n => n.id === payload.new.id)) return prev;
           return [payload.new, ...prev].slice(0, 10);
+        });
+        // Toast em tempo real: aparece mesmo com o app em background na aba
+        toast.info(payload.new.title as string, {
+          description: payload.new.message as string,
+          duration: 6000,
         });
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {

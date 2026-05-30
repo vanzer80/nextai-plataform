@@ -1,9 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import { Link, useOutletContext } from 'react-router-dom';
-import { Plus, ClipboardList, AlertCircle, Loader2, Wifi, WifiOff } from 'lucide-react';
+import { Plus, ClipboardList, AlertCircle, Loader2, Wifi, WifiOff, FileSpreadsheet } from 'lucide-react';
+import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
 import { Button } from '@/components/ui/button';
+import { exportarOsExcel } from '@/src/utils/exportarOsExcel';
+import type { ServiceReport } from '@/src/types/reports';
 import { useReports } from '@/src/hooks/useReports';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useClients } from '@/src/hooks/useClients';
@@ -12,7 +15,6 @@ import type { AppLayoutOutletContext } from '@/src/components/layout/AppLayout';
 import ReportCard from './components/ReportCard';
 import ReportFilters from './components/ReportFilters';
 import type { ReportsFilter } from '@/src/hooks/useReports';
-import type { ServiceReport } from '@/src/types/reports';
 
 const EMPTY_FILTER: ReportsFilter = { status: '', priority: '', dateFrom: undefined, dateTo: undefined, query: undefined, technicianId: undefined };
 
@@ -41,6 +43,42 @@ export default function ReportsList() {
   );
 
   const { reports, loading, error, hasMore, loadMore, refresh, updateItem } = useReports(resolvedFilter);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      // Faz fetch completo sem paginação, aplicando os mesmos filtros ativos
+      let query = supabase
+        .from('service_reports')
+        .select(`
+          id, created_at, status, service_type, os_number, service_date,
+          site_location, reported_problem, final_diagnosis, services_performed,
+          parts_used, priority, asset_name_manual,
+          clients(name), users:technician_id(full_name), equipments:asset_id(name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (resolvedFilter.status)       query = query.eq('status', resolvedFilter.status);
+      if (resolvedFilter.priority)     query = query.eq('priority', resolvedFilter.priority);
+      if (resolvedFilter.dateFrom)     query = query.gte('service_date', resolvedFilter.dateFrom);
+      if (resolvedFilter.dateTo)       query = query.lte('service_date', resolvedFilter.dateTo);
+      if (resolvedFilter.technicianId) query = query.eq('technician_id', resolvedFilter.technicianId);
+      if (resolvedFilter.clientIds?.length) query = query.in('client_id', resolvedFilter.clientIds);
+      else if (resolvedFilter.query?.trim()) {
+        query = query.textSearch('search_vector', resolvedFilter.query.trim(), { type: 'websearch', config: 'simple' });
+      }
+
+      const { data, error: fetchErr } = await query;
+      if (fetchErr) throw fetchErr;
+      exportarOsExcel((data ?? []) as ServiceReport[]);
+      toast.success(`${data?.length ?? 0} OS exportadas com sucesso.`);
+    } catch {
+      toast.error('Erro ao exportar. Tente novamente.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
   const [listRef] = useAutoAnimate({ duration: 200 });
   const outletCtx = useOutletContext<AppLayoutOutletContext | undefined>();
   const isOnline    = outletCtx?.isOnline    ?? true;
@@ -75,13 +113,29 @@ export default function ReportsList() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Ordens de Serviço</h1>
           <p className="text-sm text-muted-foreground">Histórico de serviços de campo</p>
         </div>
-        <Link
-          to="/reports/new"
-          data-onboarding="os-nova"
-          className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold h-10 px-4 rounded-xl shadow-sm transition-colors"
-        >
-          <Plus className="h-4 w-4" /> Nova OS
-        </Link>
+        <div className="flex items-center gap-2">
+          {isManager && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportExcel}
+              disabled={isExporting}
+              className="h-10 rounded-xl gap-1.5 text-sm font-semibold border-border"
+            >
+              {isExporting
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <FileSpreadsheet className="h-4 w-4" />}
+              <span className="hidden sm:inline">Exportar</span>
+            </Button>
+          )}
+          <Link
+            to="/reports/new"
+            data-onboarding="os-nova"
+            className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold h-10 px-4 rounded-xl shadow-sm transition-colors"
+          >
+            <Plus className="h-4 w-4" /> Nova OS
+          </Link>
+        </div>
       </div>
 
       {/* Indicadores de conectividade e sync */}
