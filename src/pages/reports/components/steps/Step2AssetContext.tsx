@@ -115,7 +115,9 @@ export default function Step2AssetContext({ form }: Step2Props) {
             }}
           >
             <SelectTrigger className="h-12 text-base rounded-xl bg-muted border-border focus:ring-ring">
-              <SelectValue placeholder="Selecione o cliente" />
+              <SelectValue placeholder="Selecione o cliente">
+                {clients.find(c => c.id === selectedClientId)?.name}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {clients.map(c => (
