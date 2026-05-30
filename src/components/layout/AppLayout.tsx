@@ -1,5 +1,5 @@
 import React, { useState, Suspense } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   ClipboardList,
@@ -289,6 +289,7 @@ interface NotificationsDropdownProps {
 }
 
 function NotificationsDropdown({ notifications, unreadCount, onMarkAsRead }: NotificationsDropdownProps) {
+  const navigate = useNavigate();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger data-onboarding="nav-notificacoes" className="relative p-2 rounded-full hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -310,7 +311,10 @@ function NotificationsDropdown({ notifications, unreadCount, onMarkAsRead }: Not
               <div
                 key={notif.id}
                 className={clsx('p-4 border-b border-border text-sm hover:bg-muted/50 cursor-pointer transition-colors', !notif.is_read && 'bg-accent/40')}
-                onClick={() => onMarkAsRead(notif.id, notif.is_read)}
+                onClick={() => {
+                  onMarkAsRead(notif.id, notif.is_read);
+                  if (notif.report_id) navigate(`/reports/${notif.report_id as string}`);
+                }}
               >
                 <div className="flex justify-between items-start mb-1 gap-2">
                   <p className={clsx('font-semibold', !notif.is_read ? 'text-foreground' : 'text-muted-foreground')}>{notif.title}</p>

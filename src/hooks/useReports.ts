@@ -11,6 +11,8 @@ export interface ReportsFilter {
   technicianId?: string;
   query?: string;
   clientIds?: string[];
+  sortBy?: 'created_at' | 'service_date' | 'sla_due_at' | 'os_number';
+  sortDir?: 'asc' | 'desc';
 }
 
 const PAGE_SIZE = 20;
@@ -27,6 +29,9 @@ export function useReports(filter: ReportsFilter = {}) {
     setError(null);
 
     try {
+      const sortCol = filter.sortBy ?? 'created_at';
+      const sortAsc = filter.sortDir === 'asc';
+
       let query = supabase
         .from('service_reports')
         .select(`
@@ -36,7 +41,7 @@ export function useReports(filter: ReportsFilter = {}) {
           priority, sla_due_at,
           clients(name), users:technician_id(full_name), equipments:asset_id(name)
         `)
-        .order('created_at', { ascending: false })
+        .order(sortCol, { ascending: sortAsc, nullsFirst: false })
         .range(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE - 1);
 
       if (filter.status)      query = query.eq('status', filter.status);
@@ -91,7 +96,7 @@ export function useReports(filter: ReportsFilter = {}) {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter.status, filter.priority, filter.dateFrom, filter.dateTo, filter.technicianId, filter.query, filter.clientIds?.join(',')]);
+  }, [filter.status, filter.priority, filter.dateFrom, filter.dateTo, filter.technicianId, filter.query, filter.clientIds?.join(','), filter.sortBy, filter.sortDir]);
 
   useEffect(() => {
     setPage(0);

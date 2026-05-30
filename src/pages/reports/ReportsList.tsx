@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
 import { Plus, ClipboardList, AlertCircle, Loader2, Wifi, WifiOff, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
@@ -16,11 +16,42 @@ import ReportCard from './components/ReportCard';
 import ReportFilters from './components/ReportFilters';
 import type { ReportsFilter } from '@/src/hooks/useReports';
 
-const EMPTY_FILTER: ReportsFilter = { status: '', priority: '', dateFrom: undefined, dateTo: undefined, query: undefined, technicianId: undefined };
+const EMPTY_FILTER: ReportsFilter = {
+  status: '', priority: '', dateFrom: undefined, dateTo: undefined,
+  query: undefined, technicianId: undefined,
+  sortBy: 'created_at', sortDir: 'desc',
+};
 
 export default function ReportsList() {
   const { user } = useAuth();
-  const [filter, setFilter] = useState<ReportsFilter>(EMPTY_FILTER);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Lazy init: lê URL na montagem para suportar deep links (ex: ?status=approved&sort=sla_due_at)
+  const [filter, setFilter] = useState<ReportsFilter>(() => ({
+    status:       (searchParams.get('status') as ReportsFilter['status'])   ?? '',
+    priority:     (searchParams.get('priority') as ReportsFilter['priority']) ?? '',
+    dateFrom:     searchParams.get('dateFrom') ?? undefined,
+    dateTo:       searchParams.get('dateTo')   ?? undefined,
+    query:        searchParams.get('q')        ?? undefined,
+    technicianId: searchParams.get('tid')      ?? undefined,
+    sortBy:       (searchParams.get('sort') as ReportsFilter['sortBy'])   ?? 'created_at',
+    sortDir:      (searchParams.get('dir')  as ReportsFilter['sortDir'])  ?? 'desc',
+  }));
+
+  // Sincroniza filter → URL (replace: não polui o histórico de navegação)
+  // Defaults são omitidos para manter links limpos
+  useEffect(() => {
+    const p = new URLSearchParams();
+    if (filter.status)                             p.set('status',   filter.status);
+    if (filter.priority)                           p.set('priority', filter.priority);
+    if (filter.dateFrom)                           p.set('dateFrom', filter.dateFrom);
+    if (filter.dateTo)                             p.set('dateTo',   filter.dateTo);
+    if (filter.query)                              p.set('q',        filter.query);
+    if (filter.technicianId)                       p.set('tid',      filter.technicianId);
+    if (filter.sortBy  && filter.sortBy  !== 'created_at') p.set('sort', filter.sortBy);
+    if (filter.sortDir && filter.sortDir !== 'desc')       p.set('dir',  filter.sortDir);
+    setSearchParams(p, { replace: true });
+  }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
   const clients = useClients();
   const technicians = useTechnicians();
   const isManager = user?.role && ['Gestor', 'Supervisor', 'Admin', 'Master'].includes(user.role);

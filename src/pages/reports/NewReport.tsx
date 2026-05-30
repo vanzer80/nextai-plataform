@@ -13,6 +13,7 @@ import { useReportDraft } from '@/src/hooks/useReportDraft';
 import { useChecklistTemplate } from '@/src/hooks/useChecklistTemplate';
 import SyncStatusIndicator from './components/SyncStatusIndicator';
 import { submitReport } from '@/src/services/reportService';
+import { supabase } from '@/src/lib/supabase';
 import type { ReportChecklistItem, EvidenceFile, CreateServiceReportDTO } from '@/src/types/reports';
 
 const Step1Identification = lazy(() => import('./components/steps/Step1Identification'));
@@ -118,6 +119,30 @@ export default function NewReport() {
     if (assetId)  form.setValue('asset_id', assetId);
     if (clientId) form.setValue('client_id', clientId);
     if (assetId || clientId) setCurrentStep(2);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Duplicar OS: pré-preenche contexto (cliente, equipamento, tipo, prioridade).
+  // Diagnóstico e execução ficam vazios — a nova OS é um trabalho novo, não cópia.
+  // os_number é regenerado automaticamente pelo Step1 ao detectar o service_type.
+  useEffect(() => {
+    const duplicateFrom = searchParams.get('duplicateFrom');
+    if (!duplicateFrom) return;
+    supabase
+      .from('service_reports')
+      .select('service_type, client_id, site_location, asset_id, asset_name_manual, priority')
+      .eq('id', duplicateFrom)
+      .single()
+      .then(({ data }) => {
+        if (!data) return;
+        if (data.service_type)      form.setValue('service_type', data.service_type);
+        if (data.client_id)         form.setValue('client_id', data.client_id);
+        if (data.site_location)     form.setValue('site_location', data.site_location);
+        if (data.asset_id)          form.setValue('asset_id', data.asset_id);
+        if (data.asset_name_manual) form.setValue('asset_name_manual', data.asset_name_manual);
+        if (data.priority)          form.setValue('priority', data.priority as ReportFormValues['priority']);
+        form.setValue('service_date', new Date().toISOString().split('T')[0]);
+      });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

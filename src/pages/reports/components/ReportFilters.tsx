@@ -56,8 +56,9 @@ export default function ReportFilters({ filter, onChange, onClear, technicians }
 
   return (
     <div className="bg-card rounded-xl border border-border p-4 shadow-sm space-y-3">
-      {/* Busca full-text — largura total, acima dos outros filtros */}
-      <div className="relative">
+      {/* Busca + ordenação — mesma linha */}
+      <div className="flex items-center gap-2">
+      <div className="relative flex-1">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
         <Input
           value={inputValue}
@@ -74,6 +75,29 @@ export default function ReportFilters({ filter, onChange, onClear, technicians }
             <X className="h-4 w-4" />
           </button>
         )}
+      </div>
+
+      {/* Ordenação — compacta, alinhada à direita da busca */}
+      <Select
+        value={`${filter.sortBy ?? 'created_at'}-${filter.sortDir ?? 'desc'}`}
+        onValueChange={(val: string) => {
+          const sep = val.lastIndexOf('-');
+          const col = val.substring(0, sep) as ReportsFilter['sortBy'];
+          const dir = val.substring(sep + 1) as ReportsFilter['sortDir'];
+          onChange({ ...filter, sortBy: col, sortDir: dir });
+        }}
+      >
+        <SelectTrigger className="h-11 w-[170px] shrink-0 rounded-xl bg-background border-input text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="created_at-desc">Mais recente</SelectItem>
+          <SelectItem value="service_date-desc">Data serviço (↓)</SelectItem>
+          <SelectItem value="service_date-asc">Data serviço (↑)</SelectItem>
+          <SelectItem value="sla_due_at-asc">SLA urgente</SelectItem>
+          <SelectItem value="os_number-asc">Nº OS (A→Z)</SelectItem>
+        </SelectContent>
+      </Select>
       </div>
 
       {/* Filtros principais — 4 colunas em telas grandes */}

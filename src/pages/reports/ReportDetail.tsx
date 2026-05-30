@@ -5,7 +5,7 @@ import { ptBR } from 'date-fns/locale';
 import {
   ArrowLeft, AlertTriangle, Calendar, MapPin, Wrench,
   Stethoscope, ClipboardList, Camera, PenLine, History,
-  CheckCircle2, XCircle, Loader2, FileDown, SquarePen, Send,
+  CheckCircle2, XCircle, Loader2, FileDown, SquarePen, Send, Copy, RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +19,7 @@ import ApprovalPanel from './components/ApprovalPanel';
 import type { ReportChecklistItem, ReportStatusHistory } from '@/src/types/reports';
 import { REPORT_STATUS_LABEL } from '@/src/types/reports';
 import { gerarPdfRelatorio } from '@/src/utils/gerarPdfRelatorio';
-import { resubmitReport } from '@/src/services/reportService';
+import { resubmitReport, reopenReport } from '@/src/services/reportService';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -149,6 +149,27 @@ export default function ReportDetail() {
     }
   }, [isEditing, report]);
 
+  // ── Reabrir OS reprovada ─────────────────────────────────────
+  const [isReopening, setIsReopening] = useState(false);
+  const [isSubmittingReopen, setIsSubmittingReopen] = useState(false);
+
+  const handleReopen = useCallback(async () => {
+    if (!report) return;
+    setIsSubmittingReopen(true);
+    try {
+      await reopenReport(report.id);
+      toast.success('OS reaberta para correção.', {
+        description: 'Use o formulário de correção para ajustar e reenviar.',
+      });
+      setIsReopening(false);
+      refresh();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao reabrir OS.');
+    } finally {
+      setIsSubmittingReopen(false);
+    }
+  }, [report, refresh]);
+
   const handleSubmitCorrection = useCallback(async () => {
     if (!report) return;
     setIsSendingCorrection(true);
@@ -242,21 +263,34 @@ export default function ReportDetail() {
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">{fmtDate(report.service_date)}</p>
         </div>
-        {report.status === 'approved' && (
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Duplicar — disponível para todos os status */}
           <Button
             variant="outline"
             size="sm"
-            onClick={handleExportPdf}
-            disabled={isPdfLoading}
-            data-onboarding="detail-pdf"
-            className="shrink-0 gap-1.5 rounded-xl border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700/60 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
+            onClick={() => navigate(`/reports/new?duplicateFrom=${report.id}`)}
+            className="gap-1.5 rounded-xl"
+            title="Usar esta OS como base para uma nova"
           >
-            {isPdfLoading
-              ? <Loader2 className="h-4 w-4 animate-spin" />
-              : <FileDown className="h-4 w-4" />}
-            <span className="hidden sm:inline">Exportar PDF</span>
+            <Copy className="h-4 w-4" />
+            <span className="hidden sm:inline">Duplicar</span>
           </Button>
-        )}
+
+          {/* PDF — apenas para OS aprovadas */}
+          {report.status === 'approved' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportPdf}
+              disabled={isPdfLoading}
+              data-onboarding="detail-pdf"
+              className="gap-1.5 rounded-xl border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700/60 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
+            >
+              {isPdfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+              <span className="hidden sm:inline">PDF</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Painel de aprovação — visível apenas para gestores */}
@@ -339,6 +373,68 @@ export default function ReportDetail() {
                         disabled={isSendingCorrection}
                         className="h-11 px-4 rounded-xl text-sm"
                       >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* OS reprovada — alerta + opção de reabrir para o técnico */}
+      {report.status === 'rejected' && (
+        <>
+          {report.reviewer_comment && (
+            <div className="rounded-xl border border-rose-300 dark:border-rose-500/40 bg-rose-100/70 dark:bg-rose-500/15 p-4 flex gap-3">
+              <XCircle className="h-5 w-5 text-rose-700 dark:text-rose-300 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-rose-800 dark:text-rose-300">OS reprovada</p>
+                <p className="text-sm text-rose-800 dark:text-rose-300 mt-0.5">{report.reviewer_comment}</p>
+              </div>
+            </div>
+          )}
+
+          {user?.id === report.technician_id && (
+            <Card className="shadow-sm border-rose-200 dark:border-rose-700/40">
+              <CardHeader className="pb-3 border-b border-rose-200 dark:border-rose-700/40 bg-rose-50/60 dark:bg-rose-900/20 rounded-t-xl">
+                <CardTitle className="text-base flex items-center gap-2 text-rose-800 dark:text-rose-300">
+                  <RotateCcw className="h-4 w-4" />
+                  Contestar reprovação
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {!isReopening ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      Reabra a OS para corrigi-la e reenviá-la para revisão. O histórico de reprovação é preservado.
+                    </p>
+                    <Button
+                      onClick={() => setIsReopening(true)}
+                      className="w-full h-11 rounded-xl font-semibold gap-2 bg-rose-600 hover:bg-rose-700 text-white"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Reabrir OS para correção
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium text-foreground">Confirma a reabertura desta OS?</p>
+                    <p className="text-xs text-muted-foreground">A OS voltará ao status "Devolvida" e você poderá corrigi-la e reenviar.</p>
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={handleReopen}
+                        disabled={isSubmittingReopen}
+                        className="flex-1 h-11 rounded-xl font-semibold gap-2 bg-rose-600 hover:bg-rose-700 text-white"
+                      >
+                        {isSubmittingReopen
+                          ? <><Loader2 className="h-4 w-4 animate-spin" /> Reabrindo...</>
+                          : <><RotateCcw className="h-4 w-4" /> Confirmar reabertura</>
+                        }
+                      </Button>
+                      <Button variant="ghost" onClick={() => setIsReopening(false)} disabled={isSubmittingReopen} className="h-11 px-4 rounded-xl">
                         Cancelar
                       </Button>
                     </div>

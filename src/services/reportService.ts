@@ -80,6 +80,12 @@ export async function resubmitReport({ reportId, ...patch }: ResubmitPayload): P
   if (!data?.success) throw new Error(data?.error ?? 'Erro ao reenviar OS');
 }
 
+export async function reopenReport(reportId: string): Promise<void> {
+  const { data, error } = await supabase.rpc('reopen_report', { p_report_id: reportId });
+  if (error) throw error;
+  if (!data?.success) throw new Error(data?.error ?? 'Erro ao reabrir OS');
+}
+
 export async function processReportAction(
   reportId: string,
   action: ReportAction,
