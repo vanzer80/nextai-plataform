@@ -69,7 +69,10 @@ async function uploadLogo(file: File, slug: string): Promise<string> {
     .upload(path, file, { upsert: true, contentType: file.type });
   if (error) throw new Error(`Erro ao fazer upload do logo: ${error.message}`);
   const { data } = supabase.storage.from('tenant-assets').getPublicUrl(path);
-  return data.publicUrl;
+  // O path é reutilizado a cada upload (upsert no mesmo slug/ext), então a URL pública
+  // é idêntica entre trocas — sem o parâmetro de versão o browser/CDN serve a imagem
+  // antiga em cache. O timestamp força o refresh da nova logo.
+  return `${data.publicUrl}?v=${Date.now()}`;
 }
 
 function validateLogoFile(file: File): string | null {
@@ -255,19 +258,19 @@ export default function TenantManagement() {
     if (!editingTenant) return;
     setIsEditSubmitting(true);
     try {
-      const updates: { name: string; primary_color: string; logo_url?: string } = {
-        name: data.tenant_name,
-        primary_color: data.primary_color,
-      };
+      const newLogoUrl = editLogoFile
+        ? await uploadLogo(editLogoFile, editingTenant.slug)
+        : null;
 
-      if (editLogoFile) {
-        updates.logo_url = await uploadLogo(editLogoFile, editingTenant.slug);
-      }
-
-      const { error } = await supabase
-        .from('tenants')
-        .update(updates)
-        .eq('id', editingTenant.id);
+      // UPDATE direto em `tenants` é bloqueado por RLS para o platform admin editando
+      // outro tenant (0 linhas, sem erro → falha silenciosa). A edição cross-tenant passa
+      // pela RPC SECURITY DEFINER, mesmo padrão de get_platform_tenants().
+      const { error } = await supabase.rpc('update_tenant_branding', {
+        p_tenant_id: editingTenant.id,
+        p_name: data.tenant_name,
+        p_primary_color: data.primary_color,
+        p_logo_url: newLogoUrl,
+      });
 
       if (error) throw error;
 
