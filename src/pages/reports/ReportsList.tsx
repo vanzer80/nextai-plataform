@@ -71,8 +71,12 @@ export default function ReportsList() {
 
       const { data, error: fetchErr } = await query;
       if (fetchErr) throw fetchErr;
-      exportarOsExcel((data ?? []) as ServiceReport[]);
-      toast.success(`${data?.length ?? 0} OS exportadas com sucesso.`);
+      if (!data?.length) {
+        toast.warning('Nenhuma OS encontrada com os filtros atuais.');
+        return;
+      }
+      exportarOsExcel(data as ServiceReport[]);
+      toast.success(`${data.length} OS exportadas com sucesso.`);
     } catch {
       toast.error('Erro ao exportar. Tente novamente.');
     } finally {

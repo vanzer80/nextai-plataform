@@ -85,6 +85,7 @@ export function useReports(filter: ReportsFilter = {}) {
         );
       }
       setReports(prev => pageIndex === 0 ? rows : [...prev, ...rows]);
+      setHasMore(false); // sem paginação no cache offline
       setError('Exibindo dados em cache — verifique sua conexão.');
     } finally {
       setLoading(false);
