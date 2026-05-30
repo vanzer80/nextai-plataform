@@ -54,7 +54,12 @@ export interface Orcamento {
     contato_email: string | null;
   } | null;
   users?: { full_name: string } | null;
-  service_reports?: { os_number: string | null } | null;
+  service_reports?: {
+    os_number:    string | null;
+    service_type: string | null;
+    service_date: string | null;
+    status:       string | null;
+  } | null;
 }
 
 export interface OrcamentoComItens extends Orcamento {

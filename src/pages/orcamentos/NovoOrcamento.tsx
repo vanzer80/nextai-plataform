@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   ArrowLeft, Plus, Loader2,
-  Link2, Search, CheckCircle2, X, Building2, MapPin, Calendar,
+  Link2, Search, CheckCircle2, X, Building2, MapPin, Calendar, Wrench,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -51,15 +51,16 @@ interface OSPart {
   parts: { name: string; unit: string | null } | null;
 }
 
+interface LinkedOSInfo {
+  id: string;
+  os_number: string | null;
+  service_type: string | null;
+  service_date: string | null;
+}
+
 // ── Constants ─────────────────────────────────────────────────
 
-const OS_SELECT = `
-  id, os_number, service_type, status, service_date,
-  site_location, reported_problem, services_performed,
-  final_diagnosis, technical_recommendation, parts_used,
-  asset_name_manual, client_id, priority,
-  clients(name), users:technician_id(full_name)
-`;
+const OS_SELECT = 'id,os_number,service_type,status,service_date,site_location,reported_problem,services_performed,final_diagnosis,technical_recommendation,parts_used,asset_name_manual,client_id,priority,clients(name),users:technician_id(full_name)';
 
 const OS_STATUS_LABEL: Record<string, string> = {
   approved:       'Aprovada',
@@ -73,10 +74,10 @@ const OS_STATUS_BG: Record<string, string> = {
   pending_review: 'bg-amber-100 text-amber-800',
 };
 
-function fmtOSDate(iso: string | null) {
-  if (!iso) return null;
-  const [y, m, d] = iso.split('T')[0].split('-');
-  return `${d}/${m}/${y}`;
+function fmtOSDate(iso: string | null): string {
+  if (!iso) return '—';
+  const [, m, d] = iso.split('T')[0].split('-');
+  return `${d}/${m}`;
 }
 
 // ── Schema ────────────────────────────────────────────────────
@@ -89,13 +90,13 @@ const itemSchema = z.object({
 });
 
 const orcamentoSchema = z.object({
-  client_id:   z.string().min(1, 'Selecione um cliente'),
-  titulo:      z.string().optional(),
-  observacoes: z.string().optional(),
-  validade:    z.string().optional(),
+  client_id:    z.string().min(1, 'Selecione um cliente'),
+  titulo:       z.string().optional(),
+  observacoes:  z.string().optional(),
+  validade:     z.string().optional(),
   desconto_pct: z.number().min(0).max(100),
-  itens:       z.array(itemSchema).min(1, 'Adicione pelo menos um item'),
-  report_id:   z.string().uuid().optional(),
+  itens:        z.array(itemSchema).min(1, 'Adicione pelo menos um item'),
+  report_id:    z.string().uuid().optional(),
 });
 
 export type OrcamentoFormValues = z.infer<typeof orcamentoSchema>;
@@ -103,6 +104,26 @@ export type OrcamentoFormValues = z.infer<typeof orcamentoSchema>;
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
 const DEFAULT_ITEM = { descricao: '', quantidade: 1, unidade: 'un', valor_unitario: 0 };
+
+// ── Skeleton para OS recentes ─────────────────────────────────
+
+function OSListSkeleton() {
+  return (
+    <div className="flex flex-col divide-y divide-slate-100 rounded-xl border border-slate-100 overflow-hidden animate-pulse">
+      {[1, 2, 3].map(n => (
+        <div key={n} className="px-4 py-3 flex flex-col gap-1.5">
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-16 bg-slate-200 rounded" />
+            <div className="h-4 w-14 bg-slate-100 rounded-full" />
+            <div className="h-4 w-24 bg-slate-100 rounded" />
+          </div>
+          <div className="h-3 w-32 bg-slate-100 rounded" />
+          <div className="h-3 w-48 bg-slate-100 rounded" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ── Component ─────────────────────────────────────────────────
 
@@ -123,10 +144,15 @@ export default function NovoOrcamento() {
   const [searchResults, setSearchResults] = useState<OSSearchResult[]>([]);
   const [recentOS, setRecentOS] = useState<OSSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isRecentOSLoading, setIsRecentOSLoading] = useState(!isEdit);
+  const [isFromOSLoading, setIsFromOSLoading] = useState(false);
   const [skipOSSection, setSkipOSSection] = useState(false);
   const [osAutoFilledFields, setOsAutoFilledFields] = useState<Set<string>>(new Set());
   const osFilledItensRef = useRef<OrcamentoFormValues['itens'] | null>(null);
   const fromOSHandled = useRef(false);
+
+  // Edit mode: OS info exibida como referência de documento
+  const [linkedOSInfo, setLinkedOSInfo] = useState<LinkedOSInfo | null>(null);
 
   const {
     register,
@@ -158,6 +184,15 @@ export default function NovoOrcamento() {
     buscarOrcamento(id)
       .then(orc => {
         if (!orc) { navigate('/orcamentos'); return; }
+        // Popula info da OS vinculada para exibição no modo edição
+        if (orc.report_id && orc.service_reports) {
+          setLinkedOSInfo({
+            id:           orc.report_id,
+            os_number:    orc.service_reports.os_number ?? null,
+            service_type: orc.service_reports.service_type ?? null,
+            service_date: orc.service_reports.service_date ?? null,
+          });
+        }
         reset({
           client_id:    orc.client_id,
           titulo:       orc.titulo ?? '',
@@ -179,78 +214,92 @@ export default function NovoOrcamento() {
       .finally(() => setIsLoadingForm(false));
   }, [id]); // eslint-disable-line
 
-  // ── Load recent OS on mount (mode criação) ─────────────────
+  // ── Load recent OS on mount ────────────────────────────────
   useEffect(() => {
     if (isEdit) return;
+    setIsRecentOSLoading(true);
     supabase
       .from('service_reports')
       .select(OS_SELECT)
       .in('status', ['approved', 'returned', 'pending_review'])
       .order('created_at', { ascending: false })
       .limit(5)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          console.warn('[NovoOrcamento] Failed to load recent OS:', error.message);
+          return;
+        }
         if (data) setRecentOS(data as OSSearchResult[]);
-      });
+      })
+      .finally(() => setIsRecentOSLoading(false));
   }, [isEdit]);
 
   // ── handleSelectOS ─────────────────────────────────────────
   const handleSelectOS = useCallback(async (os: OSSearchResult) => {
-    // Fetch os_parts
-    const { data: osParts } = await supabase
-      .from('os_parts')
-      .select('part_id, part_name_manual, qty_used, unit_cost_at_time, parts(name, unit)')
-      .eq('report_id', os.id) as { data: OSPart[] | null };
+    try {
+      // RLS garante isolamento de tenant; report_id vem de query já filtrada por RLS
+      const { data: osParts, error: partsError } = await supabase
+        .from('os_parts')
+        .select('part_id, part_name_manual, qty_used, unit_cost_at_time, parts(name, unit)')
+        .eq('report_id', os.id) as { data: OSPart[] | null; error: { message: string } | null };
 
-    // Determine itens
-    let itens: OrcamentoFormValues['itens'];
-    if (osParts && osParts.length > 0) {
-      itens = osParts.map(part => ({
-        descricao:      part.parts?.name ?? part.part_name_manual ?? 'Item sem descrição',
-        quantidade:     Number(part.qty_used),
-        unidade:        part.parts?.unit ?? 'un',
-        valor_unitario: Number(part.unit_cost_at_time ?? 0),
-      }));
-    } else if (os.parts_used?.trim()) {
-      const segments = os.parts_used.split(/[\n,;]/).map(s => s.trim()).filter(s => s.length >= 3);
-      itens = segments.length > 0
-        ? segments.map(seg => ({ descricao: seg, quantidade: 1, unidade: 'un', valor_unitario: 0 }))
-        : [DEFAULT_ITEM];
-    } else {
-      itens = [DEFAULT_ITEM];
+      if (partsError) {
+        // Recuperável: segue com fallback em parts_used
+        console.warn('[handleSelectOS] os_parts fetch failed:', partsError.message);
+      }
+
+      // Determinar itens: os_parts com preços reais → fallback parse → default
+      let itens: OrcamentoFormValues['itens'];
+      if (osParts && osParts.length > 0) {
+        itens = osParts.map(part => ({
+          descricao:      part.parts?.name ?? part.part_name_manual ?? 'Item sem descrição',
+          quantidade:     Number(part.qty_used),
+          unidade:        part.parts?.unit ?? 'un',
+          valor_unitario: Number(part.unit_cost_at_time ?? 0),
+        }));
+      } else if (os.parts_used?.trim()) {
+        const segments = os.parts_used.split(/[\n,;]/).map(s => s.trim()).filter(s => s.length >= 3);
+        itens = segments.length > 0
+          ? segments.map(seg => ({ descricao: seg, quantidade: 1, unidade: 'un', valor_unitario: 0 }))
+          : [DEFAULT_ITEM];
+      } else {
+        itens = [DEFAULT_ITEM];
+      }
+
+      // Título estruturado
+      const partes = ['Orçamento'];
+      if (os.os_number)     partes.push(`OS ${os.os_number}`);
+      if (os.service_type)  partes.push(os.service_type);
+      if (os.clients?.name) partes.push(os.clients.name);
+      const titulo = partes.join(' — ');
+
+      // Observações estruturadas (bloco SAP-style com 6 campos)
+      const linhas: string[] = [];
+      if (os.os_number)    linhas.push(`OS: ${os.os_number}`);
+      if (os.service_type) linhas.push(`Tipo de serviço: ${os.service_type}`);
+      if (os.site_location) linhas.push(`Local: ${os.site_location}`);
+      if (os.asset_name_manual) linhas.push(`Equipamento: ${os.asset_name_manual}`);
+      linhas.push('');
+      if (os.reported_problem)         linhas.push(`Problema relatado:\n${os.reported_problem}`);
+      if (os.final_diagnosis)          linhas.push(`\nDiagnóstico:\n${os.final_diagnosis}`);
+      if (os.services_performed)       linhas.push(`\nServiços realizados:\n${os.services_performed}`);
+      if (os.technical_recommendation) linhas.push(`\nRecomendação técnica:\n${os.technical_recommendation}`);
+      const observacoes = linhas.join('\n').trim();
+
+      setValue('client_id',   os.client_id ?? '', { shouldValidate: true, shouldDirty: true });
+      setValue('titulo',      titulo,              { shouldDirty: true });
+      setValue('observacoes', observacoes,         { shouldDirty: true });
+      setValue('report_id',   os.id,               { shouldDirty: true });
+      replace(itens);
+
+      osFilledItensRef.current = itens;
+      setOsAutoFilledFields(new Set(['client_id', 'titulo', 'observacoes', 'itens']));
+      setSelectedOS(os);
+      setSearchTerm('');
+    } catch (err) {
+      toast.error('Erro ao vincular OS. Tente novamente.');
+      console.error('[handleSelectOS]', err);
     }
-
-    // Build titulo
-    const partes = ['Orçamento'];
-    if (os.os_number)      partes.push(`OS ${os.os_number}`);
-    if (os.service_type)   partes.push(os.service_type);
-    if (os.clients?.name)  partes.push(os.clients.name);
-    const titulo = partes.join(' — ');
-
-    // Build observacoes
-    const linhas: string[] = [];
-    if (os.os_number)    linhas.push(`OS: ${os.os_number}`);
-    if (os.service_type) linhas.push(`Tipo de serviço: ${os.service_type}`);
-    if (os.site_location) linhas.push(`Local: ${os.site_location}`);
-    if (os.asset_name_manual) linhas.push(`Equipamento: ${os.asset_name_manual}`);
-    linhas.push('');
-    if (os.reported_problem)          linhas.push(`Problema relatado:\n${os.reported_problem}`);
-    if (os.final_diagnosis)           linhas.push(`\nDiagnóstico:\n${os.final_diagnosis}`);
-    if (os.services_performed)        linhas.push(`\nServiços realizados:\n${os.services_performed}`);
-    if (os.technical_recommendation)  linhas.push(`\nRecomendação técnica:\n${os.technical_recommendation}`);
-    const observacoes = linhas.join('\n').trim();
-
-    // Apply to form
-    setValue('client_id',   os.client_id ?? '', { shouldValidate: true, shouldDirty: true });
-    setValue('titulo',      titulo,              { shouldDirty: true });
-    setValue('observacoes', observacoes,         { shouldDirty: true });
-    setValue('report_id',   os.id,              { shouldDirty: true });
-    replace(itens);
-
-    // Track auto-filled fields
-    osFilledItensRef.current = itens;
-    setOsAutoFilledFields(new Set(['client_id', 'titulo', 'observacoes', 'itens']));
-    setSelectedOS(os);
-    setSearchTerm('');
   }, [setValue, replace]);
 
   // ── fromOS param on mount ──────────────────────────────────
@@ -258,31 +307,44 @@ export default function NovoOrcamento() {
   useEffect(() => {
     if (isEdit || fromOSHandled.current || !fromOSParam) return;
     fromOSHandled.current = true;
+    setIsFromOSLoading(true);
     supabase
       .from('service_reports')
       .select(OS_SELECT)
       .eq('id', fromOSParam)
       .maybeSingle()
-      .then(({ data }) => {
-        if (data) handleSelectOS(data as OSSearchResult);
-      });
+      .then(({ data, error }) => {
+        if (error || !data) {
+          toast.error('Não foi possível carregar a OS solicitada.');
+          return;
+        }
+        handleSelectOS(data as OSSearchResult);
+      })
+      .finally(() => setIsFromOSLoading(false));
   }, [fromOSParam, isEdit, handleSelectOS]);
 
   // ── Debounce search ────────────────────────────────────────
   useEffect(() => {
     if (isEdit || selectedOS || !searchTerm.trim()) {
       setSearchResults([]);
+      setIsSearching(false); // C3: garantir reset do spinner
       return;
     }
     setIsSearching(true);
     const timer = setTimeout(async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('service_reports')
         .select(OS_SELECT)
         .in('status', ['approved', 'returned', 'pending_review'])
         .textSearch('search_vector', searchTerm.trim(), { type: 'websearch', config: 'simple' })
         .order('created_at', { ascending: false })
         .limit(8);
+
+      if (error) {
+        toast.error('Erro ao buscar OS. Verifique sua conexão.');
+        setIsSearching(false);
+        return;
+      }
       setSearchResults((data ?? []) as OSSearchResult[]);
       setIsSearching(false);
     }, 400);
@@ -300,18 +362,38 @@ export default function NovoOrcamento() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itensJson]);
 
-  // ── Desvincular OS ─────────────────────────────────────────
-  const handleDesvincular = () => {
+  // ── Desvincular OS (criação) ───────────────────────────────
+  const handleDesvincular = useCallback(() => {
     setValue('report_id', undefined, { shouldDirty: true });
-    if (osAutoFilledFields.has('client_id'))   setValue('client_id',   '', { shouldDirty: true });
-    if (osAutoFilledFields.has('titulo'))       setValue('titulo',       '', { shouldDirty: true });
-    if (osAutoFilledFields.has('observacoes'))  setValue('observacoes',  '', { shouldDirty: true });
-    if (osAutoFilledFields.has('itens'))        replace([DEFAULT_ITEM]);
+    if (osAutoFilledFields.has('client_id'))  setValue('client_id',   '', { shouldDirty: true });
+    if (osAutoFilledFields.has('titulo'))      setValue('titulo',       '', { shouldDirty: true });
+    if (osAutoFilledFields.has('observacoes')) setValue('observacoes',  '', { shouldDirty: true });
+    if (osAutoFilledFields.has('itens'))       replace([DEFAULT_ITEM]);
     osFilledItensRef.current = null;
     setOsAutoFilledFields(new Set());
     setSelectedOS(null);
     setSearchTerm('');
-  };
+  }, [osAutoFilledFields, setValue, replace]);
+
+  // ── Desvincular OS (edição) — só limpa o report_id ────────
+  const handleDesvincularEdit = useCallback(() => {
+    setValue('report_id', undefined, { shouldDirty: true });
+    setLinkedOSInfo(null);
+  }, [setValue]);
+
+  // ── Helpers ────────────────────────────────────────────────
+  const removeFromAutoFilled = useCallback((field: string) => {
+    setOsAutoFilledFields(prev => {
+      if (!prev.has(field)) return prev;
+      const s = new Set(prev);
+      s.delete(field);
+      return s;
+    });
+  }, []);
+
+  // Register com intercept de onChange para chips
+  const tituloReg      = register('titulo');
+  const observacoesReg = register('observacoes');
 
   // ── Totals ─────────────────────────────────────────────────
   const desconto_pct = Number(watch('desconto_pct')) || 0;
@@ -331,6 +413,7 @@ export default function NovoOrcamento() {
           observacoes:  values.observacoes,
           validade:     values.validade || null,
           desconto_pct: values.desconto_pct,
+          report_id:    values.report_id ?? null, // C1: preservar vínculo em edição
           itens:        values.itens,
         }, user.id);
         toast.success('Orçamento atualizado!');
@@ -356,23 +439,9 @@ export default function NovoOrcamento() {
     }
   };
 
-  // ── Helpers for chip removal on manual edit ────────────────
-  const removeFromAutoFilled = (field: string) => {
-    setOsAutoFilledFields(prev => {
-      if (!prev.has(field)) return prev;
-      const s = new Set(prev);
-      s.delete(field);
-      return s;
-    });
-  };
-
-  // Register with chip-removal intercept
-  const tituloReg     = register('titulo');
-  const observacoesReg = register('observacoes');
-
-  // ── Displayed OS list ──────────────────────────────────────
-  const displayedList  = searchTerm.trim() ? searchResults : recentOS;
-  const listLabel      = searchTerm.trim() ? null : 'OS recentes';
+  // ── Displayed list ─────────────────────────────────────────
+  const displayedList = searchTerm.trim() ? searchResults : recentOS;
+  const showList      = !isSearching && !isRecentOSLoading && !isFromOSLoading && !selectedOS;
 
   if (isLoadingForm) {
     return (
@@ -399,7 +468,61 @@ export default function NovoOrcamento() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
 
-        {/* ── Vincular OS (somente criação) ────────────────── */}
+        {/* ── OS Vinculada em modo edição (referência de documento) ── */}
+        {isEdit && (
+          linkedOSInfo ? (
+            <Card className="border-blue-100 bg-blue-50/30">
+              <CardHeader className="pb-3 border-b border-blue-100">
+                <CardTitle className="text-base flex items-center gap-2 text-blue-900">
+                  <Link2 className="h-4 w-4 text-blue-600" />
+                  Ordem de Serviço Vinculada
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 flex items-start justify-between gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <span className="font-mono text-sm font-bold bg-white border border-blue-200 text-slate-800 px-2.5 py-1 rounded-md self-start">
+                    {linkedOSInfo.os_number ?? 'OS sem número'}
+                  </span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                    {linkedOSInfo.service_type && (
+                      <span className="flex items-center gap-1">
+                        <Wrench className="h-3 w-3" />{linkedOSInfo.service_type}
+                      </span>
+                    )}
+                    {linkedOSInfo.service_date && (
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />{fmtOSDate(linkedOSInfo.service_date)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <Link
+                    to={`/reports/${linkedOSInfo.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 hover:underline font-medium"
+                  >
+                    Ver OS →
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleDesvincularEdit}
+                    className="text-xs text-slate-400 hover:text-rose-600 transition-colors"
+                    title="Desvincular OS"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            // edit mode, sem OS vinculada
+            null
+          )
+        )}
+
+        {/* ── Vincular OS (modo criação) ─────────────────────── */}
         {!isEdit && !skipOSSection && (
           <Card>
             <CardHeader className="pb-3 border-b border-slate-100">
@@ -414,7 +537,14 @@ export default function NovoOrcamento() {
               </p>
             </CardHeader>
             <CardContent className="pt-4 flex flex-col gap-3">
-              {selectedOS ? (
+
+              {/* Loading: processando ?fromOS */}
+              {isFromOSLoading ? (
+                <div className="flex items-center justify-center gap-2 py-6 text-slate-500">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span className="text-sm">Carregando OS...</span>
+                </div>
+              ) : selectedOS ? (
                 /* Estado 2 — OS vinculada */
                 <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 flex flex-col gap-2">
                   <div className="flex items-center justify-between">
@@ -435,15 +565,19 @@ export default function NovoOrcamento() {
                     {selectedOS.os_number ?? 'Sem número'}
                   </p>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
-                    {selectedOS.service_type && <span>{selectedOS.service_type}</span>}
+                    {selectedOS.service_type && (
+                      <span className="flex items-center gap-1">
+                        <Wrench className="h-3 w-3 text-slate-400" />{selectedOS.service_type}
+                      </span>
+                    )}
                     {selectedOS.clients?.name && (
                       <span className="flex items-center gap-1">
-                        <Building2 className="h-3 w-3" />{selectedOS.clients.name}
+                        <Building2 className="h-3 w-3 text-slate-400" />{selectedOS.clients.name}
                       </span>
                     )}
                     {selectedOS.service_date && (
                       <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />{fmtOSDate(selectedOS.service_date)}
+                        <Calendar className="h-3 w-3 text-slate-400" />{fmtOSDate(selectedOS.service_date)}
                       </span>
                     )}
                   </div>
@@ -475,18 +609,25 @@ export default function NovoOrcamento() {
                     )}
                   </div>
 
-                  {isSearching ? (
+                  {/* Skeleton de loading de OS recentes */}
+                  {isRecentOSLoading && !searchTerm && <OSListSkeleton />}
+
+                  {/* Spinner de busca */}
+                  {isSearching && (
                     <div className="flex justify-center py-4">
                       <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
                     </div>
-                  ) : (
+                  )}
+
+                  {showList && (
                     <>
-                      {listLabel && displayedList.length > 0 && (
-                        <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wide px-1">{listLabel}</p>
+                      {!searchTerm.trim() && displayedList.length > 0 && (
+                        <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wide px-1">
+                          OS recentes
+                        </p>
                       )}
-                      {displayedList.length === 0 && searchTerm.trim() ? (
-                        <p className="text-sm text-slate-500 text-center py-3">Nenhuma OS encontrada para essa busca</p>
-                      ) : (
+
+                      {displayedList.length > 0 ? (
                         <div className="flex flex-col divide-y divide-slate-100 rounded-xl border border-slate-100 overflow-hidden">
                           {displayedList.map(os => (
                             <button
@@ -508,7 +649,7 @@ export default function NovoOrcamento() {
                               </div>
                               {os.clients?.name && (
                                 <span className="text-xs text-slate-600 flex items-center gap-1">
-                                  <Building2 className="h-3 w-3 shrink-0" />{os.clients.name}
+                                  <Building2 className="h-3 w-3 shrink-0 text-slate-400" />{os.clients.name}
                                 </span>
                               )}
                               <div className="flex items-center gap-3 text-xs text-slate-400">
@@ -526,13 +667,22 @@ export default function NovoOrcamento() {
                             </button>
                           ))}
                         </div>
+                      ) : searchTerm.trim() ? (
+                        <p className="text-sm text-slate-500 text-center py-3">
+                          Nenhuma OS encontrada para essa busca
+                        </p>
+                      ) : (
+                        <p className="text-sm text-slate-400 text-center py-3">
+                          Nenhuma OS disponível para vinculação
+                        </p>
                       )}
                     </>
                   )}
                 </>
               )}
 
-              {!selectedOS && (
+              {/* A5: "Pular" sempre reversível */}
+              {!selectedOS && !isFromOSLoading && (
                 <button
                   type="button"
                   onClick={() => setSkipOSSection(true)}
@@ -543,6 +693,18 @@ export default function NovoOrcamento() {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {/* A5: botão para restaurar seção após "Pular" */}
+        {!isEdit && skipOSSection && !selectedOS && (
+          <button
+            type="button"
+            onClick={() => setSkipOSSection(false)}
+            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-600 transition-colors self-start -mt-2"
+          >
+            <Link2 className="h-3.5 w-3.5" />
+            Vincular uma OS a este orçamento
+          </button>
         )}
 
         {/* ── Dados Gerais ──────────────────────────────────── */}
@@ -564,7 +726,10 @@ export default function NovoOrcamento() {
                 }}
               >
                 <SelectTrigger className={errors.client_id ? 'border-rose-400' : ''}>
-                  <SelectValue placeholder="Selecione o cliente" />
+                  {/* C2: children explícito para evitar UUID no Radix SelectValue */}
+                  <SelectValue placeholder="Selecione o cliente">
+                    {clients.find(c => c.id === watch('client_id'))?.name}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {clients.map(c => (
@@ -642,6 +807,7 @@ export default function NovoOrcamento() {
                     remove(index);
                   }}
                   isOnly={fields.length === 1}
+                  showOSHint={osAutoFilledFields.has('itens')} // M2: sinaliza preço zero por item
                 />
               </Fragment>
             ))}
@@ -681,9 +847,11 @@ export default function NovoOrcamento() {
                   <span className="text-[10px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md">• OS</span>
                 )}
               </div>
+              {/* A3: textarea expande quando auto-preenchida pela OS */}
               <Textarea
-                rows={3}
+                rows={osAutoFilledFields.has('observacoes') ? 10 : 3}
                 placeholder="Condições de pagamento, prazo de entrega, etc."
+                className="resize-y transition-all"
                 {...observacoesReg}
                 onChange={e => {
                   observacoesReg.onChange(e);

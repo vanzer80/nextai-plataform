@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, FileDown, Pencil, Loader2, AlertCircle, CheckCircle2, XCircle, SendHorizonal, Trash2, PenLine, ShieldCheck, Link2 } from 'lucide-react';
+import { ArrowLeft, FileDown, Pencil, Loader2, AlertCircle, CheckCircle2, XCircle, SendHorizonal, Trash2, PenLine, ShieldCheck, Link2, Calendar, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
 
@@ -260,19 +260,48 @@ export default function OrcamentoDetail() {
 
       {/* OS Vinculada */}
       {orcamento.report_id && (
-        <Card>
-          <CardHeader className="pb-3 border-b border-slate-100">
-            <CardTitle className="text-base flex items-center gap-2">
+        <Card className="border-blue-100 bg-blue-50/30">
+          <CardHeader className="pb-3 border-b border-blue-100">
+            <CardTitle className="text-base flex items-center gap-2 text-blue-900">
               <Link2 className="h-4 w-4 text-blue-600" />
               Ordem de Serviço Vinculada
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-4 flex items-center justify-between gap-4">
-            <span className="font-mono text-sm font-bold bg-slate-100 text-slate-800 px-2.5 py-1 rounded-md">
-              {orcamento.service_reports?.os_number ?? 'OS sem número'}
-            </span>
-            <Link to={`/reports/${orcamento.report_id}`}>
-              <button className="text-sm text-blue-600 hover:underline font-medium">Ver OS →</button>
+          <CardContent className="pt-4 flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-1.5">
+              <span className="font-mono text-sm font-bold bg-white border border-blue-200 text-slate-800 px-2.5 py-1 rounded-md self-start">
+                {orcamento.service_reports?.os_number ?? 'OS sem número'}
+              </span>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
+                {orcamento.service_reports?.service_type && (
+                  <span className="flex items-center gap-1">
+                    <Wrench className="h-3 w-3 text-slate-400" />
+                    {orcamento.service_reports.service_type}
+                  </span>
+                )}
+                {orcamento.service_reports?.service_date && (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3 text-slate-400" />
+                    {formatDate(orcamento.service_reports.service_date)}
+                  </span>
+                )}
+                {orcamento.service_reports?.status && (() => {
+                  const s = orcamento.service_reports!.status!;
+                  const label: Record<string, string> = { approved: 'Aprovada', returned: 'Devolvida', pending_review: 'Ag. Revisão', draft: 'Rascunho', rejected: 'Reprovada' };
+                  const color: Record<string, string> = { approved: 'bg-emerald-100 text-emerald-800', returned: 'bg-orange-100 text-orange-800', pending_review: 'bg-amber-100 text-amber-800', draft: 'bg-slate-100 text-slate-700', rejected: 'bg-rose-100 text-rose-800' };
+                  return (
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${color[s] ?? 'bg-slate-100 text-slate-600'}`}>
+                      {label[s] ?? s}
+                    </span>
+                  );
+                })()}
+              </div>
+            </div>
+            <Link
+              to={`/reports/${orcamento.report_id}`}
+              className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium shrink-0 transition-colors"
+            >
+              Ver OS →
             </Link>
           </CardContent>
         </Card>

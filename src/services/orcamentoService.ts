@@ -14,7 +14,7 @@ const ORCAMENTO_SELECT = `
   version, signed_at, signer_name, signer_email,
   clients(name, cnpj, cidade, estado, logradouro, numero, bairro, contato_nome, contato_telefone, contato_email),
   users:technician_id(full_name),
-  service_reports:report_id(os_number)
+  service_reports:report_id(os_number, service_type, service_date, status)
 `;
 
 const PAGE_SIZE = 20;

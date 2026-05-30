@@ -120,6 +120,20 @@ export default function ReportDetail() {
   const isReviewer = REVIEWER_ROLES.includes(user?.role as typeof REVIEWER_ROLES[number]);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
 
+  // Verificação bidirecional: OS já tem orçamento vinculado?
+  const [orcamentoVinculado, setOrcamentoVinculado] = useState<{ id: string; titulo: string | null } | null>(null);
+  useEffect(() => {
+    if (!report?.id || report.status === 'draft') return;
+    supabase
+      .from('orcamentos')
+      .select('id, titulo')
+      .eq('report_id', report.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setOrcamentoVinculado(data ?? null));
+  }, [report?.id, report?.status]);
+
   // ── Correção inline para OS devolvidas ───────────────────────
   const [isEditing, setIsEditing] = useState(false);
   const [isSendingCorrection, setIsSendingCorrection] = useState(false);
@@ -276,17 +290,30 @@ export default function ReportDetail() {
             <span className="hidden sm:inline">Duplicar</span>
           </Button>
 
-          {/* Gerar Orçamento */}
+          {/* Orçamento — bidirecional: cria ou navega para o existente */}
           {report.status !== 'draft' && ['Gestor', 'Supervisor', 'Admin', 'Master', 'Técnico'].includes(user?.role ?? '') && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(`/orcamentos/novo?fromOS=${report.id}`)}
-              className="gap-1.5 rounded-xl"
-            >
-              <Receipt className="h-4 w-4" />
-              <span className="hidden sm:inline">Orçamento</span>
-            </Button>
+            orcamentoVinculado ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/orcamentos/${orcamentoVinculado.id}`)}
+                className="gap-1.5 rounded-xl border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-700/60 dark:text-blue-400 dark:hover:bg-blue-950/40"
+                title={orcamentoVinculado.titulo ?? 'Ver orçamento vinculado'}
+              >
+                <Receipt className="h-4 w-4" />
+                <span className="hidden sm:inline">Ver Orçamento</span>
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/orcamentos/novo?fromOS=${report.id}`)}
+                className="gap-1.5 rounded-xl"
+              >
+                <Receipt className="h-4 w-4" />
+                <span className="hidden sm:inline">Orçamento</span>
+              </Button>
+            )
           )}
 
           {/* PDF — apenas para OS aprovadas */}
