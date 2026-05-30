@@ -5,7 +5,7 @@ import { ptBR } from 'date-fns/locale';
 import {
   ArrowLeft, AlertTriangle, Calendar, MapPin, Wrench,
   Stethoscope, ClipboardList, Camera, PenLine, History,
-  CheckCircle2, XCircle, Loader2, FileDown, SquarePen, Send, Copy, RotateCcw,
+  CheckCircle2, XCircle, Loader2, FileDown, SquarePen, Send, Copy, RotateCcw, Receipt,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -275,6 +275,19 @@ export default function ReportDetail() {
             <Copy className="h-4 w-4" />
             <span className="hidden sm:inline">Duplicar</span>
           </Button>
+
+          {/* Gerar Orçamento */}
+          {report.status !== 'draft' && ['Gestor', 'Supervisor', 'Admin', 'Master', 'Técnico'].includes(user?.role ?? '') && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/orcamentos/novo?fromOS=${report.id}`)}
+              className="gap-1.5 rounded-xl"
+            >
+              <Receipt className="h-4 w-4" />
+              <span className="hidden sm:inline">Orçamento</span>
+            </Button>
+          )}
 
           {/* PDF — apenas para OS aprovadas */}
           {report.status === 'approved' && (

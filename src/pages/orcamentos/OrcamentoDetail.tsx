@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, FileDown, Pencil, Loader2, AlertCircle, CheckCircle2, XCircle, SendHorizonal, Trash2, PenLine, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, FileDown, Pencil, Loader2, AlertCircle, CheckCircle2, XCircle, SendHorizonal, Trash2, PenLine, ShieldCheck, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
 
@@ -248,12 +248,6 @@ export default function OrcamentoDetail() {
               <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Técnico</p>
               <p className="font-semibold text-slate-900 mt-0.5">{orcamento.users?.full_name ?? '—'}</p>
             </div>
-            {orcamento.service_reports?.os_number && (
-              <div>
-                <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">OS vinculada</p>
-                <p className="font-semibold text-slate-900 mt-0.5">{orcamento.service_reports.os_number}</p>
-              </div>
-            )}
             {orcamento.validade && (
               <div>
                 <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Válido até</p>
@@ -263,6 +257,26 @@ export default function OrcamentoDetail() {
           </div>
         </CardContent>
       </Card>
+
+      {/* OS Vinculada */}
+      {orcamento.report_id && (
+        <Card>
+          <CardHeader className="pb-3 border-b border-slate-100">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Link2 className="h-4 w-4 text-blue-600" />
+              Ordem de Serviço Vinculada
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 flex items-center justify-between gap-4">
+            <span className="font-mono text-sm font-bold bg-slate-100 text-slate-800 px-2.5 py-1 rounded-md">
+              {orcamento.service_reports?.os_number ?? 'OS sem número'}
+            </span>
+            <Link to={`/reports/${orcamento.report_id}`}>
+              <button className="text-sm text-blue-600 hover:underline font-medium">Ver OS →</button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Itens */}
       <Card>
