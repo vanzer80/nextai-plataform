@@ -1,6 +1,17 @@
 # NextAI — Portal Mopar · Contexto de Desenvolvimento
 
-## Ambiente
+## Ecossistema NextAI — repositórios
+
+| Repositório | Diretório local | Produção | Finalidade |
+|---|---|---|---|
+| `nextai-plataform` | `portal-mopar/` | `nextai-plataform.vercel.app` | App SaaS (este repo) |
+| `nextai-landing` | `nextai-landing/` | `nextai-landing-gilt.vercel.app` | Landing page pública |
+
+**NUNCA commitar a pasta `nextai-landing/` dentro do repo `nextai-plataform`** — são repos independentes com deploys separados na Vercel.
+
+---
+
+## Ambiente (app principal)
 
 - **Diretório local:** `C:\Users\vanze\OneDrive\Área de Trabalho\portal-mopar`
 - **GitHub:** `https://github.com/vanzer80/nextai-plataform.git`
@@ -208,3 +219,58 @@ Arquivos completos em `C:\cerebro\Mopar Engenharia\Projeto App Portal Mopar\Spri
 - **CR (Contas a Receber)** — ciclo financeiro completo: fatura → pagamento → aging
 - **Testes E2E RH/DP/CP** — Playwright para os módulos enterprise
 - **PDF do orçamento** — seção "OS Vinculada" com referência cruzada
+
+---
+
+## Landing Page NextAI — concluída 2026-05-31
+
+**Repo:** `https://github.com/vanzer80/nextai-landing`
+**Diretório:** `C:\Users\vanze\OneDrive\Área de Trabalho\nextai-landing`
+**Produção:** `https://nextai-landing-gilt.vercel.app`
+**Stack:** Vite + React 19 + TypeScript + Tailwind v4 (standalone, sem Supabase)
+**Dev server:** `npm run dev` (porta 4321)
+**Deploy:** auto-deploy na Vercel ao push no `master`
+
+### Arquitetura da landing
+
+```
+src/
+  config.ts                 — CALENDLY_URL (TODO: substituir), APP_URL, DEMO_HREF
+  content/
+    metrics.ts              — Metric { value: string | null, label, collection }
+    testimonials.ts         — Testimonial { ..., fictional: boolean }
+    faq.ts                  — FaqItem[]
+  sections/
+    Hero.tsx                — proposta de valor principal
+    ProvaRapida.tsx         — barra de contexto de uso
+    Pillars.tsx             — 3 pilares de valor (NOVO)
+    Flow.tsx                — 3 passos: captura → organiza → decide
+    AiStories.tsx           — 3 micro-histórias de IA
+    Sectors.tsx             — 4 setores operacionais (substitui Personas)
+    Results.tsx             — métricas tipadas + depoimentos
+    Integration.tsx         — conexão com ERP/BI + implantação gradual
+    Faq.tsx                 — dados de content/faq.ts
+    FinalCta.tsx            — CTA final
+    Navbar.tsx / Footer.tsx
+```
+
+### Padrão de métricas (crítico para não quebrar em produção)
+
+```typescript
+// value: null → exibe "—" + badge "Em coleta" (nunca string de placeholder crua)
+// value: "47%" → exibe normalmente
+const METRICS: Metric[] = [{ value: null, label: '...', collection: 'instrução de coleta' }]
+```
+
+### 3 itens pendentes para ativar campanha paga
+
+| Item | Arquivo | Ação |
+|---|---|---|
+| Métricas reais | `src/content/metrics.ts` | 4x `value: null` → substituir com dados medidos nas semanas 1–4 |
+| Calendly | `src/config.ts` | `CALENDLY_URL = 'https://calendly.com/nextai/demo'` → URL real |
+| Depoimentos reais | `src/content/testimonials.ts` | `fictional: true` → entradas com clientes reais autorizados |
+
+### Seções removidas da versão anterior
+
+- `Problem.tsx` — absorvida pelo Hero + Pillars (redundante)
+- `Personas.tsx` — substituída por `Sectors.tsx` (setores, não roles)
