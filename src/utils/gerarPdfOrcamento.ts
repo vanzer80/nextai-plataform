@@ -1,10 +1,18 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { OrcamentoComItens } from '@/src/types/orcamento';
-import { urlToDataUrl, detectImageFormat } from '@/src/utils/imageUtils';
+import { urlToDataUrl, detectImageFormat, fitInBox, measureImage } from '@/src/utils/imageUtils';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const NUM = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 });
+
+const OS_STATUS_LABEL_PT: Record<string, string> = {
+  approved:       'Aprovada',
+  returned:       'Devolvida',
+  pending_review: 'Ag. Revisão',
+  draft:          'Rascunho',
+  rejected:       'Reprovada',
+};
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -55,34 +63,39 @@ export async function gerarPdfOrcamento(
   const clienteTelefone = cli?.contato_telefone ?? null;
   const clienteEmail    = cli?.contato_email ?? null;
   const tecnicoNome = orcamento.users?.full_name ?? '—';
-  const osNum       = orcamento.service_reports?.os_number ?? null;
 
-  // Pré-carrega logo — falha silenciosa (PDF gerado mesmo sem logo)
+  // Pré-carrega logo e mede dimensões reais — falha silenciosa (PDF gerado mesmo sem logo)
   const logoDataUrl = tenantLogoUrl
     ? await urlToDataUrl(tenantLogoUrl).catch(() => null)
     : null;
+  // measureImage usa HTMLImageElement.naturalWidth/Height — confiável para qualquer formato
+  const logoDims = logoDataUrl ? await measureImage(logoDataUrl) : null;
+  const logoFmt  = logoDataUrl ? detectImageFormat(null, logoDataUrl) : null;
+  const { w: logoW, h: logoH } = logoDims
+    ? fitInBox(logoDims.width, logoDims.height, 40, 16)
+    : { w: 0, h: 0 };
+  const logoY = logoH > 0 ? (30 - logoH) / 2 : 7;
 
   // ── Cabeçalho azul (consistente com OS e PO) ─────────────────
   const HEADER_H = 30;
+  const headerTextX = (logoDataUrl && logoW > 0) ? marginL + logoW + 4 : marginL;
+
   doc.setFillColor(30, 58, 95);
   doc.rect(0, 0, pageW, HEADER_H, 'F');
 
-  let textX = marginL;
-  if (logoDataUrl) {
-    const fmt = detectImageFormat(null, logoDataUrl);
-    doc.addImage(logoDataUrl, fmt, marginL, 7, 0, 16);
-    textX = marginL + 22;
+  if (logoDataUrl && logoFmt && logoW > 0) {
+    doc.addImage(logoDataUrl, logoFmt, marginL, logoY, logoW, logoH);
   }
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(255, 255, 255);
-  doc.text(tenantName, textX, 14);
+  doc.text(tenantName, headerTextX, 14);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(180, 210, 255);
-  doc.text('Orçamento Técnico', textX, 21);
+  doc.text('Orçamento Técnico', headerTextX, 21);
 
   // Número e datas no canto direito do cabeçalho
   doc.setFont('helvetica', 'bold');
@@ -137,17 +150,44 @@ export async function gerarPdfOrcamento(
   y += 5;
   doc.text(`Técnico responsável: ${tecnicoNome}`, marginL, y);
 
-  if (osNum) {
-    y += 5;
-    doc.text(`OS: ${osNum}`, marginL, y);
-  }
-
   if (orcamento.titulo) {
     y += 6;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(30, 58, 95);
     doc.text(orcamento.titulo, marginL, y);
+  }
+
+  // ── OS Vinculada (box destacado) ─────────────────────────────
+  if (orcamento.report_id) {
+    y += 7;
+    const sr = orcamento.service_reports;
+    const boxH = 20;
+    doc.setFillColor(239, 246, 255);
+    doc.setDrawColor(191, 219, 254);
+    doc.roundedRect(marginL, y, contentW, boxH, 2, 2, 'FD');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(29, 78, 216);
+    doc.text('ORDEM DE SERVIÇO VINCULADA', marginL + 4, y + 6);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text(sr?.os_number ?? 'OS sem número', marginL + 4, y + 13);
+
+    const meta: string[] = [];
+    if (sr?.service_type) meta.push(sr.service_type);
+    if (sr?.service_date) meta.push(formatDate(sr.service_date));
+    if (sr?.status)       meta.push(OS_STATUS_LABEL_PT[sr.status] ?? sr.status);
+    if (meta.length) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(71, 85, 105);
+      doc.text(meta.join('   ·   '), marginL + 4, y + 18);
+    }
+    y += boxH + 4;
   }
 
   y += 8;
@@ -192,9 +232,8 @@ export async function gerarPdfOrcamento(
       if (data.pageNumber > 1) {
         doc.setFillColor(30, 58, 95);
         doc.rect(0, 0, pageW, HEADER_H, 'F');
-        if (logoDataUrl) {
-          const fmt = detectImageFormat(null, logoDataUrl);
-          doc.addImage(logoDataUrl, fmt, marginL, 7, 0, 16);
+        if (logoDataUrl && logoFmt && logoW > 0) {
+          doc.addImage(logoDataUrl, logoFmt, marginL, logoY, logoW, logoH);
         }
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(11);
@@ -203,7 +242,7 @@ export async function gerarPdfOrcamento(
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
         doc.setTextColor(180, 210, 255);
-        doc.text(`${tenantName} — Orçamento Técnico`, marginL, 14);
+        doc.text(`${tenantName} — Orçamento Técnico`, headerTextX, 14);
       }
     },
   });

@@ -150,6 +150,8 @@ export default function NovoOrcamento() {
   const [osAutoFilledFields, setOsAutoFilledFields] = useState<Set<string>>(new Set());
   const osFilledItensRef = useRef<OrcamentoFormValues['itens'] | null>(null);
   const fromOSHandled = useRef(false);
+  const isSelectingOSRef = useRef(false);
+  const [isSelectingOS, setIsSelectingOS] = useState(false);
 
   // Edit mode: OS info exibida como referência de documento
   const [linkedOSInfo, setLinkedOSInfo] = useState<LinkedOSInfo | null>(null);
@@ -236,6 +238,9 @@ export default function NovoOrcamento() {
 
   // ── handleSelectOS ─────────────────────────────────────────
   const handleSelectOS = useCallback(async (os: OSSearchResult) => {
+    if (isSelectingOSRef.current) return;
+    isSelectingOSRef.current = true;
+    setIsSelectingOS(true);
     try {
       // RLS garante isolamento de tenant; report_id vem de query já filtrada por RLS
       const { data: osParts, error: partsError } = await supabase
@@ -299,6 +304,9 @@ export default function NovoOrcamento() {
     } catch (err) {
       toast.error('Erro ao vincular OS. Tente novamente.');
       console.error('[handleSelectOS]', err);
+    } finally {
+      isSelectingOSRef.current = false;
+      setIsSelectingOS(false);
     }
   }, [setValue, replace]);
 
@@ -633,8 +641,9 @@ export default function NovoOrcamento() {
                             <button
                               key={os.id}
                               type="button"
+                              disabled={isSelectingOS}
                               onClick={() => handleSelectOS(os)}
-                              className="text-left px-4 py-3 hover:bg-muted/50 transition-colors flex flex-col gap-1"
+                              className="text-left px-4 py-3 hover:bg-muted/50 transition-colors flex flex-col gap-1 disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none"
                             >
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-mono text-xs font-semibold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">

@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { PayrollEntry, PayrollPeriod } from '@/src/types/payroll';
-import { urlToDataUrl, detectImageFormat } from '@/src/utils/imageUtils';
+import { urlToDataUrl, detectImageFormat, fitInBox, measureImage } from '@/src/utils/imageUtils';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -31,33 +31,38 @@ export async function gerarHolerite(
   const W        = doc.internal.pageSize.getWidth();
   const contentW = W - mL - mR;
 
-  // Pré-carrega logo — falha silenciosa
+  // Pré-carrega logo e mede dimensões reais via browser Image API — falha silenciosa
   const logoDataUrl = companyLogoUrl
     ? await urlToDataUrl(companyLogoUrl).catch(() => null)
     : null;
+  const logoDims = logoDataUrl ? await measureImage(logoDataUrl) : null;
+  const logoFmt  = logoDataUrl ? detectImageFormat(null, logoDataUrl) : null;
+  const { w: logoW, h: logoH } = logoDims
+    ? fitInBox(logoDims.width, logoDims.height, 40, 16)
+    : { w: 0, h: 0 };
 
   // ── Cabeçalho azul com logo (consistente com OS e Orçamento) ──
   const HEADER_H = 28;
+  const logoY       = logoH > 0 ? (HEADER_H - logoH) / 2 : 6;
+  const headerTextX = (logoDataUrl && logoW > 0) ? mL + logoW + 4 : mL;
+
   doc.setFillColor(30, 64, 175);   // azul DP/RH, diferencia dos demais docs
   doc.rect(0, 0, W, HEADER_H, 'F');
 
-  let textX = mL;
-  if (logoDataUrl) {
-    const fmt = detectImageFormat(null, logoDataUrl);
-    doc.addImage(logoDataUrl, fmt, mL, 6, 0, 16);
-    textX = mL + 22;
+  if (logoDataUrl && logoFmt && logoW > 0) {
+    doc.addImage(logoDataUrl, logoFmt, mL, logoY, logoW, logoH);
   }
 
   // Nome da empresa (esquerda)
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(255, 255, 255);
-  doc.text(companyName.toUpperCase(), textX, 13);
+  doc.text(companyName.toUpperCase(), headerTextX, 13);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(180, 210, 255);
-  doc.text('Holerite / Recibo de Pagamento', textX, 20);
+  doc.text('Holerite / Recibo de Pagamento', headerTextX, 20);
 
   // Competência (direita)
   doc.setFont('helvetica', 'bold');

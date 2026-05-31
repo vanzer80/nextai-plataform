@@ -1,3 +1,39 @@
+/**
+ * Mede as dimensões naturais (px) de uma imagem a partir de uma data URL.
+ * Usa a API nativa do browser (HTMLImageElement.naturalWidth/Height) — garantidamente
+ * correta para qualquer formato (JPEG, PNG, WebP, SVG…), sem depender de internals do jsPDF.
+ * Retorna null se o decode falhar (PDF é gerado mesmo assim, sem logo).
+ */
+export function measureImage(dataUrl: string): Promise<{ width: number; height: number } | null> {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload  = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = () => resolve(null);
+    img.src = dataUrl;
+  });
+}
+
+/**
+ * Calcula as dimensões renderizadas de uma imagem dentro de um box (maxW × maxH),
+ * preservando o aspect ratio sem distorção.
+ */
+export function fitInBox(
+  srcW: number,
+  srcH: number,
+  maxW: number,
+  maxH: number,
+): { w: number; h: number } {
+  if (srcW <= 0 || srcH <= 0) return { w: maxW, h: maxH };
+  const aspect = srcW / srcH;
+  let h = maxH;
+  let w = h * aspect;
+  if (w > maxW) {
+    w = maxW;
+    h = w / aspect;
+  }
+  return { w, h };
+}
+
 export async function urlToDataUrl(url: string): Promise<string | null> {
   try {
     const res = await fetch(url);

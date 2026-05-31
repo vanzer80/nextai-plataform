@@ -202,6 +202,9 @@ get_dashboard_agenda_kpis()            → jsonb  -- os_hoje, tecnicos_hoje, cri
 ### Armadilhas novas (não repetir)
 
 27. **Base-UI Switch** → usa `data-checked` / `data-unchecked`, não `data-state` (Radix). Em testes Playwright: `el.hasAttribute('data-checked')`.
+31. **Guard async `useRef` + `useState`** → para handlers async chamados de listas (ex: `handleSelectOS`): `ref` bloqueia reentrada síncrona (imune a race entre renders); `state` controla `disabled` visual. Usar `try/finally` para reset garantido. Padrão consolidado em `useOfflineSync.ts`.
+32. **`gerarPdfOrcamento.ts`** → `osNum` foi removida (era variável para linha crua de OS). Não recriar. OS vinculada agora é box dedicado `roundedRect` após o título, condicionado a `orcamento.report_id`.
+33. **jsPDF logo width=0 + browser Image API** → NUNCA usar `addImage(..., 0, height)` em PDFs com texto ao lado — jsPDF calcula largura pelo aspect ratio e pode invadir o texto. NUNCA usar `doc.getImageProperties(dataUrl)` para pré-medir: em browser mode (canvas), retorna valores errados vs Node. Padrão correto: `await measureImage(dataUrl)` (src/utils/imageUtils.ts — usa `HTMLImageElement.naturalWidth/Height`, garantido para qualquer formato) + `fitInBox(w, h, maxW, maxH)` → passar `{w, h}` EXPLÍCITOS ao `addImage`. `headerTextX = marginL + logoW + 4`. Aplicado nos 4 PDFs. ATENÇÃO: corrigir também o callback `didDrawPage` de autoTable — pode ter `addImage` separado com o bug.
 28. **Playwright getByText partial match** → `'OS Pendentes'` casa com "reembolsos **pendentes**". Sempre usar `{ exact: true }` para labels de widget no customizer.
 29. **Double fetch no dashboard** → nunca passar `activeWidgets` ao `useDashboardData` enquanto `prefs.isLoading`. Usar `effectiveWidgets = prefs.isLoading ? [] : prefs.activeWidgets`. O hook trata `widgetKey === ''` retornando `isLoading: false` imediato.
 30. **Onboarding modal 1200ms** → o welcome dialog aparece 1200ms após login. Testes E2E devem usar `loginAs` de `tests/helpers/auth.ts` que seta `onboarding_v1_done_{uid}` no localStorage dentro desse janela.
@@ -213,12 +216,10 @@ Arquivos completos em `C:\cerebro\Mopar Engenharia\Projeto App Portal Mopar\Spri
 - **Sprint D** — CPQ: ✅ Assinatura eletrônica + Versionamento + **OS↔Orçamento linkage (concluído 2026-05-30)**
 - **Sprint E** — OCR comprovantes + Budget + Base KB + Lifecycle de ativo (concluída)
 - **Dashboard Real** — ✅ Concluído 2026-05-31 (personalização, 3 novos widgets, período, refresh automático)
-- **Pendência aberta (Sprint D)** — Race condition dblclick em `handleSelectOS` (NovoOrcamento.tsx): adicionar flag `isSelecting`
 - **Holerite PDF** — `gerarHolerite.ts` já existe
 - **Notificações cross-módulo** — alertas SLA, aprovações pendentes, vencimentos CP (próximo passo SAP)
 - **CR (Contas a Receber)** — ciclo financeiro completo: fatura → pagamento → aging
 - **Testes E2E RH/DP/CP** — Playwright para os módulos enterprise
-- **PDF do orçamento** — seção "OS Vinculada" com referência cruzada
 
 ---
 
