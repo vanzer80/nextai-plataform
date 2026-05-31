@@ -147,7 +147,53 @@ Secrets (nunca no .env): `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, `OPENAI_API_KEY
   - `tests/ux/` — 37 testes UX/UI (login, RBAC, responsividade, estados)
   - `tests/orcamentos-sprint-d.spec.ts` — 5 testes Sprint D (assinatura eletrônica)
   - `tests/os-orcamento-vinculacao.spec.ts` — 33 testes OS↔Orçamento linkage (31 pass, 1 flaky timing, 1 probe pendente)
+  - `tests/dashboard-verify.spec.ts` — 5 testes Dashboard (Gestor, Personalizar, Período, RBAC, Master HR)
 - Credenciais em `tests/.env.test` (gitignored)
+
+## Dashboard Real — concluído 2026-05-31
+
+### Arquitetura
+
+```
+src/pages/dashboard/
+  widgetRegistry.ts          — 15 widgets definidos; WIDGET_COL_SPAN Map O(1); DashboardPeriod type
+  dashboardConfig.ts         — defaults por role (sem personalização)
+  dashboardPreferencesService.ts — load/save/reset no Supabase (3 round-trips)
+  useDashboardPrefs.ts       — hook: carrega prefs do banco, merge com role, segurança contra downgrade
+  useDashboardData.ts        — fetch paralelo; período (7d/30d/90d/12m); visibilitychange refresh
+  DashboardCustomizer.tsx    — modal toggle + setas reorder + validação ≥1 widget + toast
+  Dashboard.tsx              — effectiveWidgets (sem double fetch); skeleton durante prefs load; fullWidgets (colSpan 4)
+  widgets/
+    CpqKpiWidget.tsx         — aprovados/pendentes/expirados/conversão/tendência
+    AgendaHojeWidget.tsx     — OS hoje/técnicos/criticas/SLA vencido
+    EstoqueCriticoWidget.tsx — itens abaixo do mínimo/valor total
+```
+
+### Migrations aplicadas (2026-05-31)
+
+- `20260531_dashboard_preferences` — tabela `dashboard_preferences` + RLS + 3 RPCs
+- `20260531_dashboard_bugfixes` — FK `ON DELETE CASCADE` + `expirados` no CPQ RPC
+
+### Banco
+
+```sql
+-- Tabela
+dashboard_preferences (user_id UNIQUE, team_id, widget_order jsonb)
+-- RLS: user_id = auth.uid()
+-- FK: user_id → auth.users(id) ON DELETE CASCADE
+
+-- RPCs (SECURITY INVOKER)
+get_dashboard_cpq_kpis(p_days int)     → jsonb  -- total, aprovados, pendentes, expirados, rejeitados, anterior
+get_dashboard_estoque_kpis()           → jsonb  -- criticos, total_itens, valor_total
+get_dashboard_agenda_kpis()            → jsonb  -- os_hoje, tecnicos_hoje, criticas_abertas, vencidas_sla
+```
+
+### Armadilhas novas (não repetir)
+
+27. **Base-UI Switch** → usa `data-checked` / `data-unchecked`, não `data-state` (Radix). Em testes Playwright: `el.hasAttribute('data-checked')`.
+28. **Playwright getByText partial match** → `'OS Pendentes'` casa com "reembolsos **pendentes**". Sempre usar `{ exact: true }` para labels de widget no customizer.
+29. **Double fetch no dashboard** → nunca passar `activeWidgets` ao `useDashboardData` enquanto `prefs.isLoading`. Usar `effectiveWidgets = prefs.isLoading ? [] : prefs.activeWidgets`. O hook trata `widgetKey === ''` retornando `isLoading: false` imediato.
+30. **Onboarding modal 1200ms** → o welcome dialog aparece 1200ms após login. Testes E2E devem usar `loginAs` de `tests/helpers/auth.ts` que seta `onboarding_v1_done_{uid}` no localStorage dentro desse janela.
 
 ## Próximas sprints disponíveis
 
@@ -155,8 +201,10 @@ Arquivos completos em `C:\cerebro\Mopar Engenharia\Projeto App Portal Mopar\Spri
 
 - **Sprint D** — CPQ: ✅ Assinatura eletrônica + Versionamento + **OS↔Orçamento linkage (concluído 2026-05-30)**
 - **Sprint E** — OCR comprovantes + Budget + Base KB + Lifecycle de ativo (concluída)
-- **Pendência aberta (Sprint D)** — Race condition dblclick em `handleSelectOS` (NovoOrcamento.tsx): adicionar flag `isSelecting` para evitar chamadas concorrentes
+- **Dashboard Real** — ✅ Concluído 2026-05-31 (personalização, 3 novos widgets, período, refresh automático)
+- **Pendência aberta (Sprint D)** — Race condition dblclick em `handleSelectOS` (NovoOrcamento.tsx): adicionar flag `isSelecting`
 - **Holerite PDF** — `gerarHolerite.ts` já existe
-- **Dashboard real** — KPIs cruzando dados de RH/DP/CP
-- **Testes E2E RH/DP/CP** — Playwright para os novos módulos enterprise
-- **PDF do orçamento** — incluir seção "OS Vinculada" com referência cruzada ao documento de origem
+- **Notificações cross-módulo** — alertas SLA, aprovações pendentes, vencimentos CP (próximo passo SAP)
+- **CR (Contas a Receber)** — ciclo financeiro completo: fatura → pagamento → aging
+- **Testes E2E RH/DP/CP** — Playwright para os módulos enterprise
+- **PDF do orçamento** — seção "OS Vinculada" com referência cruzada
