@@ -291,7 +291,7 @@ export default function ReportDetail() {
           </Button>
 
           {/* Orçamento — bidirecional: cria ou navega para o existente */}
-          {report.status !== 'draft' && ['Gestor', 'Supervisor', 'Admin', 'Master', 'Técnico'].includes(user?.role ?? '') && (
+          {report.status !== 'draft' && isReviewer && (
             orcamentoVinculado ? (
               <Button
                 variant="outline"
