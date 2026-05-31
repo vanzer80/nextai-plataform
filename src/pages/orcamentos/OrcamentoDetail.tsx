@@ -185,11 +185,12 @@ export default function OrcamentoDetail() {
             variant="outline"
             size="sm"
             className="gap-1.5"
-            onClick={() => gerarPdfOrcamento(orcamento, tenant?.name ?? 'Portal', {
+            onClick={() => void gerarPdfOrcamento(orcamento, tenant?.name ?? 'Portal', {
+              tenantLogoUrl:    tenant?.logoUrl,
               signatureDataUrl: orcamento.signature_data_url,
-              signerName: orcamento.signer_name,
-              signerEmail: orcamento.signer_email,
-              signedAt: orcamento.signed_at,
+              signerName:       orcamento.signer_name,
+              signerEmail:      orcamento.signer_email,
+              signedAt:         orcamento.signed_at,
             })}
           >
             <FileDown className="h-4 w-4" /> PDF

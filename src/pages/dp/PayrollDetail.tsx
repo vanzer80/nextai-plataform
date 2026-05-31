@@ -377,7 +377,7 @@ export default function PayrollDetail() {
                       )}
                       <Button
                         size="sm" variant="ghost" className="h-7 w-7 p-0"
-                        onClick={() => gerarHolerite(period, entry, companyName)}
+                        onClick={() => void gerarHolerite(period, entry, companyName, tenant?.logoUrl)}
                         title="Baixar holerite"
                       >
                         <Download className="h-3.5 w-3.5 text-muted-foreground" />
