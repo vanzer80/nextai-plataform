@@ -1,26 +1,20 @@
 import type { UserRole } from '@/src/contexts/AuthContext';
+import type { WidgetId } from './widgetRegistry';
 
-// Declaração explícita e auditável: qual perfil vê quais widgets.
-// Personalização por usuário futura deve operar apenas dentro deste conjunto — nunca ampliá-lo.
-export const dashboardConfigByRole: Record<UserRole, string[]> = {
-  // Operacional de campo — vê OS + orçamentos + reembolsos + compras
-  Tecnico:        ['reports-kpi', 'reimbursements-kpi', 'productivity', 'approval-rate', 'reports-bar', 'reimbursements-pie'],
-  // Apoio interno — vê reembolsos + compras; sem KPIs de OS (não acessa o módulo)
+/** Configuração padrão por role — baseline quando usuário não personalizou. */
+export const dashboardDefaultByRole: Record<UserRole, WidgetId[]> = {
+  Tecnico:        ['reports-kpi', 'approval-rate', 'productivity', 'reimbursements-kpi', 'reports-bar', 'reimbursements-pie'],
   Administrativo: ['reimbursements-kpi', 'reimbursements-pie'],
-  // Financeiro — foco em custo e fluxo; ticket médio é KPI de receita relevante
-  Financeiro:     ['reimbursements-kpi', 'ticket-medio', 'reimbursements-pie', 'budget-burn'],
-  // Comprador — foco em suprimentos; reembolsos como proxy de gastos operacionais
-  Comprador:      ['reimbursements-kpi', 'reimbursements-pie'],
-  // Liderança operacional — visão completa incluindo taxa de retorno e ticket médio
-  Supervisor:     ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'sla-rate', 'csat-avg', 'reports-bar', 'reimbursements-pie'],
-  Gestor:         ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'sla-rate', 'csat-avg', 'reports-bar', 'reimbursements-pie', 'budget-burn'],
-  Admin:          ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'sla-rate', 'csat-avg', 'reports-bar', 'reimbursements-pie', 'budget-burn'],
-  Master:         ['reports-kpi', 'reimbursements-kpi', 'productivity', 'ticket-medio', 'approval-rate', 'return-rate', 'sla-rate', 'csat-avg', 'reports-bar', 'reimbursements-pie', 'budget-burn'],
+  Financeiro:     ['reimbursements-kpi', 'ticket-medio', 'budget-burn', 'reimbursements-pie'],
+  Comprador:      ['estoque-critico', 'reimbursements-kpi', 'reimbursements-pie'],
+  Supervisor:     ['reports-kpi', 'sla-rate', 'csat-avg', 'return-rate', 'cpq-kpi', 'agenda-hoje', 'approval-rate', 'reimbursements-kpi', 'reports-bar', 'reimbursements-pie'],
+  Gestor:         ['reports-kpi', 'sla-rate', 'csat-avg', 'return-rate', 'cpq-kpi', 'agenda-hoje', 'estoque-critico', 'budget-burn', 'ticket-medio', 'reimbursements-kpi', 'hr-summary', 'reports-bar', 'reimbursements-pie'],
+  Admin:          ['reports-kpi', 'sla-rate', 'csat-avg', 'return-rate', 'cpq-kpi', 'agenda-hoje', 'estoque-critico', 'budget-burn', 'ticket-medio', 'reimbursements-kpi', 'hr-summary', 'reports-bar', 'reimbursements-pie'],
+  Master:         ['reports-kpi', 'sla-rate', 'csat-avg', 'return-rate', 'cpq-kpi', 'agenda-hoje', 'estoque-critico', 'budget-burn', 'ticket-medio', 'reimbursements-kpi', 'hr-summary', 'reports-bar', 'reimbursements-pie'],
   Cliente:        [],
 };
 
-// Retorna lista vazia para role desconhecida — fallback seguro (não renderiza nada)
-export function getWidgetIds(role: UserRole | undefined): string[] {
+export function getWidgetIds(role: UserRole | undefined): WidgetId[] {
   if (!role) return [];
-  return dashboardConfigByRole[role] ?? [];
+  return dashboardDefaultByRole[role] ?? [];
 }
