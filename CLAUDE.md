@@ -112,6 +112,10 @@ SECURITY INVOKER SET search_path = 'public' AS $$...$$;
 20. Botão submit Nova OS → texto "Enviar OS", atributo `data-onboarding="wizard-step7-enviar"`
 21. Testes Playwright (SPA navigation) → usar `waitForFunction(() => !window.location.pathname.includes('/login'))` em vez de `waitForURL` com `waitUntil:'load'`
 22. Supabase REVOKE: `REVOKE EXECUTE ON FUNCTION ... FROM PUBLIC` **não remove** grants explícitos por role (`anon=X/postgres` permanece no proacl). Sempre fazer `REVOKE ... FROM anon` explicitamente em funções SECURITY DEFINER.
+23. `SelectValue` Radix + `setValue` programático → sempre passar `children` explícitos: `<SelectValue>{clients.find(c => c.id === watch('client_id'))?.name}</SelectValue>`. Sem isso, exibe UUID bruto quando valor é setado via `setValue`.
+24. Testes E2E com Supabase free-tier → usar `waitForResponse(resp => resp.url().includes('/rest/v1/<tabela>'))` para aguardar a resposta real da API; nunca depender de texto da UI ("Carregando...") para saber quando a lista carregou — pode não aparecer se o DB responder rápido.
+25. `handleSelectOS` (NovoOrcamento) → sem guard de concorrência. Duplo-clique chama a função duas vezes; Estado 2 pode não aparecer. Adicionar flag `isSelecting` ou `useRef` antes de implementar qualquer UI que possa disparar dois cliques seguidos.
+26. RoleGuard de `/orcamentos/*` = `['Master','Admin','Gestor','Supervisor']` — **Tecnico não tem acesso**. Nunca mostrar botão de navegação para `/orcamentos` para role Tecnico.
 
 ## Sidebar CSS tokens (crítico)
 
@@ -136,12 +140,23 @@ Nunca `bg-background` ou `border-border` dentro da sidebar — componentes ficam
 
 Secrets (nunca no .env): `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, `OPENAI_API_KEY`
 
+## Estado dos testes
+
+- **Vitest (unit):** 117+ testes passando (`npx vitest run`)
+- **Playwright E2E:**
+  - `tests/ux/` — 37 testes UX/UI (login, RBAC, responsividade, estados)
+  - `tests/orcamentos-sprint-d.spec.ts` — 5 testes Sprint D (assinatura eletrônica)
+  - `tests/os-orcamento-vinculacao.spec.ts` — 33 testes OS↔Orçamento linkage (31 pass, 1 flaky timing, 1 probe pendente)
+- Credenciais em `tests/.env.test` (gitignored)
+
 ## Próximas sprints disponíveis
 
 Arquivos completos em `C:\cerebro\Mopar Engenharia\Projeto App Portal Mopar\Sprints\`
 
-- **Sprint D** — CPQ: Assinatura eletrônica em orçamentos + Versionamento
+- **Sprint D** — CPQ: ✅ Assinatura eletrônica + Versionamento + **OS↔Orçamento linkage (concluído 2026-05-30)**
 - **Sprint E** — OCR comprovantes + Budget + Base KB + Lifecycle de ativo (concluída)
+- **Pendência aberta (Sprint D)** — Race condition dblclick em `handleSelectOS` (NovoOrcamento.tsx): adicionar flag `isSelecting` para evitar chamadas concorrentes
 - **Holerite PDF** — `gerarHolerite.ts` já existe
 - **Dashboard real** — KPIs cruzando dados de RH/DP/CP
 - **Testes E2E RH/DP/CP** — Playwright para os novos módulos enterprise
+- **PDF do orçamento** — incluir seção "OS Vinculada" com referência cruzada ao documento de origem
