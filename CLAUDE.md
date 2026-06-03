@@ -159,7 +159,11 @@ Secrets (nunca no .env): `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, `OPENAI_API_KEY
   - `tests/orcamentos-sprint-d.spec.ts` — 5 testes Sprint D (assinatura eletrônica)
   - `tests/os-orcamento-vinculacao.spec.ts` — 33 testes OS↔Orçamento linkage (31 pass, 1 flaky timing, 1 probe pendente)
   - `tests/dashboard-verify.spec.ts` — 5 testes Dashboard (Gestor, Personalizar, Período, RBAC, Master HR)
+  - `tests/rh-module.spec.ts` — 7 testes RH (RBAC, lista, KPIs, admissão, departamentos) ✅ 7/7
+  - `tests/dp-module.spec.ts` — 7 testes DP (RBAC, folha, status, dialog, subrotas) ✅ 7/7
+  - `tests/cp-module.spec.ts` — 8 testes CP (RBAC, lista, KPIs, status, navegação, filtro REST) ✅ 8/8
 - Credenciais em `tests/.env.test` (gitignored)
+- **CRÍTICO:** nunca rodar spec files em paralelo com `run_in_background` — Supabase free tier + Vite não aguentam carga simultânea (ERR_CONNECTION_REFUSED cascata)
 
 ## Dashboard Real — concluído 2026-05-31
 
@@ -202,6 +206,10 @@ get_dashboard_agenda_kpis()            → jsonb  -- os_hoje, tecnicos_hoje, cri
 ### Armadilhas novas (não repetir)
 
 27. **Base-UI Switch** → usa `data-checked` / `data-unchecked`, não `data-state` (Radix). Em testes Playwright: `el.hasAttribute('data-checked')`.
+34. **Playwright `getByPlaceholder` não é exact por default** → `getByPlaceholder('Nome completo')` casa com "Nome completo da mãe". Sempre usar `{ exact: true }` em placeholders que são substrings de outros.
+35. **Playwright `getByText` em forms tabulados** → se o form tem abas (Shadcn/Radix Tabs), o mesmo texto aparece no tab button E no h2 interno. Usar `getByRole('heading', { name: '...', exact: true })` para o h2.
+36. **Playwright `Promise.any` com `isVisible()`** → `isVisible()` NUNCA rejeita (resolve com `false`), então `Promise.any` resolve com o primeiro valor independente de ser `true` ou `false`. Para "qualquer badge visível", usar loop com `count()` em vez de `Promise.any`.
+37. **Specs Playwright em paralelo vs Supabase free tier** → rodar dois spec files simultaneamente (ex: `run_in_background` duplo) sobrecarrega o Vite + Supabase: `waitForResponse` timeout → Vite crasha → `ERR_CONNECTION_REFUSED` em cascata. Sempre rodar um spec por vez.
 31. **Guard async `useRef` + `useState`** → para handlers async chamados de listas (ex: `handleSelectOS`): `ref` bloqueia reentrada síncrona (imune a race entre renders); `state` controla `disabled` visual. Usar `try/finally` para reset garantido. Padrão consolidado em `useOfflineSync.ts`.
 32. **`gerarPdfOrcamento.ts`** → `osNum` foi removida (era variável para linha crua de OS). Não recriar. OS vinculada agora é box dedicado `roundedRect` após o título, condicionado a `orcamento.report_id`.
 33. **jsPDF logo width=0 + browser Image API** → NUNCA usar `addImage(..., 0, height)` em PDFs com texto ao lado — jsPDF calcula largura pelo aspect ratio e pode invadir o texto. NUNCA usar `doc.getImageProperties(dataUrl)` para pré-medir: em browser mode (canvas), retorna valores errados vs Node. Padrão correto: `await measureImage(dataUrl)` (src/utils/imageUtils.ts — usa `HTMLImageElement.naturalWidth/Height`, garantido para qualquer formato) + `fitInBox(w, h, maxW, maxH)` → passar `{w, h}` EXPLÍCITOS ao `addImage`. `headerTextX = marginL + logoW + 4`. Aplicado nos 4 PDFs. ATENÇÃO: corrigir também o callback `didDrawPage` de autoTable — pode ter `addImage` separado com o bug.
