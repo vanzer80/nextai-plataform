@@ -61,8 +61,9 @@ const PayableDetail      = lazy(() => import('@/src/pages/cp/PayableDetail'));
 // Platform admin pages (SuperMaster only)
 const PlatformTenants       = lazy(() => import('@/src/pages/platform/PlatformTenants'));
 const PlatformUsers         = lazy(() => import('@/src/pages/platform/PlatformUsers'));
-const PlatformSettings      = lazy(() => import('@/src/pages/platform/PlatformSettings'));
-const PlatformIntelligence  = lazy(() => import('@/src/pages/platform/PlatformIntelligence'));
+const PlatformSettings        = lazy(() => import('@/src/pages/platform/PlatformSettings'));
+const PlatformIntelligence    = lazy(() => import('@/src/pages/platform/PlatformIntelligence'));
+const PlatformCompanyProfile  = lazy(() => import('@/src/pages/platform/PlatformCompanyProfile'));
 
 // Redirects SuperMaster → /platform/tenants, Cliente → /portal, others → /dashboard
 function SmartRedirect() {
@@ -101,10 +102,11 @@ export default function App() {
             <Route element={<PlatformGuard />}>
               <Route element={<PlatformLayout />}>
                 <Route path="/platform" element={<Navigate to="/platform/tenants" replace />} />
-                <Route path="/platform/tenants"      element={<PlatformTenants />} />
-                <Route path="/platform/users"        element={<PlatformUsers />} />
-                <Route path="/platform/intelligence" element={<PlatformIntelligence />} />
-                <Route path="/platform/settings"     element={<PlatformSettings />} />
+                <Route path="/platform/tenants"          element={<PlatformTenants />} />
+                <Route path="/platform/company-profile"  element={<PlatformCompanyProfile />} />
+                <Route path="/platform/users"            element={<PlatformUsers />} />
+                <Route path="/platform/intelligence"     element={<PlatformIntelligence />} />
+                <Route path="/platform/settings"         element={<PlatformSettings />} />
               </Route>
             </Route>
 

@@ -1,6 +1,6 @@
 import React, { useState, Suspense } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Building2, Users, Settings, Brain, Menu, LogOut, Loader2, Sun, Moon, Laptop } from 'lucide-react';
+import { Building2, Users, Settings, Brain, Menu, LogOut, Loader2, Sun, Moon, Laptop, FileText } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -11,10 +11,11 @@ import clsx from 'clsx';
 import { NextAILogo } from '@/src/components/brand/NextAILogo';
 
 const PLATFORM_NAV = [
-  { name: 'Empresas',      path: '/platform/tenants',      icon: Building2 },
-  { name: 'Usuários',      path: '/platform/users',        icon: Users },
-  { name: 'Inteligência',  path: '/platform/intelligence', icon: Brain },
-  { name: 'Configurações', path: '/platform/settings',     icon: Settings },
+  { name: 'Empresas',         path: '/platform/tenants',         icon: Building2 },
+  { name: 'Perfil Comercial', path: '/platform/company-profile', icon: FileText  },
+  { name: 'Usuários',         path: '/platform/users',           icon: Users     },
+  { name: 'Inteligência',     path: '/platform/intelligence',    icon: Brain     },
+  { name: 'Configurações',    path: '/platform/settings',        icon: Settings  },
 ];
 
 function getInitials(name?: string): string {
