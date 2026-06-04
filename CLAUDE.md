@@ -162,6 +162,7 @@ Secrets (nunca no .env): `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, `OPENAI_API_KEY
   - `tests/rh-module.spec.ts` — 7 testes RH (RBAC, lista, KPIs, admissão, departamentos) ✅ 7/7
   - `tests/dp-module.spec.ts` — 7 testes DP (RBAC, folha, status, dialog, subrotas) ✅ 7/7
   - `tests/cp-module.spec.ts` — 8 testes CP (RBAC, lista, KPIs, status, navegação, filtro REST) ✅ 8/8
+  - `tests/platform-company-profile.spec.ts` — 6 testes Perfil Comercial SuperMaster ✅ 6/6
 - Credenciais em `tests/.env.test` (gitignored)
 - **CRÍTICO:** nunca rodar spec files em paralelo com `run_in_background` — Supabase free tier + Vite não aguentam carga simultânea (ERR_CONNECTION_REFUSED cascata)
 
@@ -219,6 +220,11 @@ get_dashboard_agenda_kpis()            → jsonb  -- os_hoje, tecnicos_hoje, cri
 38. **Tour step com elemento condicional** → se o elemento só existe quando há dados (ex: tabela vazia), o driver.js pode travar. Regra: steps com `route:` cujo elemento só aparece após interação do usuário (selecionar colaborador, ter registros) → mover `data-onboarding` para o container sempre visível da página (ex: filtros). Steps com elemento 100% condicional (badge de alerta) → remover do tour e descrever no step anterior.
 39. **Rota do tour ≠ rota do App** → sempre cruzar `route:` no tour com o `path=` real em `App.tsx`. Exemplos de erros: `/dp/time-records` (tour) vs `/dp/timerecords` (App); `/cp` (redirect) vs `/cp/payables` (real). O driver navega para a rota exata — redirect silencia sem erro, rota errada nunca acha o elemento.
 40. **Roles do tour ≤ RoleGuard da rota** → os roles de um step nunca devem incluir perfis que o `RoleGuard` de `App.tsx` não deixa acessar. Cruzar explicitamente: `allowedRoles` do RoleGuard ↔ `roles:[]` do TourStep antes de commitar novo tour.
+41. **UPDATE cross-tenant em `tenants` falha silenciosamente** → a policy RLS só permite UPDATE quando `is_platform_master()`. Um UPDATE direto do SuperMaster via `.from('tenants').update()` retorna 0 rows sem erro (falha silenciosa). Sempre usar a RPC `update_tenant_commercial` (SECURITY DEFINER). Mesma razão para `get_platform_tenants` existir.
+42. **RPC `RETURNS void` → HTTP 204** → funções PostgreSQL que não retornam valor (`RETURNS void`) retornam HTTP 204 No Content via PostgREST, não 200. Em testes Playwright: `expect([200, 204]).toContain(resp.status())`.
+43. **PlatformLayout usa `<aside>`, não `<nav>`** → os links da sidebar do PlatformLayout ficam dentro de `<aside>`, não `<nav>`. Seletores Playwright devem usar `a[href="/platform/..."]` sem prefixo de tag, ou `aside a[href=...]`.
+44. **Playwright `waitForResponse` deve ser configurado ANTES do click** → configurar o listener depois do click cria race condition: se a resposta chegar antes do listener estar ativo, o teste trava até timeout. Padrão correto: `const p = page.waitForResponse(...); await button.click(); await p;`
+45. **Dados de teste Playwright com RPCs de escrita** → ao usar `update_tenant_commercial` em testes, o banco é modificado permanentemente. Se o teste falhar no meio, os dados ficam corrompidos para execuções futuras. Usar campos não-críticos (ex: `phone`) para testes de save, ou restaurar via `afterEach` com limpeza explícita.
 
 ## Onboarding SAP-level — concluído 2026-06-03
 
@@ -244,7 +250,7 @@ src/onboarding/
    - `route:` do step bate com `path=` real em `App.tsx`? (sem redirects, sem hífen errado)
    - `roles:[]` do step ⊆ `allowedRoles` do `RoleGuard` da rota?
 
-### 24 tour modules (cobertura 100% dos módulos)
+### 25 tour modules (cobertura 100% dos módulos)
 
 | Categoria | Tour | Steps | Roles |
 |-----------|------|-------|-------|
@@ -257,10 +263,63 @@ src/onboarding/
 | Knowledge | conhecimento | 3 | todos |
 | HR & Payroll | rh, dp | 6+7 | Gestor+ |
 | Admin | admin, admin-sla, admin-budget, admin-manutencao, admin-tenants-mgmt | 5+2+2+2+1 | Gestor+/Master |
-| Platform | platform | 4 | SuperMaster |
+| Platform | platform, platform-company-profile | 4+1 | SuperMaster |
 
 ### Storage key
 `onboarding_v1_done_{userId}` — resetar via `useOnboarding().resetTour()` ou removendo do localStorage.
+
+---
+
+## Cadastro Comercial de Tenants — concluído 2026-06-04
+
+### Colunas adicionadas à tabela `tenants` (migration `20260603_tenant_commercial_data`)
+
+```sql
+razao_social, ie, email_contato,
+address_zip, address_street, address_number, address_complement,
+address_neighborhood, address_city, address_state (sempre UPPERCASE), address_country
+```
+Somam às colunas anteriores: `cnpj`, `phone`, `website`, `sector` (migration `20260523_tenants_business_fields`).
+
+### RPCs (migrations `20260603_*`)
+
+```sql
+-- SuperMaster edita qualquer tenant (SECURITY DEFINER, verifica is_platform_master())
+update_tenant_commercial(p_tenant_id, p_name, p_primary_color, p_logo_url, p_logo_removed, p_cnpj, ...)
+  → void (HTTP 204)
+
+-- Master/Admin edita apenas a própria empresa (SECURITY DEFINER, usa auth.uid() internamente)
+-- Nunca permite alterar name, slug, primary_color, logo_url, is_platform, is_active
+update_own_tenant_commercial(p_razao_social, p_cnpj, p_ie, p_email_contato, ...)
+  → void (HTTP 204)
+
+-- Já existia — atualizada para retornar os novos campos
+get_platform_tenants() → TABLE(..., razao_social, ie, email_contato, address_*)
+```
+
+### Arquitetura das telas
+
+| Quem | Rota | Componente | O que faz |
+|---|---|---|---|
+| SuperMaster | `/platform/company-profile` | `PlatformCompanyProfile.tsx` | Seletor de empresa + edita qualquer tenant via `update_tenant_commercial` |
+| Master / Admin | `/admin/company-profile` | `CompanyProfile.tsx` | Edita apenas a própria empresa via `update_own_tenant_commercial` |
+| SuperMaster | `/platform/tenants` → ⋯ → Editar | `PlatformTenants.tsx` Sheet | Edita todos os campos incluindo identidade visual via `update_tenant_commercial` |
+
+### CEP auto-fill (padrão consolidado)
+```typescript
+// fetch nativo — sem biblioteca; onBlur no campo CEP
+const res = await fetch(`https://viacep.com.br/ws/${cep.replace(/\D/g,'')}/json/`);
+const json = await res.json();
+if (json.erro) { toast.info('CEP não encontrado.'); return; }
+form.setValue('address_street', json.logradouro);
+form.setValue('address_neighborhood', json.bairro);
+form.setValue('address_city', json.localidade);
+form.setValue('address_state', json.uf.toUpperCase());
+```
+
+### Onboarding
+- `company-profile.tour.ts` — 2 steps, roles `['Gestor','Admin','Master']`
+- `platformCompanyProfileTour` (mesmo arquivo) — 1 step, role `['SuperMaster']`
 
 ---
 
@@ -274,7 +333,7 @@ Arquivos completos em `C:\cerebro\Mopar Engenharia\Projeto App Portal Mopar\Spri
 - **Holerite PDF** — `gerarHolerite.ts` já existe
 - **Notificações cross-módulo** — alertas SLA, aprovações pendentes, vencimentos CP (próximo passo SAP)
 - **CR (Contas a Receber)** — ciclo financeiro completo: fatura → pagamento → aging
-- **Testes E2E RH/DP/CP** — Playwright para os módulos enterprise
+- **Testes E2E RH/DP/CP** — ✅ Concluído 2026-06-03
 
 ---
 
