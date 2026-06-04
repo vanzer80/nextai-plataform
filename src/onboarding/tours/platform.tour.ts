@@ -45,5 +45,25 @@ export const platformTour: TourModule = {
       },
       roles: ['SuperMaster'],
     },
+    {
+      element: '[data-onboarding="platform-intelligence-header"]',
+      route: '/platform/intelligence',
+      popover: {
+        title: 'Banco de Inteligência',
+        description: 'Corpus de dados cross-tenant anonimizado: OS, diagnósticos, KB e tabelas operacionais de todos os tenants. Os KPIs mostram o volume total que alimenta o modelo de IA. Todos os acessos são registrados na trilha de auditoria.',
+        side: 'bottom',
+      },
+      roles: ['SuperMaster'],
+    },
+    {
+      element: '[data-onboarding="platform-intelligence-tabs"]',
+      route: '/platform/intelligence',
+      popover: {
+        title: '15 Abas + Monitor de Roteamento IA',
+        description: 'Corpus IA (Diagnósticos + KB) e 13 tabelas brutas exportáveis em JSON/CSV. O widget "Roteamento IA" aparece quando há chamadas registradas — mostra se o fallback para OpenAI foi ativado (custo ~10× maior que Gemini). Fica vermelho quando o fallback ultrapassa 15%.',
+        side: 'bottom',
+      },
+      roles: ['SuperMaster'],
+    },
   ],
 };

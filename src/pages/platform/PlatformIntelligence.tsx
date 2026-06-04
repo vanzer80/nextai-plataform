@@ -416,7 +416,7 @@ export default function PlatformIntelligence() {
     <div className="flex flex-col gap-6 h-full w-full pb-8 animate-in fade-in duration-300">
 
       {/* Header */}
-      <div>
+      <div data-onboarding="platform-intelligence-header">
         <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
           <Brain className="h-6 w-6 text-primary" />
           Inteligência
@@ -529,7 +529,7 @@ export default function PlatformIntelligence() {
       )}
 
       {/* Tabs agrupadas */}
-      <div className="flex flex-col gap-0 border-b border-border">
+      <div className="flex flex-col gap-0 border-b border-border" data-onboarding="platform-intelligence-tabs">
         {TAB_GROUPS.map(group => (
           <div key={group.label} className="flex items-center gap-0 flex-wrap">
             <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 w-20 shrink-0 pl-1 py-2 hidden sm:block">
