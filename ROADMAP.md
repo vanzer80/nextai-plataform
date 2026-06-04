@@ -1,7 +1,7 @@
 # NextAI — Engineering Roadmap 2026
 
 > Full documentation in Obsidian: `Sprints/00 - Master Roadmap B2B Enterprise.md`  
-> **Atualizado em:** 2026-06-04 (Sessão 69) · 135 commits · Sprints A–F concluídas
+> **Atualizado em:** 2026-06-04 (Sessão 70) · 136 commits · Sprints A–F concluídas
 
 ## Current State
 
@@ -15,7 +15,7 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 
 **Platform:** Multi-tenant RLS isolation by `team_id` · OKLCH dynamic branding · SuperMaster (5 Platform pages · Intelligence cross-tenant 15 tabs · Commercial Profile editor) · Customer Portal · CSAT · PWA (SW `nextai-v7` · IndexedDB) · Onboarding 25 tours / 85+ steps (driver.js).
 
-**Tests:** 117 Vitest unit tests (8 files) · 23 Playwright E2E spec files / ~166 tests.
+**Tests:** 117 Vitest unit tests (8 files) · 24 Playwright E2E spec files / ~171 tests.
 
 ---
 
@@ -43,6 +43,7 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 | s66–67 | 2026-06-03 | Commercial tenant profile (CNPJ, address, fiscal data) · Onboarding 25 tours 85+ steps |
 | s68 | 2026-06-04 | SuperMaster edits any tenant's commercial profile · 6 Platform E2E tests |
 | s69 | 2026-06-04 | PRD audit against external product analysis · PRD + ROADMAP updated · 3 critical findings identified (update_orcamento non-atomic, AI cost observability, CP migration FK) |
+| s70 | 2026-06-04 | Sidebar reorganizado em 9 grupos funcionais SAP-style (NAV_GROUPS) · 5 testes E2E sidebar-verify |
 
 ---
 

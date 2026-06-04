@@ -70,33 +70,81 @@ const NAV_ONBOARDING: Record<string, string> = {
   '/admin/tenants':               'nav-tenants',
 };
 
-// Configuration of navigation links
-const NAV_LINKS = [
-  { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Financeiro', 'Comprador', 'Admin', 'Master'] },
-  { name: 'Ordens de Serviço', path: '/reports', icon: ClipboardList, roles: ['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master'] },
-  { name: 'Orçamentos', path: '/orcamentos', icon: FileText, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
-  { name: 'Reembolsos', path: '/reimbursements', icon: Receipt, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Financeiro', 'Admin', 'Master'] },
-  { name: 'Compras', path: '/materials', icon: ShoppingCart, roles: ['Tecnico', 'Administrativo', 'Financeiro', 'Supervisor', 'Gestor', 'Comprador', 'Admin', 'Master'] },
-  { name: 'Clientes', path: '/clients', icon: Building2, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
-  { name: 'Equipamentos', path: '/equipments', icon: Wrench, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
-  { name: 'Fornecedores', path: '/suppliers', icon: Store, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
-  { name: 'Peças / Estoque', path: '/parts', icon: Package, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
-  { name: 'Agenda / Dispatch', path: '/agenda', icon: CalendarDays, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
-  { name: 'Base de Conhecimento', path: '/knowledge', icon: BookOpen, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Financeiro', 'Comprador', 'Admin', 'Master'] },
-  { name: 'Colaboradores',      path: '/rh/employees',           icon: Users,      roles: ['Gestor', 'Admin', 'Master'] },
-  { name: 'Departamentos',      path: '/rh/departments',          icon: Network,    roles: ['Gestor', 'Admin', 'Master'] },
-  { name: 'Folha de Pagamento', path: '/dp/payroll',              icon: Landmark,   roles: ['Gestor', 'Admin', 'Master'] },
-  { name: 'Férias',              path: '/dp/vacation',             icon: Umbrella,   roles: ['Gestor', 'Admin', 'Master'] },
-  { name: 'Registro de Ponto',  path: '/dp/timerecords',          icon: Clock,      roles: ['Gestor', 'Admin', 'Master'] },
-  { name: 'Contas a Pagar',     path: '/cp/payables',             icon: Banknote,   roles: ['Financeiro', 'Gestor', 'Admin', 'Master'] },
-  { name: 'Checklists', path: '/admin/checklist-templates', icon: ListChecks, roles: ['Gestor', 'Admin', 'Master'] },
-  { name: 'Tipos de Serviço', path: '/admin/service-types', icon: Settings2, roles: ['Gestor', 'Admin', 'Master'] },
-  { name: 'SLA', path: '/admin/sla', icon: ShieldCheck, roles: ['Gestor', 'Admin', 'Master'] },
-  { name: 'Controle de Budget', path: '/admin/budget', icon: DollarSign, roles: ['Gestor', 'Admin', 'Master'] },
-  { name: 'Manutenção Preventiva', path: '/admin/maintenance-plans', icon: CalendarDays, roles: ['Gestor', 'Admin', 'Master'] },
-  { name: 'Perfil da Empresa', path: '/admin/company-profile', icon: Building2, roles: ['Gestor', 'Admin', 'Master'] },
-  { name: 'Administrador', path: '/admin/usuarios', icon: ShieldAlert, roles: ['Gestor', 'Admin', 'Master'] },
-  { name: 'Tenants', path: '/admin/tenants', icon: Globe, roles: ['Master'] },
+// Navigation module structure — SAP-style functional groups
+type NavItem = { name: string; path: string; icon: React.ComponentType<{ className?: string }>; roles: string[] };
+type NavGroup = { label: string; items: NavItem[] };
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: '',
+    items: [
+      { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Financeiro', 'Comprador', 'Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Operações de Campo',
+    items: [
+      { name: 'Ordens de Serviço', path: '/reports', icon: ClipboardList, roles: ['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master'] },
+      { name: 'Orçamentos', path: '/orcamentos', icon: FileText, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
+      { name: 'Agenda / Dispatch', path: '/agenda', icon: CalendarDays, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Comercial',
+    items: [
+      { name: 'Clientes', path: '/clients', icon: Building2, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Suprimentos',
+    items: [
+      { name: 'Compras', path: '/materials', icon: ShoppingCart, roles: ['Tecnico', 'Administrativo', 'Financeiro', 'Supervisor', 'Gestor', 'Comprador', 'Admin', 'Master'] },
+      { name: 'Fornecedores', path: '/suppliers', icon: Store, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
+      { name: 'Peças / Estoque', path: '/parts', icon: Package, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Financeiro',
+    items: [
+      { name: 'Reembolsos', path: '/reimbursements', icon: Receipt, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Financeiro', 'Admin', 'Master'] },
+      { name: 'Contas a Pagar', path: '/cp/payables', icon: Banknote, roles: ['Financeiro', 'Gestor', 'Admin', 'Master'] },
+      { name: 'Controle de Budget', path: '/admin/budget', icon: DollarSign, roles: ['Gestor', 'Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Ativos',
+    items: [
+      { name: 'Equipamentos', path: '/equipments', icon: Wrench, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Recursos Humanos',
+    items: [
+      { name: 'Colaboradores', path: '/rh/employees', icon: Users, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'Departamentos', path: '/rh/departments', icon: Network, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'Folha de Pagamento', path: '/dp/payroll', icon: Landmark, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'Férias', path: '/dp/vacation', icon: Umbrella, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'Registro de Ponto', path: '/dp/timerecords', icon: Clock, roles: ['Gestor', 'Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Conhecimento',
+    items: [
+      { name: 'Base de Conhecimento', path: '/knowledge', icon: BookOpen, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Financeiro', 'Comprador', 'Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Administração',
+    items: [
+      { name: 'Manutenção Preventiva', path: '/admin/maintenance-plans', icon: CalendarDays, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'Checklists', path: '/admin/checklist-templates', icon: ListChecks, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'Tipos de Serviço', path: '/admin/service-types', icon: Settings2, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'SLA', path: '/admin/sla', icon: ShieldCheck, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'Perfil da Empresa', path: '/admin/company-profile', icon: Building2, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'Administrador', path: '/admin/usuarios', icon: ShieldAlert, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'Tenants', path: '/admin/tenants', icon: Globe, roles: ['Master'] },
+    ],
+  },
 ];
 
 // All possible bottom nav options (mobile quick-access bar)
@@ -346,11 +394,13 @@ export default function AppLayout() {
   const { isOnline, isSyncing, pendingCount } = useOfflineSync();
 
   const userRole = user?.role || 'Tecnico';
-  const authorizedLinks = NAV_LINKS.filter(link => {
-    if (!link.roles.some(r => r.toLowerCase() === userRole.toLowerCase())) return false;
-    if (link.path === '/admin/tenants' && !tenant?.isPlatform) return false;
-    return true;
-  });
+  const authorizedLinks = NAV_GROUPS
+    .flatMap(g => g.items)
+    .filter(link => {
+      if (!link.roles.some(r => r.toLowerCase() === userRole.toLowerCase())) return false;
+      if (link.path === '/admin/tenants' && !tenant?.isPlatform) return false;
+      return true;
+    });
 
   const handleSignOut = async () => {
     invalidateClientsCache();
@@ -434,32 +484,48 @@ export default function AppLayout() {
   };
 
   const renderNavLinks = (isMobile = false) => {
-    return authorizedLinks.map((link) => {
-      const Icon = link.icon;
-      const isActive = location.pathname === link.path;
-      const showPendingBadge = link.path === '/reports' && pendingCount > 0;
+    return NAV_GROUPS.map((group) => {
+      const visibleItems = group.items.filter(item =>
+        authorizedLinks.some(a => a.path === item.path)
+      );
+      if (visibleItems.length === 0) return null;
 
       return (
-        <NavLink
-          key={link.path}
-          to={link.path}
-          onClick={() => isMobile && setIsMobileMenuOpen(false)}
-          data-onboarding={NAV_ONBOARDING[link.path]}
-          className={clsx(
-            'flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all rounded-lg',
-            isActive
-              ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm'
-              : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+        <React.Fragment key={`group-${group.label || 'home'}`}>
+          {group.label !== '' && (
+            <p className="px-4 pt-5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 select-none">
+              {group.label}
+            </p>
           )}
-        >
-          <Icon className="h-5 w-5 shrink-0" />
-          <span className="flex-1">{link.name}</span>
-          {showPendingBadge && (
-            <span className="ml-auto h-5 min-w-5 px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
-              {pendingCount}
-            </span>
-          )}
-        </NavLink>
+          {visibleItems.map((link) => {
+            const Icon = link.icon;
+            const isActive = location.pathname === link.path;
+            const showPendingBadge = link.path === '/reports' && pendingCount > 0;
+
+            return (
+              <NavLink
+                key={link.path}
+                to={link.path}
+                onClick={() => isMobile && setIsMobileMenuOpen(false)}
+                data-onboarding={NAV_ONBOARDING[link.path]}
+                className={clsx(
+                  'flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all rounded-lg',
+                  isActive
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm'
+                    : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                )}
+              >
+                <Icon className="h-5 w-5 shrink-0" />
+                <span className="flex-1">{link.name}</span>
+                {showPendingBadge && (
+                  <span className="ml-auto h-5 min-w-5 px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    {pendingCount}
+                  </span>
+                )}
+              </NavLink>
+            );
+          })}
+        </React.Fragment>
       );
     });
   };

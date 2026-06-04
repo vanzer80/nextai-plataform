@@ -133,6 +133,25 @@ SECURITY INVOKER SET search_path = 'public' AS $$...$$;
 Dentro da sidebar, SEMPRE usar tokens `bg-sidebar-*` / `text-sidebar-*`.  
 Nunca `bg-background` ou `border-border` dentro da sidebar — componentes ficam invisíveis.
 
+## Estrutura do sidebar (NAV_GROUPS)
+
+`AppLayout.tsx` usa `NAV_GROUPS: NavGroup[]` — 9 grupos funcionais estilo SAP:
+
+| Grupo | Módulos principais |
+|---|---|
+| `` (sem label) | Dashboard |
+| Operações de Campo | OS · Orçamentos · Agenda |
+| Comercial | Clientes |
+| Suprimentos | Compras · Fornecedores · Peças/Estoque |
+| Financeiro | Reembolsos · Contas a Pagar · Budget |
+| Ativos | Equipamentos |
+| Recursos Humanos | Colaboradores · Departamentos · Folha · Férias · Ponto |
+| Conhecimento | Base de Conhecimento |
+| Administração | Manutenção Preventiva · Checklists · Tipos de Serviço · SLA · Perfil · Admin · Tenants |
+
+`authorizedLinks` = `NAV_GROUPS.flatMap(g => g.items).filter(role + tenant)` — permanece flat para `UserProfileDropdown`.  
+Labels usam `text-sidebar-foreground/40` (nunca `text-muted-foreground` — fica invisível no sidebar).
+
 ## Convenções de código
 
 - Nenhum comentário óbvio — só comentar WHY não-óbvio
@@ -141,6 +160,7 @@ Nunca `bg-background` ou `border-border` dentro da sidebar — componentes ficam
 - Lazy loading: toda rota em `App.tsx` deve ser `React.lazy()` — sem exceção
 - Bundle alvo: chunk principal ≤ 100 kB gzip
 - Novo módulo: migration → types → service → hook → componente → página → rota + nav + **onboarding tour** (ver seção abaixo)
+- **Adicionar item ao sidebar:** incluir em `NAV_GROUPS` (AppLayout.tsx) no grupo funcional correto. Nunca adicionar fora de um grupo existente — se necessário, criar novo `NavGroup`. `authorizedLinks` é derivado via `flatMap` automático.
 - Responder sempre em português do Brasil
 
 ## Edge Functions deployadas
@@ -164,6 +184,7 @@ Secrets (nunca no .env): `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, `OPENAI_API_KEY
   - `tests/dp-module.spec.ts` — 7 testes DP (RBAC, folha, status, dialog, subrotas) ✅ 7/7
   - `tests/cp-module.spec.ts` — 8 testes CP (RBAC, lista, KPIs, status, navegação, filtro REST) ✅ 8/8
   - `tests/platform-company-profile.spec.ts` — 6 testes Perfil Comercial SuperMaster ✅ 6/6
+  - `tests/sidebar-verify.spec.ts` — 5 testes sidebar SAP groups (grupos, roles, ordem, navegação, console errors)
 - Credenciais em `tests/.env.test` (gitignored)
 - **CRÍTICO:** nunca rodar spec files em paralelo com `run_in_background` — Supabase free tier + Vite não aguentam carga simultânea (ERR_CONNECTION_REFUSED cascata)
 
