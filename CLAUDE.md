@@ -147,16 +147,17 @@ Nunca `bg-background` ou `border-border` dentro da sidebar — componentes ficam
 
 `ai-proxy` v8 · `admin-create-user` v4 · `admin-delete-user` v3  
 `admin-reset-password` v1 · `admin-provision-tenant` v1  
-`platform-update-user` v1 · `sla-checker` v1 · `send-csat-email` v1
+`platform-update-user` v1 · `sla-checker` v1 · `send-csat-email` v1  
+`ai-proxy` v9 (com logging `ai_routing_log` — versionada em `supabase/functions/ai-proxy/index.ts`)
 
 Secrets (nunca no .env): `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, `OPENAI_API_KEY`
 
 ## Estado dos testes
 
-- **Vitest (unit):** 117+ testes passando (`npx vitest run`)
+- **Vitest (unit):** 117 testes passando ✅ (`npx vitest run`)
 - **Playwright E2E:**
   - `tests/ux/` — 37 testes UX/UI (login, RBAC, responsividade, estados)
-  - `tests/orcamentos-sprint-d.spec.ts` — 5 testes Sprint D (assinatura eletrônica)
+  - `tests/orcamentos-sprint-d.spec.ts` — 5 testes Sprint D (assinatura eletrônica) — flaky cold-start free tier
   - `tests/os-orcamento-vinculacao.spec.ts` — 33 testes OS↔Orçamento linkage (31 pass, 1 flaky timing, 1 probe pendente)
   - `tests/dashboard-verify.spec.ts` — 5 testes Dashboard (Gestor, Personalizar, Período, RBAC, Master HR)
   - `tests/rh-module.spec.ts` — 7 testes RH (RBAC, lista, KPIs, admissão, departamentos) ✅ 7/7
@@ -225,6 +226,7 @@ get_dashboard_agenda_kpis()            → jsonb  -- os_hoje, tecnicos_hoje, cri
 43. **PlatformLayout usa `<aside>`, não `<nav>`** → os links da sidebar do PlatformLayout ficam dentro de `<aside>`, não `<nav>`. Seletores Playwright devem usar `a[href="/platform/..."]` sem prefixo de tag, ou `aside a[href=...]`.
 44. **Playwright `waitForResponse` deve ser configurado ANTES do click** → configurar o listener depois do click cria race condition: se a resposta chegar antes do listener estar ativo, o teste trava até timeout. Padrão correto: `const p = page.waitForResponse(...); await button.click(); await p;`
 45. **Dados de teste Playwright com RPCs de escrita** → ao usar `update_tenant_commercial` em testes, o banco é modificado permanentemente. Se o teste falhar no meio, os dados ficam corrompidos para execuções futuras. Usar campos não-críticos (ex: `phone`) para testes de save, ou restaurar via `afterEach` com limpeza explícita.
+46. **Novo export em service mockado no Vitest** → ao adicionar uma função a um service que já tem `vi.mock(...)` em algum teste, a nova função precisa ser adicionada ao mock também — caso contrário o Vitest lança `No "funcao" export is defined on the mock`. Sempre atualizar o mock ao adicionar exports a services testados.
 
 ## Onboarding SAP-level — concluído 2026-06-03
 
@@ -323,6 +325,41 @@ form.setValue('address_state', json.uf.toUpperCase());
 
 ---
 
+## Correções Auditoria s69 — concluído 2026-06-04
+
+### Migrations aplicadas (`20260604_*`)
+
+- `fix_cp_fk_teams_to_tenants` — FKs de payables/installments/comments → tenants (idempotente)
+- `update_orcamento_rpc` — RPC atômica SECURITY DEFINER (transação única vs 5 roundtrips)
+- `ai_routing_log` — tabela telemetria IA + RLS ENABLE sem policies (deny-all) + RPCs
+
+### RPC update_orcamento (SECURITY DEFINER)
+
+```sql
+-- Assinatura: update_orcamento(p_id UUID, p_orcamento JSONB, p_itens JSONB, p_changed_by UUID)
+-- RBAC: técnico dono (rascunho only) OU Gestor/Admin/Master
+-- Atômico: snapshot em orcamento_versions + UPDATE cabeçalho + DELETE/INSERT itens
+-- Retorna: JSON {success, version} ou {success: false, error}
+```
+
+### Observabilidade IA
+
+```
+public.ai_routing_log             — telemetria por chamada (provider, is_fallback, latency_ms)
+public.get_ai_routing_stats(hours) — RPC SECURITY DEFINER, SuperMaster only
+public.cleanup_ai_routing_log(days) — retenção 90 dias
+```
+
+Widget em `/platform/intelligence`: visível quando `total_requests > 0`, vermelho se `fallback_pct > 15%`.
+
+### Edge Function ai-proxy v9
+
+- Versionada em `supabase/functions/ai-proxy/index.ts`
+- `callWithFallback` retorna `{text, provider, isFallback}` para alimentar `logRouting`
+- `logRouting` é fire-and-forget via `service_role` + `SUPABASE_SERVICE_ROLE_KEY`
+
+---
+
 ## Próximas sprints disponíveis
 
 Arquivos completos em `C:\cerebro\Mopar Engenharia\Projeto App Portal Mopar\Sprints\`
@@ -330,6 +367,7 @@ Arquivos completos em `C:\cerebro\Mopar Engenharia\Projeto App Portal Mopar\Spri
 - **Sprint D** — CPQ: ✅ Assinatura eletrônica + Versionamento + **OS↔Orçamento linkage (concluído 2026-05-30)**
 - **Sprint E** — OCR comprovantes + Budget + Base KB + Lifecycle de ativo (concluída)
 - **Dashboard Real** — ✅ Concluído 2026-05-31 (personalização, 3 novos widgets, período, refresh automático)
+- **Correções s69** — ✅ Concluído 2026-06-04 (FK CP, RPC atômica orçamento, observabilidade IA, ai-proxy versionada)
 - **Holerite PDF** — `gerarHolerite.ts` já existe
 - **Notificações cross-módulo** — alertas SLA, aprovações pendentes, vencimentos CP (próximo passo SAP)
 - **CR (Contas a Receber)** — ciclo financeiro completo: fatura → pagamento → aging
