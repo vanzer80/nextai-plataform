@@ -227,6 +227,10 @@ get_dashboard_agenda_kpis()            → jsonb  -- os_hoje, tecnicos_hoje, cri
 44. **Playwright `waitForResponse` deve ser configurado ANTES do click** → configurar o listener depois do click cria race condition: se a resposta chegar antes do listener estar ativo, o teste trava até timeout. Padrão correto: `const p = page.waitForResponse(...); await button.click(); await p;`
 45. **Dados de teste Playwright com RPCs de escrita** → ao usar `update_tenant_commercial` em testes, o banco é modificado permanentemente. Se o teste falhar no meio, os dados ficam corrompidos para execuções futuras. Usar campos não-críticos (ex: `phone`) para testes de save, ou restaurar via `afterEach` com limpeza explícita.
 46. **Novo export em service mockado no Vitest** → ao adicionar uma função a um service que já tem `vi.mock(...)` em algum teste, a nova função precisa ser adicionada ao mock também — caso contrário o Vitest lança `No "funcao" export is defined on the mock`. Sempre atualizar o mock ao adicionar exports a services testados.
+47. **RPCs SECURITY DEFINER: isolamento vs autorização** → distinguir claramente os dois padrões:
+    - **Tenant isolation** (`update_orcamento`, `create_orcamento`): `SECURITY DEFINER` + `get_caller_team_id()` — qualquer `authenticated` pode chamar, o tenant é isolado por dentro.
+    - **SuperMaster only** (`get_ai_routing_stats`, `update_tenant_commercial`): `SECURITY DEFINER` + `IF NOT is_platform_master() THEN RAISE EXCEPTION` — apenas SuperMaster pode executar.
+    Nunca criar RPC SECURITY DEFINER sem ao menos um dos dois padrões. RPCs em `LANGUAGE sql` não suportam guard de runtime — converter para `plpgsql` quando necessário.
 
 ## Onboarding SAP-level — concluído 2026-06-03
 
