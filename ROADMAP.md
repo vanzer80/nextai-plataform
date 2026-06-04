@@ -1,7 +1,7 @@
 # NextAI — Engineering Roadmap 2026
 
 > Full documentation in Obsidian: `Sprints/00 - Master Roadmap B2B Enterprise.md`  
-> **Atualizado em:** 2026-06-04 (Sessão 70) · 136 commits · Sprints A–F concluídas
+> **Atualizado em:** 2026-06-04 (Sessão 71) · 139 commits · Sprints A–F concluídas
 
 ## Current State
 
@@ -32,7 +32,7 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 
 ---
 
-## Post-Sprint Deliveries (Sessions 62–69)
+## Post-Sprint Deliveries (Sessions 62–71)
 
 | Session | Date | Deliverable |
 |---------|------|------------|
@@ -44,6 +44,7 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 | s68 | 2026-06-04 | SuperMaster edits any tenant's commercial profile · 6 Platform E2E tests |
 | s69 | 2026-06-04 | PRD audit against external product analysis · PRD + ROADMAP updated · 3 critical findings identified (update_orcamento non-atomic, AI cost observability, CP migration FK) |
 | s70 | 2026-06-04 | Sidebar reorganizado em 9 grupos funcionais SAP-style (NAV_GROUPS) · 5 testes E2E sidebar-verify |
+| s71 | 2026-06-04 | Correção de agrupamento: Orçamentos→Comercial · Manutenção Preventiva→Operações de Campo · Equipamentos→Suprimentos · split Configurações/Administração · testes atualizados 5/5 |
 
 ---
 
