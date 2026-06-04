@@ -1,30 +1,78 @@
-# Portal Mopar — Engineering Roadmap 2026
+# NextAI — Engineering Roadmap 2026
 
-> Full documentation in Obsidian: `Sprints/00 - Master Roadmap B2B Enterprise.md`
+> Full documentation in Obsidian: `Sprints/00 - Master Roadmap B2B Enterprise.md`  
+> **Atualizado em:** 2026-06-04 (Sessão 68) · 135 commits · Sprints A–F concluídas
 
-## Current State (baseline)
+## Current State
 
-All core modules implemented: OS, Reimbursements, Purchases, Quotes, Equipment, Dashboard, Notifications, PWA offline, PDF export, multi-tenant RLS.
+All core modules implemented across Sprints A–F + Sessions 31–68:
 
-## Planned Sprints
+**Field Service (OS):** wizard 7 steps · GPS geolocation · AI diagnosis · digital signature canvas · offline drafts · auto-numbering · full-text search (GIN) · SLA tracking · preventive maintenance · QR code scan · OS↔Quote linking (SAP SD/PM) · Excel export · push notifications.
 
-| Sprint | Features | Status |
-|--------|----------|--------|
-| **A** | SLA Tracking · Supplier Management · Parts Inventory | Planned |
-| **B** | Purchase Orders · Expense Reports · QR Code → OS | Planned |
-| **C** | Customer Portal · CSAT Surveys · Dispatch Calendar | Planned |
-| **D** | Quote E-Signature · Quote Versioning | Planned |
-| **E** | OCR Receipts · Budget Control · Knowledge Base · Asset Lifecycle | Planned |
+**Financial & Procurement:** Reimbursements (AI OCR · SHA-256 antifraude · CNPJ validation · status "Pago") · Compras + Purchase Orders · Orçamentos/CPQ (e-signature · versioning · OS linking) · Contas a Pagar (multilevel approval workflow).
+
+**HR & Ops:** RH (CLT employees · departments · certifications · events) · DP (payroll INSS/IRRF/FGTS · holerites PDF · time records · vacation) · Dispatch Calendar · Knowledge Base (FTS pt-BR) · Asset Lifecycle (linear depreciation).
+
+**Platform:** Multi-tenant RLS isolation by `team_id` · OKLCH dynamic branding · SuperMaster (5 Platform pages · Intelligence cross-tenant 15 tabs · Commercial Profile editor) · Customer Portal · CSAT · PWA (SW `nextai-v7` · IndexedDB) · Onboarding 25 tours / 85+ steps (driver.js).
+
+**Tests:** 117 Vitest unit tests (8 files) · 23 Playwright E2E spec files / ~166 tests.
+
+---
+
+## Completed Sprints
+
+| Sprint | Features | Commit | Date |
+|--------|----------|--------|------|
+| **A** | SLA Tracking · Supplier Management · Parts Inventory | `fba1437` | 2026-05-24 |
+| **B** | Purchase Orders · Expense Reports · QR Code → OS | `fb55035` | 2026-05-24 |
+| **C** | Customer Portal · CSAT Surveys · Dispatch Calendar | `0b6fdeb` | 2026-05-24 |
+| **D** | Quote E-Signature · Quote Versioning | `730d20a` | 2026-05-24 |
+| **E** | OCR Receipts · Budget Control · Knowledge Base · Asset Lifecycle | `8a7ddad` | 2026-05-24 |
+| **F** | RH (CLT) · DP (Payroll / Holerite / Ponto / Férias) · CP (Contas a Pagar) | `9bbb649` | 2026-05-26 |
+
+---
+
+## Post-Sprint Deliveries (Sessions 62–68)
+
+| Session | Date | Deliverable |
+|---------|------|------------|
+| s62 | 2026-05-30 | OS↔Quote SAP SD/PM linking · 33 E2E tests · 16 CPQ audit fixes |
+| s63 | 2026-05-31 | NextAI landing page redesign (AI-first, AiOrb 3D) · tenant logo in all PDFs |
+| s64 | 2026-05-31 | CPQ race condition fix · OS section in quote PDF · logo rendering fix (`measureImage`/`fitInBox`) |
+| s65 | 2026-06-03 | 22 E2E tests for RH, DP, CP modules (7+7+8) |
+| s66–67 | 2026-06-03 | Commercial tenant profile (CNPJ, address, fiscal data) · Onboarding 25 tours 85+ steps |
+| s68 | 2026-06-04 | SuperMaster edits any tenant's commercial profile · 6 Platform E2E tests |
+
+---
+
+## Future Roadmap
+
+| Feature | Priority | Effort |
+|---------|----------|--------|
+| Email notifications (Resend) + WhatsApp (Evolution API) | 🔴 High | 1–2 days |
+| AI Report Writer (free text → professional technical language) | 🔴 High | 1–2 days |
+| Background Sync (Service Worker offline queue auto-sync) | 🟡 Medium | 1 day |
+| PWA icons PNG 192×512 for Android/Chrome install | 🟢 Low | hours |
+| RAG Analytics — natural language search over reports (pgvector) | 🟡 Strategic | 5–8 days |
+| GPS Dispatching Map — real-time technician location tracking | 🟡 Strategic | 5–8 days |
+| ERP Integration (TOTVS / SAP / Omie) via Edge Function webhook | 🟡 Strategic | 3–5 days/ERP |
+| Phase 6 SaaS: subdomain routing per tenant + billing (Stripe) | 🟡 Strategic | 2–3 weeks |
+
+---
 
 ## Engineering Principles
 
 1. Every new table ships with `team_isolation` RESTRICTIVE RLS in the same migration
-2. New RPCs use `SECURITY INVOKER` + `SET search_path = 'public'` by default
+2. New RPCs use `SECURITY INVOKER` + `SET search_path = 'public'` by default; `SECURITY DEFINER` only for cross-tenant — always follow with: `REVOKE FROM PUBLIC; REVOKE FROM anon; GRANT TO authenticated`
 3. `npx tsc --noEmit` must exit 0 after every feature
 4. New pages are lazy-loaded; initial bundle stays ≤ 100 kB gzip
 5. `get_advisors` run after every migration — zero new security alerts permitted
 6. At least one Playwright spec per new feature (happy path)
-7. Breaking changes forbidden — new columns are nullable or have DEFAULT
+7. Breaking changes forbidden — new columns are nullable or have `DEFAULT`; enum values added with `ADD VALUE IF NOT EXISTS`
+8. ADRs for architectural decisions — any non-obvious decision documented in `docs/adr/`
+9. **Writes (INSERT):** inject `team_id` manually — RLS does not inject on writes. **Reads:** do NOT add `.eq('team_id', ...)` — RLS filters via `get_caller_team_id()` automatically
+
+---
 
 ## Architecture Decision Records
 
