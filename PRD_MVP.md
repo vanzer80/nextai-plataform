@@ -2,8 +2,8 @@
 
 > **Documento:** Product Requirements Document — estado real da plataforma  
 > **Produto:** NextAI — plataforma SaaS B2B multi-tenant para gestão de field service  
-> **Gerado em:** 2026-04-22 · **Atualizado em:** 2026-06-04 (Sessão 68)  
-> **Versão do código:** Sprints A–F + Sessões 31–68 · **Commits totais:** 135  
+> **Gerado em:** 2026-04-22 · **Atualizado em:** 2026-06-04 (Sessão 69)  
+> **Versão do código:** Sprints A–F + Sessões 31–69 · **Commits totais:** 135  
 > **TypeScript:** `npx tsc --noEmit` → EXIT:0
 
 ---
@@ -273,7 +273,7 @@ draft → pending_review → approved
 
 ### 2.23 Assistente de IA
 
-**Edge Function `ai-proxy`** — nenhuma chave de API no bundle JS:
+**Edge Function `ai-proxy` v8** — nenhuma chave de API no bundle JS:
 
 | Tipo | Input | Output |
 |------|-------|--------|
@@ -284,6 +284,8 @@ draft → pending_review → approved
 | `diagnostic` | Texto + contexto de OS | Diagnóstico enriquecido, causas, recomendação |
 
 **Cascade de fallback server-side:** Gemini Flash key 1 → Gemini Flash key 2 → OpenAI (todos via secrets, nunca `.env` exposto no bundle).
+
+> ⚠️ **Dívida técnica:** o fallback é silencioso para o operador — se a chave Gemini for revogada, o tráfego migra para OpenAI (custo ~10× maior) sem nenhum alerta. Não há telemetria de roteamento no painel do SuperMaster. Ver item 4.8.
 
 ### 2.24 PWA
 
@@ -375,18 +377,23 @@ Credenciais em `tests/.env.test` (gitignored). Timeout 90 s (cold-start Supabase
 | **Storage** | Bucket privado `service_reports_media` (fotos, assinaturas) |
 | **Storage** | Bucket público `tenant-assets` (logos) |
 
-### 3.3 Edge Functions (8)
+### 3.3 Edge Functions (10)
 
-| Função | Propósito |
-|--------|-----------|
-| `admin-create-user` | Criar usuário no Auth + `public.users` com `team_id` |
-| `admin-delete-user` | Excluir usuário com guard cross-tenant |
-| `admin-provision-tenant` | Criar tenant + Master em transação única |
-| `admin-reset-password` | Reset de senha pelo Admin |
-| `maintenance-scheduler` | SLA escalonamento + manutenção preventiva |
-| `platform-update-user` | SuperMaster atualiza usuário de qualquer tenant |
-| `push-notification` | Web Push API (VAPID) — notificações nativas |
-| `storage-backfill-mopar` | Script único de migração de storage (legado) |
+| Função | Versão | Propósito |
+|--------|--------|-----------|
+| `ai-proxy` | v8 | Proxy de IA com fallback Gemini key1 → key2 → OpenAI |
+| `admin-create-user` | v4 | Criar usuário no Auth + `public.users` com `team_id` |
+| `admin-delete-user` | v3 | Excluir usuário com guard cross-tenant |
+| `admin-provision-tenant` | v1 | Criar tenant + Master em transação única |
+| `admin-reset-password` | v1 | Reset de senha pelo Admin |
+| `maintenance-scheduler` | v1 | SLA escalonamento + manutenção preventiva |
+| `platform-update-user` | v1 | SuperMaster atualiza usuário de qualquer tenant |
+| `push-notification` | v1 | Web Push API (VAPID) — notificações nativas |
+| `sla-checker` | v1 | Verificação periódica de SLA em relatórios abertos |
+| `send-csat-email` | v1 | Envio de pesquisa CSAT após aprovação de OS |
+| `storage-backfill-mopar` | v1 | Script único de migração de storage (legado) |
+
+> ⚠️ **Dívida técnica:** `ai-proxy` está deployada diretamente no Supabase mas **não está versionada no repositório local** (`supabase/functions/`). Um disaster recovery usando apenas as migrations e o código do repo não restauraria a função. Ver item 4.9.
 
 ### 3.4 IA e Integrações
 
@@ -430,7 +437,7 @@ Credenciais em `tests/.env.test` (gitignored). Timeout 90 s (cold-start Supabase
 | Deploy | Vercel auto-deploy ao push no `master` |
 | Produção | https://nextai-plataform.vercel.app |
 | Supabase project ref | `sksursvmgvxqbbdsztcd` |
-| Migrations | 23 arquivos em `supabase/migrations/` |
+| Migrations | 24 arquivos em `supabase/migrations/` |
 
 ---
 
@@ -455,32 +462,72 @@ Classificação: 🔴 Crítico · 🟡 Importante · 🟢 Melhoria
 **Problema:** `public/manifest.json` referencia `icon-192.png` e `icon-512.png`, mas apenas `icon.svg` existe. Instalação como PWA no Android/Chrome falha silenciosamente.  
 **Recomendação:** Gerar a partir de `public/icons/icon.svg` com conversor SVG→PNG.
 
-### 4.4 🟡 Criação de orçamento não atômica
+### 4.4 🟢 ~~Criação de orçamento não atômica~~ — RESOLVIDO (P-12, 2026-04-25)
 
-**Problema:** `criarOrcamento` em `src/services/orcamentoService.ts` faz 2 roundtrips separados (insert orçamento + insert itens). Compensação manual no erro pode falhar, deixando orçamento órfão sem itens.  
-**Recomendação:** Criar RPC `criar_orcamento(p_orcamento JSONB, p_itens JSONB[])` com atomicidade real.
+**Resolução:** `criarOrcamento` foi migrado para a RPC `create_orcamento(p_orcamento JSONB, p_itens JSONB)` (SECURITY DEFINER), que cria cabeçalho + itens em transação única no Postgres. Não existe mais risco de orçamento órfão na criação.
 
-### 4.5 🟡 Sem ESLint
+### 4.4-B 🔴 Atualização de orçamento ainda não atômica
+
+**Problema:** `atualizarOrcamento` em `src/services/orcamentoService.ts` executa **5 operações sequenciais sem transação**:
+1. SELECT snapshot da versão atual
+2. INSERT em `orcamento_versions` (versionamento)
+3. UPDATE cabeçalho em `orcamentos`
+4. DELETE todos os itens em `orcamento_itens`
+5. INSERT dos novos itens em `orcamento_itens`
+
+Se a rede cair entre os passos 4 e 5, o orçamento fica com valor R$ 0 e sem itens — dado corrompido silenciosamente. Em campo (3G/4G instável) isso é um risco real, especialmente antes de integração com ERP.  
+**Impacto:** Um orçamento aprovado sem itens geraria um `payable` com `valor_total = 0` no módulo CP, e eventualmente enviaria documento financeiro em branco para o SAP/TOTVS.  
+**Recomendação:** Criar RPC `update_orcamento(p_id UUID, p_orcamento JSONB, p_itens JSONB, p_changed_by UUID)` com atomicidade real, similar à `create_orcamento` já existente.
+
+### 4.5 🔴 Sem observabilidade de custos de IA
+
+**Problema:** A Edge Function `ai-proxy` faz fallback silencioso Gemini → OpenAI sem expor nenhuma métrica ao operador. O custo de análise de imagens no GPT-4o é ~10× maior que no Gemini Flash. Se a chave Gemini primária for revogada acidentalmente, **100% do tráfego multimodal migra para OpenAI sem nenhum alerta**, podendo drenar o orçamento de API em horas.
+
+O painel `/platform/intelligence` exibe apenas métricas de corpus (volume de OS, diagnósticos IA, artigos KB) — **zero métricas de roteamento ou custo por provedor**.
+
+**Recomendação:**
+1. Logar cada chamada da `ai-proxy` em tabela `ai_routing_log` (provider, is_fallback, latency_ms, request_type)
+2. Expor RPC `get_ai_routing_stats(p_hours INT)` retornando `fallback_pct`, `total_requests`, `by_provider`
+3. Adicionar widget de "Roteamento IA (24h)" no `/platform/intelligence` com alerta visual quando `fallback_pct > 15%`
+4. Configurar alertas via webhook/email quando o fallback ultrapassa o limiar por mais de 60 minutos
+
+### 4.6 🟡 Sem ESLint
 
 **Problema:** Apenas `tsc --noEmit` como lint. Erros de estilo, unused imports, hooks dependencies e acessibilidade não são capturados.  
 **Recomendação:** Adicionar ESLint com `@typescript-eslint`, `eslint-plugin-react-hooks` e `eslint-plugin-jsx-a11y`.
 
-### 4.6 🟢 Sem Error Boundary global
+### 4.7 🟢 Sem Error Boundary global
 
 **Problema:** Um erro não capturado em qualquer módulo desmonta toda a aplicação com tela branca, sem fallback.  
 **Recomendação:** Adicionar `React.ErrorBoundary` no `App.tsx` wrappando o `<Outlet>`.
 
-### 4.7 🟢 Dark mode não acessível pela UI principal
+### 4.8 🟢 Dark mode não acessível pela UI principal
 
 **Problema:** `next-themes` está instalado e funcional, mas o toggle de tema fica apenas no Sheet "Minha Conta" — não exposto no header ou sidebar.  
 **Recomendação:** Expor toggle de tema no header para acesso rápido.
+
+### 4.9 🟡 `ai-proxy` não versionada no repositório
+
+**Problema:** A Edge Function `ai-proxy` v8 está deployada diretamente no Supabase mas **não existe como arquivo local** em `supabase/functions/`. Um disaster recovery usando apenas o repositório não restauraria a função, deixando todo o módulo de IA inoperante.  
+**Recomendação:** Criar `supabase/functions/ai-proxy/index.ts` com o código atual e incluir no fluxo de CI/CD.
+
+### 4.10 🟡 Migration CP com FK incorreta (risco de disaster recovery)
+
+**Problema:** O arquivo `supabase/migrations/20260526_cp_module.sql` contém `REFERENCES public.teams(id)` nas tabelas `payables`, `payable_installments` e `payable_comments`. A tabela `public.teams` **não existe** — o projeto usa `public.tenants`. No banco de produção a FK está correta (`→ tenants`) porque a tabela já existia quando a migration foi aplicada (`CREATE TABLE IF NOT EXISTS` pulou o bloco). Porém, em um **deploy limpo ou disaster recovery** a migration falharia com erro de FK.  
+**Recomendação:** Criar migration `20260604_fix_cp_fk_teams_to_tenants.sql` corrigindo os 3 `REFERENCES public.teams` para `REFERENCES public.tenants`.
 
 ---
 
 ## 5. Roadmap de Próximos Passos
 
+> **Pré-requisito para integrações enterprise:** os itens 4.4-B (atomicidade do update de orçamento) e 4.5 (observabilidade de custos IA) devem ser resolvidos **antes** de iniciar integrações ERP — dado corrompido enviado ao SAP/TOTVS causa retrabalho de auditoria financeira impossível de reverter.
+
 | Feature | Prioridade | Esforço estimado |
 |---------|-----------|-----------------|
+| Fix migration FK `teams → tenants` (item 4.10) | 🔴 Urgente | 30 min |
+| RPC `update_orcamento` atômica (item 4.4-B) | 🔴 Alta | 2–3 h |
+| Observabilidade de custos IA — telemetria + alertas (item 4.5) | 🔴 Alta | 1 dia |
+| Versionar `ai-proxy` no repositório (item 4.9) | 🟡 Média | 1–2 h |
 | Notificações email (Resend) + WhatsApp (Evolution API) | 🔴 Alta | 1–2 dias |
 | IA de Escrita de Relatórios (texto livre → linguagem técnica profissional) | 🔴 Alta | 1–2 dias |
 | Background Sync offline (Service Worker) | 🟡 Média | 1 dia |
@@ -492,4 +539,4 @@ Classificação: 🔴 Crítico · 🟡 Importante · 🟢 Melhoria
 
 ---
 
-*Atualizado em 2026-06-04 (Sessão 68) — 135 commits · Sprints A–F concluídas · 117 testes unitários · 23 specs E2E.*
+*Atualizado em 2026-06-04 (Sessão 69) — 135 commits · Sprints A–F concluídas · 117 testes unitários · 24 migrations · 10 Edge Functions.*

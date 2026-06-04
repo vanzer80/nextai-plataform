@@ -1,11 +1,11 @@
 # NextAI — Engineering Roadmap 2026
 
 > Full documentation in Obsidian: `Sprints/00 - Master Roadmap B2B Enterprise.md`  
-> **Atualizado em:** 2026-06-04 (Sessão 68) · 135 commits · Sprints A–F concluídas
+> **Atualizado em:** 2026-06-04 (Sessão 69) · 135 commits · Sprints A–F concluídas
 
 ## Current State
 
-All core modules implemented across Sprints A–F + Sessions 31–68:
+All core modules implemented across Sprints A–F + Sessions 31–69:
 
 **Field Service (OS):** wizard 7 steps · GPS geolocation · AI diagnosis · digital signature canvas · offline drafts · auto-numbering · full-text search (GIN) · SLA tracking · preventive maintenance · QR code scan · OS↔Quote linking (SAP SD/PM) · Excel export · push notifications.
 
@@ -32,7 +32,7 @@ All core modules implemented across Sprints A–F + Sessions 31–68:
 
 ---
 
-## Post-Sprint Deliveries (Sessions 62–68)
+## Post-Sprint Deliveries (Sessions 62–69)
 
 | Session | Date | Deliverable |
 |---------|------|------------|
@@ -42,21 +42,28 @@ All core modules implemented across Sprints A–F + Sessions 31–68:
 | s65 | 2026-06-03 | 22 E2E tests for RH, DP, CP modules (7+7+8) |
 | s66–67 | 2026-06-03 | Commercial tenant profile (CNPJ, address, fiscal data) · Onboarding 25 tours 85+ steps |
 | s68 | 2026-06-04 | SuperMaster edits any tenant's commercial profile · 6 Platform E2E tests |
+| s69 | 2026-06-04 | PRD audit against external product analysis · PRD + ROADMAP updated · 3 critical findings identified (update_orcamento non-atomic, AI cost observability, CP migration FK) |
 
 ---
 
 ## Future Roadmap
 
-| Feature | Priority | Effort |
-|---------|----------|--------|
-| Email notifications (Resend) + WhatsApp (Evolution API) | 🔴 High | 1–2 days |
-| AI Report Writer (free text → professional technical language) | 🔴 High | 1–2 days |
-| Background Sync (Service Worker offline queue auto-sync) | 🟡 Medium | 1 day |
-| PWA icons PNG 192×512 for Android/Chrome install | 🟢 Low | hours |
-| RAG Analytics — natural language search over reports (pgvector) | 🟡 Strategic | 5–8 days |
-| GPS Dispatching Map — real-time technician location tracking | 🟡 Strategic | 5–8 days |
-| ERP Integration (TOTVS / SAP / Omie) via Edge Function webhook | 🟡 Strategic | 3–5 days/ERP |
-| Phase 6 SaaS: subdomain routing per tenant + billing (Stripe) | 🟡 Strategic | 2–3 weeks |
+**⚠️ Blocker for ERP integrations:** items marked `[pre-ERP]` must ship before any ERP webhook work — corrupted data sent to SAP/TOTVS triggers financial audit cascades that cannot be undone.
+
+| Feature | Priority | Effort | Tag |
+|---------|----------|--------|-----|
+| Fix CP migration FK `teams → tenants` | 🔴 Urgent | 30 min | debt |
+| Atomic `update_orcamento` RPC (replaces 5 sequential ops) | 🔴 High | 2–3 h | [pre-ERP] |
+| AI cost observability: routing telemetry + SuperMaster widget + webhook alert | 🔴 High | 1 day | [pre-ERP] |
+| Version `ai-proxy` Edge Function in repository | 🟡 Medium | 1–2 h | ops |
+| Email notifications (Resend) + WhatsApp (Evolution API) | 🔴 High | 1–2 days | — |
+| AI Report Writer (free text → professional technical language) | 🔴 High | 1–2 days | — |
+| Background Sync (Service Worker offline queue auto-sync) | 🟡 Medium | 1 day | — |
+| PWA icons PNG 192×512 for Android/Chrome install | 🟢 Low | hours | — |
+| RAG Analytics — natural language search over reports (pgvector) | 🟡 Strategic | 5–8 days | — |
+| GPS Dispatching Map — real-time technician location tracking | 🟡 Strategic | 5–8 days | — |
+| ERP Integration (TOTVS / SAP / Omie) via Edge Function webhook | 🟡 Strategic | 3–5 days/ERP | — |
+| Phase 6 SaaS: subdomain routing per tenant + billing (Stripe) | 🟡 Strategic | 2–3 weeks | — |
 
 ---
 

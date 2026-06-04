@@ -6,7 +6,7 @@ Execute o ritual de encerramento de sessão do Portal Mopar na ordem exata abaix
 
 ## Passo 1 — TypeScript check
 
-Execute `npx tsc --noEmit` em `/c/dev/portal-mopar`.
+Execute `npx tsc --noEmit` em `C:\Users\vanze\OneDrive\Área de Trabalho\portal-mopar`.
 
 - EXIT != 0: **PARE**. Liste os erros e aguarde o usuário corrigir antes de continuar.
 - EXIT 0: continue.
@@ -28,7 +28,7 @@ Atualize o estado das sprints: marque como concluído o que foi entregue nessa s
 
 ## Passo 3 — Commit e push
 
-No diretório `/c/dev/portal-mopar`:
+No diretório `C:\Users\vanze\OneDrive\Área de Trabalho\portal-mopar`:
 
 1. `git status` — revise os arquivos modificados
 2. `git add` nos arquivos relevantes (nunca `git add .` sem revisão)
@@ -37,7 +37,7 @@ No diretório `/c/dev/portal-mopar`:
 
 ## Passo 4 — Registrar hash do vault sync
 
-Após o push bem-sucedido, execute em `/c/dev/portal-mopar`:
+Após o push bem-sucedido, execute em `C:\Users\vanze\OneDrive\Área de Trabalho\portal-mopar`:
 
 ```
 git rev-parse HEAD | Out-File -FilePath .claude\last-vault-sync -Encoding utf8 -NoNewline
