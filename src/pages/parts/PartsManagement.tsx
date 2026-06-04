@@ -148,7 +148,7 @@ export default function PartsManagement() {
               className="h-10 pl-9 w-48 rounded-xl bg-muted border-border"
             />
           </div>
-          <Button onClick={openCreate} className="h-10 rounded-xl gap-2">
+          <Button data-onboarding="peca-novo" onClick={openCreate} className="h-10 rounded-xl gap-2">
             <Plus className="h-4 w-4" /> Nova Peça
           </Button>
         </div>
@@ -166,7 +166,7 @@ export default function PartsManagement() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div data-onboarding="peca-grid" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map(p => {
             const low = isLowStock(p);
             return (

@@ -95,6 +95,7 @@ export default function Dashboard() {
           </div>
 
           <Button
+            data-onboarding="dashboard-personalizar"
             variant="outline"
             size="sm"
             onClick={() => setCustomizerOpen(true)}

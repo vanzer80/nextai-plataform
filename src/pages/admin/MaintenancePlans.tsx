@@ -219,7 +219,7 @@ export default function MaintenancePlans() {
             {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
             <span className="hidden sm:inline">Executar agora</span>
           </Button>
-          <Button onClick={openCreate} className="gap-1.5 rounded-xl h-10">
+          <Button data-onboarding="manut-novo" onClick={openCreate} className="gap-1.5 rounded-xl h-10">
             <Plus className="h-4 w-4" /> Novo Plano
           </Button>
         </div>
@@ -237,7 +237,7 @@ export default function MaintenancePlans() {
           <p className="text-xs mt-1">Crie o primeiro plano de manutenção preventiva.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div data-onboarding="manut-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {plans.map(plan => (
             <Card key={plan.id} className={`shadow-sm border-border transition-opacity ${plan.is_active ? '' : 'opacity-60'}`}>
               <CardHeader className="pb-2">

@@ -117,7 +117,7 @@ export default function SlaManagement() {
             Configure os prazos de resposta e resolução por tipo de serviço e prioridade.
           </p>
         </div>
-        <Button onClick={openCreate} className="h-10 rounded-xl gap-2">
+        <Button data-onboarding="sla-novo" onClick={openCreate} className="h-10 rounded-xl gap-2">
           <Plus className="h-4 w-4" /> Nova Política
         </Button>
       </div>
@@ -133,7 +133,7 @@ export default function SlaManagement() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div data-onboarding="sla-grid" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {policies.map(p => (
             <Card key={p.id} className={`shadow-sm border-border hover:shadow-md transition-shadow ${!p.is_active ? 'opacity-60' : ''}`}>
               <CardHeader className="pb-2">

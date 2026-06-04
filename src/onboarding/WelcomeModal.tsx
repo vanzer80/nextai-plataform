@@ -32,7 +32,7 @@ export function WelcomeModal({ tenantName, onStart, onSkip }: WelcomeModalProps)
               Bem-vindo ao {tenantName}!
             </h2>
             <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-              Quer um tour rápido pelas funcionalidades? Vamos mostrar tudo o que você pode fazer — leva menos de 3 minutos.
+              Quer um tour guiado pelo sistema? Vamos apresentar cada módulo no seu contexto — avance no ritmo que preferir e feche a qualquer momento.
             </p>
           </div>
         </div>

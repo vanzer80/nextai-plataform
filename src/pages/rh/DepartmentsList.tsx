@@ -249,13 +249,13 @@ export default function DepartmentsList() {
           </h1>
           <p className="text-sm text-slate-500">Departamentos, centros de custo e cargos</p>
         </div>
-        <Button onClick={() => { setEditingDept(null); setShowDeptForm(true); }} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+        <Button data-onboarding="rh-dep-novo" onClick={() => { setEditingDept(null); setShowDeptForm(true); }} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
           <Plus className="h-4 w-4" /> Novo Departamento
         </Button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-muted rounded-xl p-1 w-fit">
+      <div data-onboarding="rh-dep-tabs" className="flex gap-1 bg-muted rounded-xl p-1 w-fit">
         {[['deps', 'Org Chart'], ['positions', 'Cargos']] .map(([id, label]) => (
           <button
             key={id}

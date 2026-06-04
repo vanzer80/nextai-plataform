@@ -143,7 +143,7 @@ export default function BudgetManagement() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Controle de Budget</h1>
           <p className="text-sm text-muted-foreground">Limites de despesa por categoria e período</p>
         </div>
-        <Button onClick={openNew} className="gap-2">
+        <Button data-onboarding="budget-novo" onClick={openNew} className="gap-2">
           <Plus className="h-4 w-4" /> Novo Budget
         </Button>
       </div>
@@ -163,7 +163,7 @@ export default function BudgetManagement() {
           </CardContent>
         </Card>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div data-onboarding="budget-grid" className="flex flex-col gap-3">
           {budgets.map(b => (
             <Card
               key={b.id}

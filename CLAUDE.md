@@ -140,7 +140,7 @@ Nunca `bg-background` ou `border-border` dentro da sidebar — componentes ficam
 - Services: async/await com throw em erro, sem `.eq('team_id', teamId)` nos reads
 - Lazy loading: toda rota em `App.tsx` deve ser `React.lazy()` — sem exceção
 - Bundle alvo: chunk principal ≤ 100 kB gzip
-- Novo módulo: migration → types → service → hook → componente → página → rota + nav
+- Novo módulo: migration → types → service → hook → componente → página → rota + nav + **onboarding tour** (ver seção abaixo)
 - Responder sempre em português do Brasil
 
 ## Edge Functions deployadas
@@ -216,6 +216,53 @@ get_dashboard_agenda_kpis()            → jsonb  -- os_hoje, tecnicos_hoje, cri
 28. **Playwright getByText partial match** → `'OS Pendentes'` casa com "reembolsos **pendentes**". Sempre usar `{ exact: true }` para labels de widget no customizer.
 29. **Double fetch no dashboard** → nunca passar `activeWidgets` ao `useDashboardData` enquanto `prefs.isLoading`. Usar `effectiveWidgets = prefs.isLoading ? [] : prefs.activeWidgets`. O hook trata `widgetKey === ''` retornando `isLoading: false` imediato.
 30. **Onboarding modal 1200ms** → o welcome dialog aparece 1200ms após login. Testes E2E devem usar `loginAs` de `tests/helpers/auth.ts` que seta `onboarding_v1_done_{uid}` no localStorage dentro desse janela.
+38. **Tour step com elemento condicional** → se o elemento só existe quando há dados (ex: tabela vazia), o driver.js pode travar. Regra: steps com `route:` cujo elemento só aparece após interação do usuário (selecionar colaborador, ter registros) → mover `data-onboarding` para o container sempre visível da página (ex: filtros). Steps com elemento 100% condicional (badge de alerta) → remover do tour e descrever no step anterior.
+39. **Rota do tour ≠ rota do App** → sempre cruzar `route:` no tour com o `path=` real em `App.tsx`. Exemplos de erros: `/dp/time-records` (tour) vs `/dp/timerecords` (App); `/cp` (redirect) vs `/cp/payables` (real). O driver navega para a rota exata — redirect silencia sem erro, rota errada nunca acha o elemento.
+40. **Roles do tour ≤ RoleGuard da rota** → os roles de um step nunca devem incluir perfis que o `RoleGuard` de `App.tsx` não deixa acessar. Cruzar explicitamente: `allowedRoles` do RoleGuard ↔ `roles:[]` do TourStep antes de commitar novo tour.
+
+## Onboarding SAP-level — concluído 2026-06-03
+
+### Arquitetura
+
+```
+src/onboarding/
+  OnboardingContext.tsx    — provider: auto-trigger 1200ms, startTour(), resetTour(), hasCompleted
+  WelcomeModal.tsx         — modal inicial (Fazer tour agora / Pular)
+  useOnboardingDriver.ts   — driver.js: navega por rota, waitForElement(4s), skip gracioso
+  tours/
+    index.ts               — TOUR_MODULES[], getTourSteps(role), TourStep interface
+    *.tour.ts              — 24 módulos (ver lista abaixo)
+```
+
+### Como adicionar onboarding a um novo módulo
+
+1. Adicionar `data-onboarding="modulo-elemento"` ao elemento alvo no TSX  
+2. Criar `src/onboarding/tours/meu-modulo.tour.ts` exportando `TourModule`  
+3. Importar e adicionar ao array `TOUR_MODULES` em `index.ts` (posição correta por categoria)  
+4. **Verificar antes de commitar:**
+   - Elemento alvo é sempre visível quando na rota? (não condicional a dados)
+   - `route:` do step bate com `path=` real em `App.tsx`? (sem redirects, sem hífen errado)
+   - `roles:[]` do step ⊆ `allowedRoles` do `RoleGuard` da rota?
+
+### 24 tour modules (cobertura 100% dos módulos)
+
+| Categoria | Tour | Steps | Roles |
+|-----------|------|-------|-------|
+| Nav & Dashboard | layout, dashboard, dashboard-customizer | 14+3+1 | todos |
+| Field Service | os-list, os-wizard, os-detail, agenda | 5+11+4+2 | Tecnico+ |
+| Assets & Clients | equipamentos, clientes | 3+1 | Supervisor+ |
+| Commercial | orcamentos | 2 | Supervisor+ |
+| Finance & Procurement | reembolsos, materiais, cp | 2+3+4 | Tecnico+/Financeiro+ |
+| Inventory | fornecedores, pecas | 2+2 | Supervisor+ |
+| Knowledge | conhecimento | 3 | todos |
+| HR & Payroll | rh, dp | 6+7 | Gestor+ |
+| Admin | admin, admin-sla, admin-budget, admin-manutencao, admin-tenants-mgmt | 5+2+2+2+1 | Gestor+/Master |
+| Platform | platform | 4 | SuperMaster |
+
+### Storage key
+`onboarding_v1_done_{userId}` — resetar via `useOnboarding().resetTour()` ou removendo do localStorage.
+
+---
 
 ## Próximas sprints disponíveis
 

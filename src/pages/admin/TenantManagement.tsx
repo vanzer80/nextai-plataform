@@ -462,7 +462,7 @@ export default function TenantManagement() {
             <p className="text-sm">Carregando tenants...</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div data-onboarding="tenant-mgmt-tabela" className="overflow-x-auto">
             <Table>
               <TableHeader className="bg-muted/40">
                 <TableRow className="hover:bg-transparent border-border">

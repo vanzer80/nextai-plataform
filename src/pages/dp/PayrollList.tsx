@@ -115,13 +115,13 @@ export default function PayrollList() {
             <p className="text-xs text-muted-foreground">Gestão de competências e holerites</p>
           </div>
         </div>
-        <Button onClick={() => setShowNew(true)} className="gap-2">
+        <Button data-onboarding="dp-nova-competencia" onClick={() => setShowNew(true)} className="gap-2">
           <Plus className="h-4 w-4" /> Nova Competência
         </Button>
       </div>
 
       {/* ── KPI cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div data-onboarding="dp-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total Bruto (ano)',  value: BRL.format(ytdBruto),   cls: 'text-foreground' },
           { label: 'Total Líquido (ano)', value: BRL.format(ytdLiquido), cls: 'text-emerald-600' },
@@ -149,7 +149,7 @@ export default function PayrollList() {
           </Button>
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div data-onboarding="dp-tabela" className="bg-card border border-border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40">

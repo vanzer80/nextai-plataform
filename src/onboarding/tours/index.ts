@@ -1,15 +1,27 @@
-import { layoutTour }       from './layout.tour';
-import { dashboardTour }    from './dashboard.tour';
-import { osListTour }       from './os-list.tour';
-import { osWizardTour }     from './os-wizard.tour';
-import { osDetailTour }     from './os-detail.tour';
-import { equipamentosTour } from './equipamentos.tour';
-import { clientesTour }     from './clientes.tour';
-import { orcamentosTour }   from './orcamentos.tour';
-import { reembolsosTour }   from './reembolsos.tour';
-import { materiaisTour }    from './materiais.tour';
-import { adminTour }        from './admin.tour';
-import { platformTour }     from './platform.tour';
+import { layoutTour }               from './layout.tour';
+import { dashboardTour }            from './dashboard.tour';
+import { dashboardCustomizerTour }  from './dashboard-customizer.tour';
+import { osListTour }               from './os-list.tour';
+import { osWizardTour }             from './os-wizard.tour';
+import { osDetailTour }             from './os-detail.tour';
+import { agendaTour }               from './agenda.tour';
+import { equipamentosTour }         from './equipamentos.tour';
+import { clientesTour }             from './clientes.tour';
+import { orcamentosTour }           from './orcamentos.tour';
+import { reembolsosTour }           from './reembolsos.tour';
+import { materiaisTour }            from './materiais.tour';
+import { fornecedoresTour }         from './fornecedores.tour';
+import { pecasTour }                from './pecas.tour';
+import { conhecimentoTour }         from './conhecimento.tour';
+import { rhTour }                   from './rh.tour';
+import { dpTour }                   from './dp.tour';
+import { cpTour }                   from './cp.tour';
+import { adminTour }                from './admin.tour';
+import { adminSlaTour }             from './admin-sla.tour';
+import { adminBudgetTour }          from './admin-budget.tour';
+import { adminManutencaoTour }      from './admin-manutencao.tour';
+import { adminTenantsMgmtTour }     from './admin-tenants-mgmt.tour';
+import { platformTour }             from './platform.tour';
 
 export type Role =
   | 'Tecnico' | 'Administrativo' | 'Supervisor' | 'Gestor'
@@ -51,17 +63,48 @@ export interface TourModule {
  * Examples: "os-nova", "eq-preventiva", "cli-cnpj", "admin-templates"
  */
 export const TOUR_MODULES: TourModule[] = [
+  // ── Navigation & Dashboard ────────────────────────────────────────────────
   layoutTour,
   dashboardTour,
+  dashboardCustomizerTour,
+
+  // ── Field Service (OS) ────────────────────────────────────────────────────
   osListTour,
   osWizardTour,
   osDetailTour,
+  agendaTour,
+
+  // ── Asset & Client Management ─────────────────────────────────────────────
   equipamentosTour,
   clientesTour,
+
+  // ── Commercial ────────────────────────────────────────────────────────────
   orcamentosTour,
+
+  // ── Finance & Procurement ─────────────────────────────────────────────────
   reembolsosTour,
   materiaisTour,
+  cpTour,
+
+  // ── Inventory & Suppliers ─────────────────────────────────────────────────
+  fornecedoresTour,
+  pecasTour,
+
+  // ── Knowledge ─────────────────────────────────────────────────────────────
+  conhecimentoTour,
+
+  // ── HR & Payroll ──────────────────────────────────────────────────────────
+  rhTour,
+  dpTour,
+
+  // ── Admin ─────────────────────────────────────────────────────────────────
   adminTour,
+  adminSlaTour,
+  adminBudgetTour,
+  adminManutencaoTour,
+  adminTenantsMgmtTour,
+
+  // ── Platform (SuperMaster) ────────────────────────────────────────────────
   platformTour,
 ];
 

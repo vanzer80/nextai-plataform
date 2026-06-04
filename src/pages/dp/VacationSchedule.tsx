@@ -260,13 +260,13 @@ export default function VacationSchedulePage() {
             <p className="text-xs text-muted-foreground">Controle de períodos aquisitivos e gozo</p>
           </div>
         </div>
-        <Button onClick={() => setShowForm(true)} className="gap-2">
+        <Button data-onboarding="dp-ferias-novo" onClick={() => setShowForm(true)} className="gap-2">
           <Plus className="h-4 w-4" /> Agendar Férias
         </Button>
       </div>
 
       {/* ── KPI cards ── */}
-      <div className="grid grid-cols-3 gap-4">
+      <div data-onboarding="dp-ferias-kpis" className="grid grid-cols-3 gap-4">
         <div className="bg-card border border-border rounded-xl p-4">
           <p className="text-xs text-muted-foreground">Em Gozo Hoje</p>
           <p className="text-2xl font-bold mt-1 text-violet-600">{emGozo}</p>
@@ -311,7 +311,7 @@ export default function VacationSchedulePage() {
           <p className="text-sm">Nenhuma férias encontrada</p>
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div data-onboarding="dp-ferias-tabela" className="bg-card border border-border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40">

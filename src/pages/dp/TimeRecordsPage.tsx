@@ -244,7 +244,7 @@ export default function TimeRecordsPage() {
       </div>
 
       {/* ── Filters ── */}
-      <div className="flex flex-wrap gap-3 items-center">
+      <div data-onboarding="dp-ponto-filtros" className="flex flex-wrap gap-3 items-center">
         <Select value={selectedEmp} onValueChange={setSelectedEmp}>
           <SelectTrigger className="w-72">
             <SelectValue placeholder="Selecione o colaborador..." />

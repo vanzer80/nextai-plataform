@@ -122,14 +122,14 @@ export default function EmployeesList() {
           <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={loading} className="gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50">
             <Download className="h-4 w-4" /> Excel
           </Button>
-          <Button onClick={() => navigate('/rh/employees/new')} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold">
+          <Button data-onboarding="rh-admitir" onClick={() => navigate('/rh/employees/new')} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold">
             <Plus className="h-4 w-4" /> Admitir
           </Button>
         </div>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div data-onboarding="rh-kpis" className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'Ativos',            value: kpis.ativo,         icon: UserCheck,    bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', num: 'text-emerald-900' },
           { label: 'Em Férias',         value: kpis.ferias,        icon: Umbrella,     bg: 'bg-sky-50 border-sky-200',         text: 'text-sky-700',     num: 'text-sky-900' },
@@ -166,7 +166,7 @@ export default function EmployeesList() {
       )}
 
       {/* Filtros */}
-      <div className="flex flex-col sm:flex-row gap-3 bg-card border border-border rounded-xl p-4">
+      <div data-onboarding="rh-filtros" className="flex flex-col sm:flex-row gap-3 bg-card border border-border rounded-xl p-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
@@ -206,7 +206,7 @@ export default function EmployeesList() {
           <p className="text-sm mt-1">Ajuste os filtros ou admita um novo colaborador.</p>
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div data-onboarding="rh-tabela" className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

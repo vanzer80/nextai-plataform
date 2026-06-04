@@ -180,7 +180,7 @@ export default function AgendaPage() {
         <div className="flex items-center gap-2 flex-wrap">
           {isManager && (
             <Select value={techFilter} onValueChange={setTechFilter}>
-              <SelectTrigger className="w-44 h-10 rounded-xl">
+              <SelectTrigger data-onboarding="agenda-filtro-tecnico" className="w-44 h-10 rounded-xl">
                 <SelectValue placeholder="Filtrar técnico" />
               </SelectTrigger>
               <SelectContent>
@@ -212,7 +212,7 @@ export default function AgendaPage() {
         </div>
       ) : (
         /* Calendar grid */
-        <div className="grid grid-cols-1 sm:grid-cols-7 gap-2 overflow-x-auto">
+        <div data-onboarding="agenda-semana" className="grid grid-cols-1 sm:grid-cols-7 gap-2 overflow-x-auto">
           {days.map(day => {
             const dayReports = reportsForDay(day);
             const isToday = isSameDay(day, new Date());

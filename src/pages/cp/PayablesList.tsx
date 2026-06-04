@@ -111,7 +111,7 @@ export default function PayablesList() {
             <p className="text-xs text-muted-foreground">Gestão de pagamentos e aprovações</p>
           </div>
         </div>
-        <Button onClick={() => navigate('/cp/new')} className="gap-2">
+        <Button data-onboarding="cp-nova" onClick={() => navigate('/cp/new')} className="gap-2">
           <Plus className="h-4 w-4" /> Nova Conta
         </Button>
       </div>
@@ -137,7 +137,7 @@ export default function PayablesList() {
 
       {/* ── KPI cards ── */}
       {kpis && (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div data-onboarding="cp-kpis" className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           {[
             { label: 'A Vencer',      value: BRL.format(kpis.a_vencer),       cls: 'text-foreground' },
             { label: 'Vencido',       value: BRL.format(kpis.vencido),        cls: 'text-rose-600' },
@@ -154,7 +154,7 @@ export default function PayablesList() {
       )}
 
       {/* ── Filters ── */}
-      <div className="flex flex-wrap gap-3">
+      <div data-onboarding="cp-filtros" className="flex flex-wrap gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input className="pl-9" placeholder="Buscar descrição, fornecedor, NF..." value={search} onChange={e => setSearch(e.target.value)} />
@@ -198,7 +198,7 @@ export default function PayablesList() {
           </Button>
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-xl overflow-x-auto">
+        <div data-onboarding="cp-tabela" className="bg-card border border-border rounded-xl overflow-x-auto">
           <table className="w-full text-sm min-w-[700px]">
             <thead>
               <tr className="border-b border-border bg-muted/40">
