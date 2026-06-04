@@ -94,6 +94,7 @@ const NAV_LINKS = [
   { name: 'SLA', path: '/admin/sla', icon: ShieldCheck, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'Controle de Budget', path: '/admin/budget', icon: DollarSign, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'Manutenção Preventiva', path: '/admin/maintenance-plans', icon: CalendarDays, roles: ['Gestor', 'Admin', 'Master'] },
+  { name: 'Perfil da Empresa', path: '/admin/company-profile', icon: Building2, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'Administrador', path: '/admin/usuarios', icon: ShieldAlert, roles: ['Gestor', 'Admin', 'Master'] },
   { name: 'Tenants', path: '/admin/tenants', icon: Globe, roles: ['Master'] },
 ];

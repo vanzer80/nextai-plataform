@@ -6,7 +6,7 @@ import * as z from 'zod';
 import {
   Plus, Globe, Loader2, Palette, MoreHorizontal,
   Pencil, Image as ImageIcon, Users, PowerOff, Power, Search,
-  Phone, Globe2, Building2, Mail, Hash,
+  Phone, Globe2, Building2, Mail, Hash, MapPin, FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
@@ -37,18 +37,28 @@ const createSchema = z.object({
 type CreateFormValues = z.infer<typeof createSchema>;
 
 const editSchema = z.object({
-  tenant_name:   z.string().min(3, 'Nome deve ter no mínimo 3 caracteres').max(100),
-  primary_color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Cor inválida'),
-  cnpj:          z.string().max(18, 'Máximo 18 caracteres').optional(),
-  phone:         z.string().max(20, 'Máximo 20 caracteres').optional(),
-  website:       z.string().max(200, 'Máximo 200 caracteres').optional(),
-  sector:        z.string().optional(),
+  tenant_name:         z.string().min(3, 'Nome deve ter no mínimo 3 caracteres').max(100),
+  primary_color:       z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Cor inválida'),
+  razao_social:        z.string().max(200).optional(),
+  cnpj:                z.string().max(18).optional(),
+  ie:                  z.string().max(30).optional(),
+  email_contato:       z.string().email('E-mail inválido').optional().or(z.literal('')),
+  phone:               z.string().max(20).optional(),
+  website:             z.string().max(200).optional(),
+  sector:              z.string().optional(),
+  address_zip:         z.string().max(10).optional(),
+  address_street:      z.string().max(200).optional(),
+  address_number:      z.string().max(20).optional(),
+  address_complement:  z.string().max(100).optional(),
+  address_neighborhood:z.string().max(100).optional(),
+  address_city:        z.string().max(100).optional(),
+  address_state:       z.string().max(2).optional(),
+  address_country:     z.string().max(100).optional(),
 });
 type EditFormValues = z.infer<typeof editSchema>;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-// Flat record retornado pela RPC get_platform_tenants()
 interface TenantRow {
   id: string;
   name: string;
@@ -62,6 +72,17 @@ interface TenantRow {
   phone: string | null;
   website: string | null;
   sector: string | null;
+  razao_social: string | null;
+  ie: string | null;
+  email_contato: string | null;
+  address_zip: string | null;
+  address_street: string | null;
+  address_number: string | null;
+  address_complement: string | null;
+  address_neighborhood: string | null;
+  address_city: string | null;
+  address_state: string | null;
+  address_country: string | null;
   user_count: number;
   master_name: string | null;
   master_email: string | null;
@@ -112,6 +133,19 @@ function LogoPreview({ url }: { url: string | null }) {
   );
 }
 
+async function fetchCep(cep: string): Promise<{ logradouro: string; bairro: string; localidade: string; uf: string } | null> {
+  const digits = cep.replace(/\D/g, '');
+  if (digits.length !== 8) return null;
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+    const json = await res.json();
+    if (json.erro) return null;
+    return json;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 export default function PlatformTenants() {
@@ -136,6 +170,7 @@ export default function PlatformTenants() {
   const [editLogoFile, setEditLogoFile]           = useState<File | null>(null);
   const [editLogoPreview, setEditLogoPreview]     = useState<string | null>(null);
   const [editLogoRemoved, setEditLogoRemoved]     = useState(false);
+  const [isFetchingCep, setIsFetchingCep]         = useState(false);
   const editLogoRef = useRef<HTMLInputElement>(null);
 
   // Toggle active
@@ -155,7 +190,11 @@ export default function PlatformTenants() {
     resolver: zodResolver(editSchema),
     defaultValues: {
       tenant_name: '', primary_color: '#0066CC',
-      cnpj: '', phone: '', website: '', sector: '',
+      razao_social: '', cnpj: '', ie: '', email_contato: '',
+      phone: '', website: '', sector: '',
+      address_zip: '', address_street: '', address_number: '',
+      address_complement: '', address_neighborhood: '',
+      address_city: '', address_state: '', address_country: 'Brasil',
     },
   });
 
@@ -188,14 +227,30 @@ export default function PlatformTenants() {
       const { data, error } = await supabase.rpc('get_platform_tenants');
       if (error) throw error;
       setTenants((data ?? []) as TenantRow[]);
-    } catch (err: any) {
-      toast.error('Erro ao buscar empresas', { description: err.message });
+    } catch (err: unknown) {
+      toast.error('Erro ao buscar empresas', { description: (err as Error).message });
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => { fetchTenants(); }, []);
+
+  // ── CEP auto-fill ──────────────────────────────────────────────────────────
+
+  const handleCepBlur = async (value: string) => {
+    setIsFetchingCep(true);
+    const result = await fetchCep(value);
+    setIsFetchingCep(false);
+    if (!result) {
+      if (value.replace(/\D/g, '').length === 8) toast.info('CEP não encontrado.');
+      return;
+    }
+    editForm.setValue('address_street', result.logradouro);
+    editForm.setValue('address_neighborhood', result.bairro);
+    editForm.setValue('address_city', result.localidade);
+    editForm.setValue('address_state', result.uf);
+  };
 
   // ── Logo handlers ──────────────────────────────────────────────────────────
 
@@ -239,12 +294,23 @@ export default function PlatformTenants() {
   const openEdit = (t: TenantRow) => {
     setEditingTenant(t);
     editForm.reset({
-      tenant_name:   t.name,
-      primary_color: t.primary_color,
-      cnpj:          t.cnpj    ?? '',
-      phone:         t.phone   ?? '',
-      website:       t.website ?? '',
-      sector:        t.sector  ?? '',
+      tenant_name:         t.name,
+      primary_color:       t.primary_color,
+      razao_social:        t.razao_social        ?? '',
+      cnpj:                t.cnpj                ?? '',
+      ie:                  t.ie                  ?? '',
+      email_contato:       t.email_contato        ?? '',
+      phone:               t.phone               ?? '',
+      website:             t.website             ?? '',
+      sector:              t.sector              ?? '',
+      address_zip:         t.address_zip         ?? '',
+      address_street:      t.address_street      ?? '',
+      address_number:      t.address_number      ?? '',
+      address_complement:  t.address_complement  ?? '',
+      address_neighborhood:t.address_neighborhood ?? '',
+      address_city:        t.address_city        ?? '',
+      address_state:       (t.address_state       ?? '').toUpperCase(),
+      address_country:     t.address_country     ?? 'Brasil',
     });
     setEditLogoFile(null);
     setEditLogoPreview(t.logo_url);
@@ -286,8 +352,8 @@ export default function PlatformTenants() {
       }
       closeCreate();
       await fetchTenants();
-    } catch (err: any) {
-      toast.error('Erro ao provisionar empresa', { description: err.message });
+    } catch (err: unknown) {
+      toast.error('Erro ao provisionar empresa', { description: (err as Error).message });
     } finally {
       setIsSubmitting(false);
     }
@@ -297,26 +363,40 @@ export default function PlatformTenants() {
     if (!editingTenant) return;
     setIsEditSubmitting(true);
     try {
-      const updates: Record<string, unknown> = {
-        name:          data.tenant_name,
-        primary_color: data.primary_color,
-        cnpj:          data.cnpj    || null,
-        phone:         data.phone   || null,
-        website:       data.website || null,
-        sector:        data.sector  || null,
-      };
-      if (editLogoFile) updates.logo_url = await uploadLogo(editLogoFile, editingTenant.slug);
-      else if (editLogoRemoved) updates.logo_url = null;
+      let newLogoUrl: string | null = null;
+      if (editLogoFile) newLogoUrl = await uploadLogo(editLogoFile, editingTenant.slug);
 
-      const { error } = await supabase.from('tenants').update(updates).eq('id', editingTenant.id);
+      // UPDATE direto cross-tenant é bloqueado silenciosamente pelo RLS.
+      // Usar RPC SECURITY DEFINER update_tenant_commercial.
+      const { error } = await supabase.rpc('update_tenant_commercial', {
+        p_tenant_id:            editingTenant.id,
+        p_name:                 data.tenant_name,
+        p_primary_color:        data.primary_color,
+        p_logo_url:             newLogoUrl,
+        p_logo_removed:         editLogoRemoved,
+        p_cnpj:                 data.cnpj                || null,
+        p_phone:                data.phone               || null,
+        p_website:              data.website             || null,
+        p_sector:               data.sector              || null,
+        p_razao_social:         data.razao_social        || null,
+        p_ie:                   data.ie                  || null,
+        p_email_contato:        data.email_contato       || null,
+        p_address_zip:          data.address_zip         || null,
+        p_address_street:       data.address_street      || null,
+        p_address_number:       data.address_number      || null,
+        p_address_complement:   data.address_complement  || null,
+        p_address_neighborhood: data.address_neighborhood || null,
+        p_address_city:         data.address_city        || null,
+        p_address_state:        data.address_state       || null,
+        p_address_country:      data.address_country     || null,
+      });
       if (error) throw error;
 
       toast.success('Empresa atualizada!', { description: `"${data.tenant_name}" salvo com sucesso.` });
       closeEdit();
-      // Re-fetch confirma estado real do banco (inclui master_name/master_email via RPC)
       await fetchTenants();
-    } catch (err: any) {
-      toast.error('Erro ao atualizar empresa', { description: err.message });
+    } catch (err: unknown) {
+      toast.error('Erro ao atualizar empresa', { description: (err as Error).message });
     } finally {
       setIsEditSubmitting(false);
     }
@@ -333,8 +413,8 @@ export default function PlatformTenants() {
       if (error) throw error;
       setTenants(prev => prev.map(t => t.id === target.id ? { ...t, is_active: newValue } : t));
       toast.success(newValue ? `"${target.name}" ativada.` : `"${target.name}" suspensa.`);
-    } catch (err: any) {
-      toast.error('Erro ao alterar status', { description: err.message });
+    } catch (err: unknown) {
+      toast.error('Erro ao alterar status', { description: (err as Error).message });
     } finally {
       setTogglingId(null);
     }
@@ -608,7 +688,7 @@ export default function PlatformTenants() {
 
       {/* ── Edit Sheet ─────────────────────────────────────────────────────── */}
       <Sheet open={isEditOpen} onOpenChange={(open) => { if (!open) closeEdit(); }}>
-        <SheetContent side="right" className="data-[side=right]:sm:max-w-[540px] p-0 gap-0">
+        <SheetContent side="right" className="data-[side=right]:sm:max-w-[580px] p-0 gap-0">
           <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="h-full flex flex-col">
 
             {/* Sheet header */}
@@ -624,46 +704,27 @@ export default function PlatformTenants() {
             {/* Scrollable body */}
             <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6 space-y-6">
 
-              {/* ── Seção 1: Dados da Empresa ─────────────────────────────── */}
+              {/* ── Seção 1: Identificação ───────────────────────────────── */}
               <div className="space-y-4">
                 <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                  <Building2 className="h-3.5 w-3.5" /> Dados da Empresa
+                  <Building2 className="h-3.5 w-3.5" /> Identificação
                 </p>
 
                 <div className="space-y-1">
-                  <Label className="text-sm font-semibold">Nome da empresa *</Label>
+                  <Label className="text-sm font-semibold">Nome fantasia *</Label>
                   <Input placeholder="Ex: ACME Engenharia" className="h-11 rounded-lg" {...editForm.register('tenant_name')} />
                   {editForm.formState.errors.tenant_name && <p className="text-xs text-destructive font-medium">{editForm.formState.errors.tenant_name.message}</p>}
                 </div>
 
                 <div className="space-y-1">
-                  <Label className="text-sm font-semibold">Slug</Label>
-                  <Input value={editingTenant?.slug ?? ''} disabled className="h-11 rounded-lg font-mono bg-muted/50 opacity-70" onChange={() => {}} />
-                  <p className="text-xs text-muted-foreground">Imutável após criação — usado como identificador de storage.</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-semibold flex items-center gap-1.5">
-                      <Hash className="h-3.5 w-3.5" /> CNPJ
-                    </Label>
-                    <Input placeholder="00.000.000/0001-00" className="h-11 rounded-lg" {...editForm.register('cnpj')} />
-                    {editForm.formState.errors.cnpj && <p className="text-xs text-destructive font-medium">{editForm.formState.errors.cnpj.message}</p>}
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-sm font-semibold flex items-center gap-1.5">
-                      <Phone className="h-3.5 w-3.5" /> Telefone
-                    </Label>
-                    <Input placeholder="(11) 99999-9999" className="h-11 rounded-lg" {...editForm.register('phone')} />
-                    {editForm.formState.errors.phone && <p className="text-xs text-destructive font-medium">{editForm.formState.errors.phone.message}</p>}
-                  </div>
+                  <Label className="text-sm font-semibold">Razão Social</Label>
+                  <Input placeholder="Ex: ACME Engenharia Ltda" className="h-11 rounded-lg" {...editForm.register('razao_social')} />
                 </div>
 
                 <div className="space-y-1">
-                  <Label className="text-sm font-semibold flex items-center gap-1.5">
-                    <Globe2 className="h-3.5 w-3.5" /> Website
-                  </Label>
-                  <Input placeholder="https://www.empresa.com.br" className="h-11 rounded-lg" {...editForm.register('website')} />
+                  <Label className="text-sm font-semibold">Slug</Label>
+                  <Input value={editingTenant?.slug ?? ''} disabled className="h-11 rounded-lg font-mono bg-muted/50 opacity-70" onChange={() => {}} />
+                  <p className="text-xs text-muted-foreground">Imutável após criação — identificador de storage.</p>
                 </div>
 
                 <div className="space-y-1">
@@ -674,7 +735,9 @@ export default function PlatformTenants() {
                     render={({ field }) => (
                       <Select value={field.value || ''} onValueChange={(val) => field.onChange(val ?? '')}>
                         <SelectTrigger className="min-h-[44px] w-full rounded-lg text-sm">
-                          <SelectValue placeholder="Selecione o segmento..." />
+                          <SelectValue placeholder="Selecione o segmento...">
+                            {field.value || ''}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           {SECTORS.map(s => (
@@ -689,7 +752,123 @@ export default function PlatformTenants() {
 
               <Separator />
 
-              {/* ── Seção 2: Identidade Visual ────────────────────────────── */}
+              {/* ── Seção 2: Dados Fiscais e Contato ─────────────────────── */}
+              <div className="space-y-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <FileText className="h-3.5 w-3.5" /> Dados Fiscais e Contato
+                </p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-semibold flex items-center gap-1.5">
+                      <Hash className="h-3.5 w-3.5" /> CNPJ
+                    </Label>
+                    <Input placeholder="00.000.000/0001-00" className="h-11 rounded-lg" {...editForm.register('cnpj')} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-sm font-semibold">Inscrição Estadual</Label>
+                    <Input placeholder="000.000.000.000" className="h-11 rounded-lg" {...editForm.register('ie')} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-semibold flex items-center gap-1.5">
+                      <Mail className="h-3.5 w-3.5" /> E-mail de contato
+                    </Label>
+                    <Input placeholder="contato@empresa.com.br" className="h-11 rounded-lg" {...editForm.register('email_contato')} />
+                    {editForm.formState.errors.email_contato && <p className="text-xs text-destructive font-medium">{editForm.formState.errors.email_contato.message}</p>}
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-sm font-semibold flex items-center gap-1.5">
+                      <Phone className="h-3.5 w-3.5" /> Telefone
+                    </Label>
+                    <Input placeholder="(11) 99999-9999" className="h-11 rounded-lg" {...editForm.register('phone')} />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-sm font-semibold flex items-center gap-1.5">
+                    <Globe2 className="h-3.5 w-3.5" /> Website
+                  </Label>
+                  <Input placeholder="https://www.empresa.com.br" className="h-11 rounded-lg" {...editForm.register('website')} />
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* ── Seção 3: Endereço ─────────────────────────────────────── */}
+              <div className="space-y-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <MapPin className="h-3.5 w-3.5" /> Endereço
+                </p>
+
+                <div className="space-y-1">
+                  <Label className="text-sm font-semibold">CEP</Label>
+                  <div className="relative">
+                    <Input
+                      placeholder="00000-000"
+                      className="h-11 rounded-lg pr-10"
+                      {...editForm.register('address_zip', {
+                        onBlur: (e) => handleCepBlur(e.target.value),
+                      })}
+                    />
+                    {isFetchingCep && (
+                      <Loader2 className="h-4 w-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Ao sair do campo, logradouro e cidade são preenchidos automaticamente.</p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-sm font-semibold">Logradouro</Label>
+                    <Input placeholder="Rua, Avenida..." className="h-11 rounded-lg" {...editForm.register('address_street')} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-sm font-semibold">Número</Label>
+                    <Input placeholder="123" className="h-11 rounded-lg" {...editForm.register('address_number')} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-semibold">Complemento</Label>
+                    <Input placeholder="Sala, Andar..." className="h-11 rounded-lg" {...editForm.register('address_complement')} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-sm font-semibold">Bairro</Label>
+                    <Input placeholder="Centro" className="h-11 rounded-lg" {...editForm.register('address_neighborhood')} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-sm font-semibold">Cidade</Label>
+                    <Input placeholder="São Paulo" className="h-11 rounded-lg" {...editForm.register('address_city')} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-sm font-semibold">UF</Label>
+                    <Input
+                      placeholder="SP"
+                      maxLength={2}
+                      className="h-11 rounded-lg"
+                      {...editForm.register('address_state', {
+                        onChange: (e) => { e.target.value = e.target.value.toUpperCase(); },
+                      })}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-sm font-semibold">País</Label>
+                  <Input placeholder="Brasil" className="h-11 rounded-lg" {...editForm.register('address_country')} />
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* ── Seção 4: Identidade Visual ────────────────────────────── */}
               <div className="space-y-4">
                 <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                   <Palette className="h-3.5 w-3.5" /> Identidade Visual
@@ -753,7 +932,7 @@ export default function PlatformTenants() {
 
               <Separator />
 
-              {/* ── Seção 3: Administrador Master ─────────────────────────── */}
+              {/* ── Seção 5: Administrador Master ─────────────────────────── */}
               <div className="space-y-3">
                 <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                   <Users className="h-3.5 w-3.5" /> Administrador Master

@@ -24,6 +24,7 @@ const NewReimbursement   = lazy(() => import('@/src/pages/reimbursements/NewReim
 const ExpenseReports     = lazy(() => import('@/src/pages/reimbursements/ExpenseReports'));
 const UserManagement     = lazy(() => import('@/src/pages/admin/UserManagement'));
 const TenantManagement   = lazy(() => import('@/src/pages/admin/TenantManagement'));
+const CompanyProfile     = lazy(() => import('@/src/pages/admin/CompanyProfile'));
 const ServiceTypes       = lazy(() => import('@/src/pages/admin/ServiceTypes'));
 const ClientsList           = lazy(() => import('@/src/pages/clients/ClientsList'));
 const EquipmentManagement   = lazy(() => import('@/src/pages/equipments/EquipmentManagement'));
@@ -176,6 +177,7 @@ export default function App() {
                 <Route path="/admin/sla" element={<SlaManagement />} />
                 <Route path="/admin/budget" element={<BudgetManagement />} />
                 <Route path="/admin/maintenance-plans" element={<MaintenancePlans />} />
+                <Route path="/admin/company-profile" element={<CompanyProfile />} />
               </Route>
 
               {/* Master-only: tenant provisioning */}

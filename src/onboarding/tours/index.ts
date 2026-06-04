@@ -17,6 +17,7 @@ import { rhTour }                   from './rh.tour';
 import { dpTour }                   from './dp.tour';
 import { cpTour }                   from './cp.tour';
 import { adminTour }                from './admin.tour';
+import { companyProfileTour }       from './company-profile.tour';
 import { adminSlaTour }             from './admin-sla.tour';
 import { adminBudgetTour }          from './admin-budget.tour';
 import { adminManutencaoTour }      from './admin-manutencao.tour';
@@ -98,6 +99,7 @@ export const TOUR_MODULES: TourModule[] = [
   dpTour,
 
   // ── Admin ─────────────────────────────────────────────────────────────────
+  companyProfileTour,
   adminTour,
   adminSlaTour,
   adminBudgetTour,
