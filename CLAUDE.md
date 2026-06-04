@@ -140,14 +140,16 @@ Nunca `bg-background` ou `border-border` dentro da sidebar — componentes ficam
 | Grupo | Módulos principais |
 |---|---|
 | `` (sem label) | Dashboard |
-| Operações de Campo | OS · Orçamentos · Agenda |
-| Comercial | Clientes |
-| Suprimentos | Compras · Fornecedores · Peças/Estoque |
+| Operações de Campo | OS · Agenda · Manutenção Preventiva |
+| Comercial | Clientes · Orçamentos |
+| Suprimentos | Compras · Fornecedores · Peças/Estoque · Equipamentos |
 | Financeiro | Reembolsos · Contas a Pagar · Budget |
-| Ativos | Equipamentos |
 | Recursos Humanos | Colaboradores · Departamentos · Folha · Férias · Ponto |
 | Conhecimento | Base de Conhecimento |
-| Administração | Manutenção Preventiva · Checklists · Tipos de Serviço · SLA · Perfil · Admin · Tenants |
+| Configurações | Tipos de Serviço · SLA · Checklists |
+| Administração | Perfil da Empresa · Administrador · Tenants |
+
+Decisões de design: Orçamentos é CPQ (documento comercial) → Comercial. Manutenção Preventiva gera OSs → Operações de Campo. Equipamentos é ativo físico gerenciado junto ao estoque → Suprimentos. Configurações separa "configurar o sistema" de "administrar acesso" (Administração).
 
 `authorizedLinks` = `NAV_GROUPS.flatMap(g => g.items).filter(role + tenant)` — permanece flat para `UserProfileDropdown`.  
 Labels usam `text-sidebar-foreground/40` (nunca `text-muted-foreground` — fica invisível no sidebar).
