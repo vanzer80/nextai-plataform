@@ -18,6 +18,7 @@ import type {
   PlatformClientLocationRow,
   PlatformNotificationRow,
   ExportResource,
+  AiRoutingStats,
 } from '@/src/types/platformIntelligence';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -226,4 +227,12 @@ export function toCsvBlob(rows: Record<string, unknown>[]): Blob {
   };
   const lines = [headers.join(','), ...rows.map(r => headers.map(h => escape(r[h])).join(','))];
   return new Blob([lines.join('\n')], { type: 'text/csv' });
+}
+
+// ── Roteamento IA ─────────────────────────────────────────────────────────────
+
+export async function getAiRoutingStats(hours = 24): Promise<AiRoutingStats | null> {
+  const { data, error } = await supabase.rpc('get_ai_routing_stats', { p_hours: hours });
+  if (error) throw new Error(error.message);
+  return data as unknown as AiRoutingStats | null;
 }

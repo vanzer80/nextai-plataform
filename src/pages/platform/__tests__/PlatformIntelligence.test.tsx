@@ -34,10 +34,11 @@ vi.mock('@/src/services/platformIntelligenceService', () => ({
   fetchAllClientLocationsForExport:  vi.fn(),
   getAllNotifications:                vi.fn(),
   fetchAllNotificationsForExport:    vi.fn(),
-  logExport:   vi.fn(),
-  downloadBlob: vi.fn(),
-  toJsonBlob:  vi.fn(),
-  toCsvBlob:   vi.fn(),
+  logExport:         vi.fn(),
+  downloadBlob:      vi.fn(),
+  toJsonBlob:        vi.fn(),
+  toCsvBlob:         vi.fn(),
+  getAiRoutingStats: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock('@/src/lib/supabase', () => ({

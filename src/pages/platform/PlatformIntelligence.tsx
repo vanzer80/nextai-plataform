@@ -4,6 +4,7 @@ import {
   BarChart3, BookOpen, Stethoscope, Building2, Search,
   ClipboardList, Paperclip, History, PenLine, Receipt,
   MapPin, Package, Wrench, Bell, FileCheck,
+  Zap, AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -39,11 +40,13 @@ import {
   downloadBlob,
   toJsonBlob,
   toCsvBlob,
+  getAiRoutingStats,
 } from '@/src/services/platformIntelligenceService';
 
 import type {
   PlatformIntelligenceStats,
   ExportResource,
+  AiRoutingStats,
 } from '@/src/types/platformIntelligence';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -269,6 +272,8 @@ export default function PlatformIntelligence() {
   const [activeTab, setActiveTab]         = useState<TabId>('diagnostics');
   const [tabStates, setTabStates]         = useState<Record<TabId, TabData>>(initTabStates);
   const [exporting, setExporting]         = useState(false);
+  const [aiStats,        setAiStats]        = useState<AiRoutingStats | null>(null);
+  const [aiStatsLoading, setAiStatsLoading] = useState(true);
 
   const activeTabMeta = useMemo(() => TAB_META.find(t => t.id === activeTab)!, [activeTab]);
 
@@ -330,6 +335,14 @@ export default function PlatformIntelligence() {
       .then(setStats)
       .catch((err: Error) => toast.error('Erro ao carregar métricas', { description: err.message }))
       .finally(() => setStatsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    setAiStatsLoading(true);
+    getAiRoutingStats(24)
+      .then(setAiStats)
+      .catch((err: Error) => toast.error('Erro ao carregar métricas de IA', { description: err.message }))
+      .finally(() => setAiStatsLoading(false));
   }, []);
 
   useEffect(() => {
@@ -462,6 +475,56 @@ export default function PlatformIntelligence() {
               </Badge>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Widget de Roteamento IA */}
+      {!aiStatsLoading && aiStats && aiStats.total_requests > 0 && (
+        <div className={`rounded-xl border p-4 shadow-sm ${
+          aiStats.fallback_pct > 15
+            ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/40'
+            : 'border-border bg-card'
+        }`}>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <Zap className="h-3.5 w-3.5" />
+              Roteamento IA — últimas {aiStats.window_hours}h
+            </p>
+            {aiStats.fallback_pct > 15 && (
+              <Badge variant="destructive" className="text-xs gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Fallback crítico: {aiStats.fallback_pct}%
+              </Badge>
+            )}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[
+              { label: 'Total Requisições', value: aiStats.total_requests.toLocaleString('pt-BR'), alert: false },
+              { label: 'Fallback OpenAI',   value: `${aiStats.fallback_pct}%`,                     alert: aiStats.fallback_pct > 15 },
+              { label: 'Latência Média',    value: aiStats.avg_latency_ms ? `${aiStats.avg_latency_ms}ms` : '—', alert: false },
+              { label: 'Erros',             value: aiStats.error_count.toLocaleString('pt-BR'),    alert: aiStats.error_count > 0 },
+            ].map(({ label, value, alert }) => (
+              <div key={label}>
+                <p className={`text-2xl font-bold ${alert ? 'text-red-600 dark:text-red-400' : 'text-foreground'}`}>
+                  {value}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+              </div>
+            ))}
+          </div>
+          {Object.keys(aiStats.by_provider).length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border">
+              {Object.entries(aiStats.by_provider).map(([provider, count]) => (
+                <Badge key={provider} variant="outline" className={`text-xs ${
+                  provider === 'openai' && aiStats.fallback_pct > 15
+                    ? 'border-red-400 text-red-600 dark:text-red-400'
+                    : ''
+                }`}>
+                  {provider}: {count}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

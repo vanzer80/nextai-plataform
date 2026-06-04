@@ -224,3 +224,17 @@ export type ExportResource =
   | 'reimbursement_history'
   | 'client_locations'
   | 'notifications';
+
+// ── Roteamento IA ─────────────────────────────────────────────────────────────
+
+export interface AiRoutingStats {
+  total_requests: number;
+  fallback_count: number;
+  fallback_pct:   number;
+  openai_count:   number;
+  gemini_count:   number;
+  avg_latency_ms: number;
+  error_count:    number;
+  by_provider:    Record<string, number>;
+  window_hours:   number;
+}
