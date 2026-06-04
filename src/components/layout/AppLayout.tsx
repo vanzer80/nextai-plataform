@@ -85,14 +85,15 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Operações de Campo',
     items: [
       { name: 'Ordens de Serviço', path: '/reports', icon: ClipboardList, roles: ['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master'] },
-      { name: 'Orçamentos', path: '/orcamentos', icon: FileText, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
       { name: 'Agenda / Dispatch', path: '/agenda', icon: CalendarDays, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
+      { name: 'Manutenção Preventiva', path: '/admin/maintenance-plans', icon: CalendarDays, roles: ['Gestor', 'Admin', 'Master'] },
     ],
   },
   {
     label: 'Comercial',
     items: [
       { name: 'Clientes', path: '/clients', icon: Building2, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
+      { name: 'Orçamentos', path: '/orcamentos', icon: FileText, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
     ],
   },
   {
@@ -101,6 +102,7 @@ const NAV_GROUPS: NavGroup[] = [
       { name: 'Compras', path: '/materials', icon: ShoppingCart, roles: ['Tecnico', 'Administrativo', 'Financeiro', 'Supervisor', 'Gestor', 'Comprador', 'Admin', 'Master'] },
       { name: 'Fornecedores', path: '/suppliers', icon: Store, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
       { name: 'Peças / Estoque', path: '/parts', icon: Package, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
+      { name: 'Equipamentos', path: '/equipments', icon: Wrench, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
     ],
   },
   {
@@ -109,12 +111,6 @@ const NAV_GROUPS: NavGroup[] = [
       { name: 'Reembolsos', path: '/reimbursements', icon: Receipt, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Financeiro', 'Admin', 'Master'] },
       { name: 'Contas a Pagar', path: '/cp/payables', icon: Banknote, roles: ['Financeiro', 'Gestor', 'Admin', 'Master'] },
       { name: 'Controle de Budget', path: '/admin/budget', icon: DollarSign, roles: ['Gestor', 'Admin', 'Master'] },
-    ],
-  },
-  {
-    label: 'Ativos',
-    items: [
-      { name: 'Equipamentos', path: '/equipments', icon: Wrench, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
     ],
   },
   {
@@ -134,12 +130,16 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: 'Administração',
+    label: 'Configurações',
     items: [
-      { name: 'Manutenção Preventiva', path: '/admin/maintenance-plans', icon: CalendarDays, roles: ['Gestor', 'Admin', 'Master'] },
-      { name: 'Checklists', path: '/admin/checklist-templates', icon: ListChecks, roles: ['Gestor', 'Admin', 'Master'] },
       { name: 'Tipos de Serviço', path: '/admin/service-types', icon: Settings2, roles: ['Gestor', 'Admin', 'Master'] },
       { name: 'SLA', path: '/admin/sla', icon: ShieldCheck, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'Checklists', path: '/admin/checklist-templates', icon: ListChecks, roles: ['Gestor', 'Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Administração',
+    items: [
       { name: 'Perfil da Empresa', path: '/admin/company-profile', icon: Building2, roles: ['Gestor', 'Admin', 'Master'] },
       { name: 'Administrador', path: '/admin/usuarios', icon: ShieldAlert, roles: ['Gestor', 'Admin', 'Master'] },
       { name: 'Tenants', path: '/admin/tenants', icon: Globe, roles: ['Master'] },

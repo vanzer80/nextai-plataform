@@ -12,30 +12,32 @@ async function login(page: any, email: string, password: string) {
   await page.waitForTimeout(800);
 }
 
-test('Gestor – todos os grupos SAP aparecem no sidebar desktop', async ({ page }) => {
+test('Gestor – todos os grupos aparecem no sidebar desktop', async ({ page }) => {
   await login(page, MGR_EMAIL, MGR_PASSWORD);
   const sidebar = page.locator('aside').first();
 
-  // Todos os labels de grupo devem estar visíveis
   for (const label of [
     'Operações de Campo', 'Comercial', 'Suprimentos',
-    'Financeiro', 'Ativos', 'Recursos Humanos',
-    'Conhecimento', 'Administração',
+    'Financeiro', 'Recursos Humanos', 'Conhecimento',
+    'Configurações', 'Administração',
   ]) {
     await expect(sidebar.getByText(label, { exact: true })).toBeVisible({ timeout: 5_000 });
   }
 
-  // Dashboard presente sem label (grupo com label vazio)
+  // Grupo "Ativos" não existe mais (Equipamentos foi para Suprimentos)
+  await expect(sidebar.getByText('Ativos', { exact: true })).not.toBeVisible();
+
   await expect(sidebar.getByText('Dashboard', { exact: true })).toBeVisible();
 
-  // Ordem dos grupos: Operações < Financeiro < RH < Administração
+  // Ordem: Operações < Financeiro < RH < Configurações < Administração
   const labels = await sidebar.locator('p.uppercase').allTextContents();
   console.log('Labels no DOM:', labels);
 
   const idx = (t: string) => labels.findIndex(l => l.includes(t));
   expect(idx('Operações')).toBeLessThan(idx('Financeiro'));
   expect(idx('Financeiro')).toBeLessThan(idx('Recursos'));
-  expect(idx('Recursos')).toBeLessThan(idx('Administração'));
+  expect(idx('Recursos')).toBeLessThan(idx('Configurações'));
+  expect(idx('Configurações')).toBeLessThan(idx('Administração'));
 
   await page.screenshot({ path: 'tests/screenshots/sidebar-gestor.png' });
 });
@@ -44,21 +46,40 @@ test('Gestor – itens estão nos grupos corretos', async ({ page }) => {
   await login(page, MGR_EMAIL, MGR_PASSWORD);
   const sidebar = page.locator('aside').first();
 
-  // Ordens de Serviço e Orçamentos devem aparecer APÓS o label de Operações de Campo
-  // e ANTES do label de Comercial
-  const opsLabel   = sidebar.getByText('Operações de Campo', { exact: true });
-  const comercLabel = sidebar.getByText('Comercial', { exact: true });
-  const osLink     = sidebar.getByRole('link', { name: 'Ordens de Serviço' });
+  // Orçamentos deve aparecer APÓS Comercial e ANTES de Suprimentos
+  const comercLabel  = sidebar.getByText('Comercial', { exact: true });
+  const supLabel     = sidebar.getByText('Suprimentos', { exact: true });
+  const orcLink      = sidebar.getByRole('link', { name: 'Orçamentos' });
 
-  const opsY   = (await opsLabel.boundingBox())!.y;
   const comercY = (await comercLabel.boundingBox())!.y;
-  const osY    = (await osLink.boundingBox())!.y;
+  const supY    = (await supLabel.boundingBox())!.y;
+  const orcY    = (await orcLink.boundingBox())!.y;
 
-  expect(osY).toBeGreaterThan(opsY);
-  expect(osY).toBeLessThan(comercY);
+  expect(orcY).toBeGreaterThan(comercY);
+  expect(orcY).toBeLessThan(supY);
 
-  // Colaboradores deve aparecer após label RH e antes de Conhecimento
-  const rhLabel  = sidebar.getByText('Recursos Humanos', { exact: true });
+  // Manutenção Preventiva deve aparecer APÓS Operações de Campo e ANTES de Comercial
+  const opsLabel   = sidebar.getByText('Operações de Campo', { exact: true });
+  const maintLink  = sidebar.getByRole('link', { name: 'Manutenção Preventiva' });
+
+  const opsY    = (await opsLabel.boundingBox())!.y;
+  const maintY  = (await maintLink.boundingBox())!.y;
+
+  expect(maintY).toBeGreaterThan(opsY);
+  expect(maintY).toBeLessThan(comercY);
+
+  // Equipamentos deve aparecer APÓS Suprimentos e ANTES de Financeiro
+  const finLabel  = sidebar.getByText('Financeiro', { exact: true });
+  const equipLink = sidebar.getByRole('link', { name: 'Equipamentos' });
+
+  const finY   = (await finLabel.boundingBox())!.y;
+  const equipY = (await equipLink.boundingBox())!.y;
+
+  expect(equipY).toBeGreaterThan(supY);
+  expect(equipY).toBeLessThan(finY);
+
+  // Colaboradores deve aparecer após RH e antes de Conhecimento
+  const rhLabel   = sidebar.getByText('Recursos Humanos', { exact: true });
   const connLabel = sidebar.getByText('Conhecimento', { exact: true });
   const colabLink = sidebar.getByRole('link', { name: 'Colaboradores' });
 
@@ -68,6 +89,18 @@ test('Gestor – itens estão nos grupos corretos', async ({ page }) => {
 
   expect(colabY).toBeGreaterThan(rhY);
   expect(colabY).toBeLessThan(connY);
+
+  // Tipos de Serviço deve aparecer em Configurações (após Conhecimento, antes de Administração)
+  const cfgLabel  = sidebar.getByText('Configurações', { exact: true });
+  const adminLabel = sidebar.getByText('Administração', { exact: true });
+  const svcLink   = sidebar.getByRole('link', { name: 'Tipos de Serviço' });
+
+  const cfgY   = (await cfgLabel.boundingBox())!.y;
+  const adminY = (await adminLabel.boundingBox())!.y;
+  const svcY   = (await svcLink.boundingBox())!.y;
+
+  expect(svcY).toBeGreaterThan(cfgY);
+  expect(svcY).toBeLessThan(adminY);
 });
 
 test('Técnico – apenas grupos com itens acessíveis aparecem', async ({ page }) => {
@@ -84,6 +117,7 @@ test('Técnico – apenas grupos com itens acessíveis aparecem', async ({ page 
   await expect(sidebar.getByText('Comercial', { exact: true })).not.toBeVisible();
   await expect(sidebar.getByText('Ativos', { exact: true })).not.toBeVisible();
   await expect(sidebar.getByText('Recursos Humanos', { exact: true })).not.toBeVisible();
+  await expect(sidebar.getByText('Configurações', { exact: true })).not.toBeVisible();
   await expect(sidebar.getByText('Administração', { exact: true })).not.toBeVisible();
 
   // Itens corretos visíveis
@@ -98,6 +132,7 @@ test('Técnico – apenas grupos com itens acessíveis aparecem', async ({ page 
   await expect(sidebar.getByRole('link', { name: 'Equipamentos' })).not.toBeVisible();
   await expect(sidebar.getByRole('link', { name: 'Colaboradores' })).not.toBeVisible();
   await expect(sidebar.getByRole('link', { name: 'Contas a Pagar' })).not.toBeVisible();
+  await expect(sidebar.getByRole('link', { name: 'Manutenção Preventiva' })).not.toBeVisible();
 
   await page.screenshot({ path: 'tests/screenshots/sidebar-tecnico.png' });
 });
@@ -110,11 +145,19 @@ test('Navegação – clicar em item do grupo navega para a rota correta', async
   await sidebar.getByRole('link', { name: 'Clientes' }).click();
   await expect(page).toHaveURL(/\/clients/, { timeout: 20_000 });
 
+  // Orçamentos (grupo Comercial)
+  await sidebar.getByRole('link', { name: 'Orçamentos' }).click();
+  await expect(page).toHaveURL(/\/orcamentos/, { timeout: 20_000 });
+
   // Colaboradores (grupo Recursos Humanos)
   await sidebar.getByRole('link', { name: 'Colaboradores' }).click();
   await expect(page).toHaveURL(/\/rh\/employees/, { timeout: 20_000 });
 
-  // Manutenção Preventiva (grupo Administração)
+  // Tipos de Serviço (grupo Configurações)
+  await sidebar.getByRole('link', { name: 'Tipos de Serviço' }).click();
+  await expect(page).toHaveURL(/\/admin\/service-types/, { timeout: 20_000 });
+
+  // Manutenção Preventiva (grupo Operações de Campo)
   await sidebar.getByRole('link', { name: 'Manutenção Preventiva' }).click();
   await expect(page).toHaveURL(/\/admin\/maintenance-plans/, { timeout: 20_000 });
 
@@ -129,8 +172,6 @@ test('Sem console errors no load do sidebar', async ({ page }) => {
   await login(page, MGR_EMAIL, MGR_PASSWORD);
   await page.waitForTimeout(2000);
 
-  // Filtrar erros conhecidos: rede, extensões e warning pré-existente de
-  // button>button no UserProfileDropdown (SheetTrigger asChild + button interno)
   const appErrors = errors.filter(e =>
     !e.includes('net::ERR') &&
     !e.includes('favicon') &&
