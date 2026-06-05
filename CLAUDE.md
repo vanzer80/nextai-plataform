@@ -167,10 +167,9 @@ Labels usam `text-sidebar-foreground/40` (nunca `text-muted-foreground` — fica
 
 ## Edge Functions deployadas
 
-`ai-proxy` v8 · `admin-create-user` v4 · `admin-delete-user` v3  
-`admin-reset-password` v1 · `admin-provision-tenant` v1  
-`platform-update-user` v1 · `sla-checker` v1 · `send-csat-email` v1  
-`ai-proxy` v9 (com logging `ai_routing_log` — versionada em `supabase/functions/ai-proxy/index.ts`)
+`ai-proxy` v10 (rate limiting 20 req/min Deno KV · `X-RateLimit-*` headers · versionada em `supabase/functions/ai-proxy/index.ts`)  
+`admin-create-user` v4 · `admin-delete-user` v3 · `admin-reset-password` v1  
+`admin-provision-tenant` v1 · `platform-update-user` v1 · `sla-checker` v1 · `send-csat-email` v1
 
 Secrets (nunca no .env): `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, `OPENAI_API_KEY`
 
@@ -254,6 +253,75 @@ get_dashboard_agenda_kpis()            → jsonb  -- os_hoje, tecnicos_hoje, cri
     - **Tenant isolation** (`update_orcamento`, `create_orcamento`): `SECURITY DEFINER` + `get_caller_team_id()` — qualquer `authenticated` pode chamar, o tenant é isolado por dentro.
     - **SuperMaster only** (`get_ai_routing_stats`, `update_tenant_commercial`): `SECURITY DEFINER` + `IF NOT is_platform_master() THEN RAISE EXCEPTION` — apenas SuperMaster pode executar.
     Nunca criar RPC SECURITY DEFINER sem ao menos um dos dois padrões. RPCs em `LANGUAGE sql` não suportam guard de runtime — converter para `plpgsql` quando necessário.
+48. **`REVOKE FROM anon` não fecha herança via `PUBLIC`** → o complemento da armadilha #22. `REVOKE FROM anon` remove apenas grant explícito para `anon` — `anon` ainda herda acesso via `PUBLIC` (default do `CREATE FUNCTION`). Padrão correto e completo para fechar acesso anônimo: `REVOKE EXECUTE ON FUNCTION ... FROM PUBLIC; REVOKE EXECUTE ON FUNCTION ... FROM anon; GRANT EXECUTE ON FUNCTION ... TO authenticated;`
+49. **Trigger functions SECURITY DEFINER aparecem no advisor `authenticated_security_definer_function_executable`** → triggers são chamados pelo mecanismo do banco, não por usuários. Para remover do advisor e do endpoint PostgREST: `REVOKE EXECUTE ON FUNCTION ... FROM PUBLIC; REVOKE EXECUTE ON FUNCTION ... FROM authenticated;`. O trigger continua funcionando — PostgreSQL executa como owner, independente de grants.
+
+## Padrões de Segurança (s72)
+
+### Audit trail em tabelas financeiras
+
+Toda tabela financeira deve ter:
+- `updated_by UUID REFERENCES users(id) ON DELETE SET NULL` + trigger `BEFORE UPDATE` que seta `NEW.updated_by = auth.uid(); NEW.updated_at = now()`
+- Tabela `*_status_history` com `(id, record_id, team_id, from_status, to_status, changed_by, created_at)` + trigger `AFTER UPDATE` que insere quando `OLD.status IS DISTINCT FROM NEW.status`
+- RLS na tabela de histórico: `FOR ALL USING (team_id = get_caller_team_id())`
+
+Implementado em: `payables` (s72) · `service_reports` (report_status_history) · `reimbursements` (reimbursement_history)
+
+### Nova função SECURITY DEFINER — checklist obrigatório
+
+```sql
+CREATE OR REPLACE FUNCTION public.minha_funcao(...)
+RETURNS ...
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = 'public'   -- obrigatório: evita search_path injection
+AS $$
+BEGIN
+  -- guard: get_caller_team_id() OU is_platform_master()
+END;
+$$;
+REVOKE EXECUTE ON FUNCTION public.minha_funcao(...) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.minha_funcao(...) FROM anon;
+GRANT  EXECUTE ON FUNCTION public.minha_funcao(...) TO authenticated;
+```
+
+Se for trigger function: também `REVOKE ... FROM authenticated`.
+
+### Storage bucket — política de isolamento por team
+
+Arquivos devem ser organizados como `{bucket}/{team_id}/arquivo`. Policy SELECT:
+```sql
+USING (
+  bucket_id = 'meu-bucket' AND (
+    public.is_platform_master()
+    OR (auth.role() = 'authenticated' AND
+        (storage.foldername(name))[1] = (SELECT (team_id)::text FROM public.users WHERE id = auth.uid()))
+  )
+)
+```
+Nunca usar `USING (bucket_id = 'meu-bucket')` sem restrição de tenant — permite listing de todos os arquivos.
+
+### Rate limiting em Edge Functions (Deno KV)
+
+```typescript
+const RATE_LIMIT_REQUESTS = 20;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+
+async function checkRateLimit(userId: string) {
+  const kv = await Deno.openKv();
+  const window = Math.floor(Date.now() / RATE_LIMIT_WINDOW_MS);
+  const key = ['ratelimit', userId, window];
+  const entry = await kv.get<number>(key);
+  const count = (entry.value ?? 0) + 1;
+  if (count > RATE_LIMIT_REQUESTS) return { allowed: false, remaining: 0 };
+  await kv.set(key, count, { expireIn: RATE_LIMIT_WINDOW_MS * 2 });
+  return { allowed: true, remaining: RATE_LIMIT_REQUESTS - count };
+}
+```
+
+Extrair `userId` do JWT sem round-trip: `JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).sub`.
+
+---
 
 ## Onboarding SAP-level — concluído 2026-06-03
 
