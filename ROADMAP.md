@@ -67,8 +67,11 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 | PWA icons PNG 192×512 for Android/Chrome install | 🟢 Low | hours | — |
 | RAG Analytics — natural language search over reports (pgvector) | 🟡 Strategic | 5–8 days | — |
 | GPS Dispatching Map — real-time technician location tracking | 🟡 Strategic | 5–8 days | — |
-| **Public API + Webhooks** (API Keys por tenant · Edge Function `api-gateway` · endpoints `/api/v1/` · eventos push para sistemas externos · OpenAPI doc) | 🔴 High | 3–5 days | [pre-ERP] |
-| ERP Integration (TOTVS / SAP / Omie) via Edge Function webhook | 🟡 Strategic | 3–5 days/ERP | [requires API] |
+| **Public API — Phase 1: Foundation** (tabela `api_keys` + RLS por tenant · scopes · rotação/revogação · Edge Fn `api-gateway` · rate limit por chave · audit log · RFC 7807 error format) | 🟡 Strategic | 1 week | [pre-ERP] |
+| **Public API — Phase 2: Core Endpoints** (`/api/v1/orders` · `/api/v1/reimbursements` · `/api/v1/clients` · `/api/v1/quotes` · cursor pagination · idempotency keys em writes · OpenAPI 3.0 spec) | 🟡 Strategic | 1 week | [pre-ERP] |
+| **Public API — Phase 3: Webhook System** (tabela `webhook_endpoints` · HMAC-SHA256 signing · retry backoff 1m→5m→30m→2h→24h · dead letter queue · event schema versioning · delivery log 30d · SuperMaster view) | 🟡 Strategic | 1 week | [pre-ERP] |
+| **Public API — Phase 4: Developer Experience** (OpenAPI docs em `/api/docs` · getting started guide · Postman collection · sandbox environment) | 🟡 Strategic | 3–5 days | [pre-ERP] |
+| ERP Integration (TOTVS / SAP / Omie) via webhook + adapter por ERP | 🟡 Strategic | 3–5 days/ERP | [requires API Ph1–3] |
 | Phase 6 SaaS: subdomain routing per tenant + billing (Stripe) | 🟡 Strategic | 2–3 weeks | — |
 
 ---
