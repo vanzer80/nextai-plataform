@@ -1,0 +1,34 @@
+-- 32 SECURITY DEFINER functions that must NOT be callable by unauthenticated users.
+-- Supabase advisor: anon_security_definer_function_executable (WARN)
+REVOKE EXECUTE ON FUNCTION public.approve_payable(uuid, text)                         FROM anon;
+REVOKE EXECUTE ON FUNCTION public.auto_create_csat()                                  FROM anon;
+REVOKE EXECUTE ON FUNCTION public.calculate_payroll_period(uuid)                      FROM anon;
+REVOKE EXECUTE ON FUNCTION public.generate_employee_matricula(uuid)                   FROM anon;
+REVOKE EXECUTE ON FUNCTION public.get_aging_report(uuid)                              FROM anon;
+REVOKE EXECUTE ON FUNCTION public.get_caller_client_id()                              FROM anon;
+REVOKE EXECUTE ON FUNCTION public.get_cashflow_projection(uuid, integer)              FROM anon;
+REVOKE EXECUTE ON FUNCTION public.get_employees_with_expiring_certs(uuid, integer)    FROM anon;
+REVOKE EXECUTE ON FUNCTION public.get_my_team_id()                                    FROM anon;
+REVOKE EXECUTE ON FUNCTION public.pay_payable(uuid, uuid)                             FROM anon;
+REVOKE EXECUTE ON FUNCTION public.payable_from_material()                             FROM anon;
+REVOKE EXECUTE ON FUNCTION public.payable_from_reimbursement()                        FROM anon;
+REVOKE EXECUTE ON FUNCTION public.platform_get_all_attachments(uuid, integer, integer) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.platform_get_all_checklist_items(uuid, integer, integer) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.platform_get_all_client_locations(uuid, integer, integer) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.platform_get_all_clients(uuid, integer, integer)    FROM anon;
+REVOKE EXECUTE ON FUNCTION public.platform_get_all_equipments(uuid, integer, integer) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.platform_get_all_materials(uuid, integer, integer)  FROM anon;
+REVOKE EXECUTE ON FUNCTION public.platform_get_all_notifications(uuid, integer, integer) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.platform_get_all_orcamentos(uuid, integer, integer) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.platform_get_all_reimbursement_history(uuid, integer, integer) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.platform_get_all_reimbursements(uuid, integer, integer) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.platform_get_all_report_status_history(uuid, integer, integer) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.platform_get_all_reports(uuid, integer, integer)    FROM anon;
+REVOKE EXECUTE ON FUNCTION public.platform_get_all_signatures(uuid, integer, integer) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.platform_get_all_status_history(uuid, integer, integer) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.platform_get_diagnostic_corpus(uuid, text, integer, integer) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.platform_get_intelligence_stats()                   FROM anon;
+REVOKE EXECUTE ON FUNCTION public.platform_get_kb_corpus(uuid, text, integer, integer) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.platform_log_export(text, uuid, integer)            FROM anon;
+REVOKE EXECUTE ON FUNCTION public.reject_payable(uuid, text)                          FROM anon;
+REVOKE EXECUTE ON FUNCTION public.submit_payable(uuid)                                FROM anon;

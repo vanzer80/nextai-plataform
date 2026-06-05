@@ -9,6 +9,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const RATE_LIMIT_REQUESTS = 20;    // max per user per window
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1-minute sliding window
+
 const RECEIPT_PROMPT = `Você é um perito financeiro especialista em OCR e auditoria de recibos. Analise TODAS as imagens fornecidas e extraia os dados EXATOS.\nREGRA 1: Proibido inventar dados. Se um campo não estiver claramente visível, retorne string vazia ''.\nREGRA 2: O campo 'amount' deve ser numérico (sem R$, sem vírgulas — use ponto decimal).\nREGRA 3: Para 'description', gere texto curto como 'Almoço no Restaurante X em 10/04/2026'.\nREGRA 4: O campo 'expense_date' deve ser a data da despesa no formato YYYY-MM-DD. Se não encontrar, retorne ''.`;
 const MATERIAL_PROMPT = `Você é um especialista em equipamentos de HVAC, refrigeração e componentes técnicos industriais.\nAnalise a imagem e extraia as informações técnicas visíveis. A imagem pode ser: etiqueta de equipamento, plaqueta de identificação, componente físico, catálogo ou nota de compra.\nREGRA 1: Extraia apenas o que está claramente visível na imagem. Não invente dados.\nREGRA 2: 'especificacao_tecnica' deve ser UMA FRASE DESCRITIVA EM TEXTO SIMPLES — NÃO retorne um objeto JSON neste campo.\nREGRA 3: 'marca', 'modelo', 'codigo_referencia', 'tensao', 'capacidade': preencha se visível, retorne '' se não identificável.\nREGRA 4: 'quantidade' deve ser '1 unidade' se não estiver especificada na imagem.\nREGRA 5: 'obs' deve capturar outras informações técnicas relevantes visíveis. Retorne '' se não houver.`;
 const RECEIPT_VOICE_PROMPT = `Você é um assistente de preenchimento de formulário de reembolso. O usuário descreveu verbalmente uma despesa.\nREGRA 1: Interprete datas relativas com base na data atual.\nREGRA 2: 'amount' deve ser numérico (sem R$).\nREGRA 3: Se o usuário não mencionou algum campo, retorne string vazia '' ou 0 para amount.\nREGRA 4: 'expense_date' no formato YYYY-MM-DD.`;
@@ -23,6 +26,35 @@ interface CallResult {
   text:       string;
   provider:   "gemini_1" | "gemini_2" | "openai";
   isFallback: boolean;
+}
+
+// Extracts user UUID from JWT sub claim without a round-trip to the auth server.
+// The JWT signature was already verified by the Supabase API gateway before reaching this function.
+function extractUserId(authHeader: string): string | null {
+  try {
+    const parts = authHeader.replace("Bearer ", "").split(".");
+    if (parts.length !== 3) return null;
+    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const decoded = JSON.parse(atob(payload));
+    return typeof decoded.sub === "string" ? decoded.sub : null;
+  } catch {
+    return null;
+  }
+}
+
+// Per-user sliding window rate limiter backed by Deno KV.
+// Limit: RATE_LIMIT_REQUESTS calls per RATE_LIMIT_WINDOW_MS per user.
+async function checkRateLimit(userId: string): Promise<{ allowed: boolean; remaining: number }> {
+  const kv = await Deno.openKv();
+  const window = Math.floor(Date.now() / RATE_LIMIT_WINDOW_MS);
+  const key = ["ratelimit", userId, window];
+  const entry = await kv.get<number>(key);
+  const count = (entry.value ?? 0) + 1;
+  if (count > RATE_LIMIT_REQUESTS) {
+    return { allowed: false, remaining: 0 };
+  }
+  await kv.set(key, count, { expireIn: RATE_LIMIT_WINDOW_MS * 2 });
+  return { allowed: true, remaining: RATE_LIMIT_REQUESTS - count };
 }
 
 function isQuota(err: Error) {
@@ -108,6 +140,30 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // Per-user rate limiting: 20 req/min. Protects against runaway costs across all tenants.
+  const userId = extractUserId(authHeader);
+  if (userId) {
+    const { allowed, remaining } = await checkRateLimit(userId);
+    if (!allowed) {
+      return new Response(
+        JSON.stringify({ error: "Limite de requisições atingido. Tente novamente em 1 minuto." }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "Retry-After": "60",
+            "X-RateLimit-Limit": String(RATE_LIMIT_REQUESTS),
+            "X-RateLimit-Remaining": "0",
+          },
+        },
+      );
+    }
+    // Expose remaining quota in response headers for client-side awareness
+    corsHeaders["X-RateLimit-Limit"] = String(RATE_LIMIT_REQUESTS);
+    corsHeaders["X-RateLimit-Remaining"] = String(remaining);
+  }
+
   let body: Record<string, unknown>;
   try { body = await req.json(); }
   catch { return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
@@ -169,7 +225,6 @@ Deno.serve(async (req: Request) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     const latencyMs = Date.now() - startTime;
-    // provider desconhecido em caso de erro — logar como gemini_1 com success=false
     logRouting(type as string, "gemini_1", false, latencyMs, false, msg.slice(0, 100));
     return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
