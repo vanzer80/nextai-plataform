@@ -1,7 +1,7 @@
 # NextAI — Engineering Roadmap 2026
 
 > Full documentation in Obsidian: `Sprints/00 - Master Roadmap B2B Enterprise.md`  
-> **Atualizado em:** 2026-06-04 (Sessão 71) · 139 commits · Sprints A–F concluídas
+> **Atualizado em:** 2026-06-05 (Sessão 72) · 141 commits · Sprints A–F concluídas
 
 ## Current State
 
@@ -32,7 +32,7 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 
 ---
 
-## Post-Sprint Deliveries (Sessions 62–71)
+## Post-Sprint Deliveries (Sessions 62–72)
 
 | Session | Date | Deliverable |
 |---------|------|------------|
@@ -45,6 +45,7 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 | s69 | 2026-06-04 | PRD audit against external product analysis · PRD + ROADMAP updated · 3 critical findings identified (update_orcamento non-atomic, AI cost observability, CP migration FK) |
 | s70 | 2026-06-04 | Sidebar reorganizado em 9 grupos funcionais SAP-style (NAV_GROUPS) · 5 testes E2E sidebar-verify |
 | s71 | 2026-06-04 | Correção de agrupamento: Orçamentos→Comercial · Manutenção Preventiva→Operações de Campo · Equipamentos→Suprimentos · split Configurações/Administração · testes atualizados 5/5 |
+| s72 | 2026-06-05 | Security hardening: REVOKE anon+PUBLIC em 32 funções SECURITY DEFINER · search_path fixado em 4 funções · RLS em ai_routing_log · payable_status_history + audit trail (updated_by/updated_at) em payables+reimbursements · bucket tenant-assets restrito por team_id · ai-proxy rate limiting 20 req/min via Deno KV |
 
 ---
 
@@ -54,10 +55,12 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 
 | Feature | Priority | Effort | Tag |
 |---------|----------|--------|-----|
-| Fix CP migration FK `teams → tenants` | 🔴 Urgent | 30 min | debt |
-| Atomic `update_orcamento` RPC (replaces 5 sequential ops) | 🔴 High | 2–3 h | [pre-ERP] |
-| AI cost observability: routing telemetry + SuperMaster widget + webhook alert | 🔴 High | 1 day | [pre-ERP] |
-| Version `ai-proxy` Edge Function in repository | 🟡 Medium | 1–2 h | ops |
+| ~~Fix CP migration FK `teams → tenants`~~ | ✅ Done | — | debt |
+| ~~Atomic `update_orcamento` RPC~~ | ✅ Done | — | [pre-ERP] |
+| ~~Version `ai-proxy` Edge Function in repository~~ | ✅ Done (s72) | — | ops |
+| Ativar HaveIBeenPwned password protection no Supabase Dashboard | 🔴 Urgent | 2 min | security |
+| AI cost observability: SuperMaster widget + webhook alert por tenant | 🔴 High | 1 day | [pre-ERP] |
+| LGPD baseline: soft-delete de PII por tenant + registro de operações de tratamento | 🔴 High | 1–2 days | compliance |
 | Email notifications (Resend) + WhatsApp (Evolution API) | 🔴 High | 1–2 days | — |
 | AI Report Writer (free text → professional technical language) | 🔴 High | 1–2 days | — |
 | Background Sync (Service Worker offline queue auto-sync) | 🟡 Medium | 1 day | — |
