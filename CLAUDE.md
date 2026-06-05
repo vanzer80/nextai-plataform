@@ -323,6 +323,251 @@ Extrair `userId` do JWT sem round-trip: `JSON.parse(atob(token.split('.')[1].rep
 
 ---
 
+## Public API — Arquitetura (Sprint G)
+
+### Visão geral
+
+```
+Cliente externo
+  → X-API-Key: nxtai_live_<token>
+  → Edge Fn api-gateway
+      → valida hash SHA-256 da chave → resolve team_id + scopes
+      → rate limit por chave (Deno KV)
+      → loga em api_access_log
+      → roteia para handler do recurso
+  → Response RFC 7807 (erro) ou JSON + cursor pagination
+```
+
+### Ph1 — Foundation
+
+#### Tabela `api_keys`
+
+```sql
+CREATE TABLE public.api_keys (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  team_id      UUID        NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  name         TEXT        NOT NULL,                          -- "Integração SAP Produção"
+  key_hash     TEXT        NOT NULL UNIQUE,                   -- SHA-256 da chave real (nunca armazenar plaintext)
+  key_prefix   TEXT        NOT NULL,                          -- primeiros 12 chars para identificação: "nxtai_live_x"
+  scopes       TEXT[]      NOT NULL DEFAULT '{}',             -- ['orders:read','reimbursements:read','webhooks:write']
+  is_active    BOOLEAN     NOT NULL DEFAULT true,
+  last_used_at TIMESTAMPTZ,
+  expires_at   TIMESTAMPTZ,                                   -- NULL = sem expiração
+  created_by   UUID        REFERENCES public.users(id) ON DELETE SET NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE public.api_keys ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "api_keys_tenant" ON public.api_keys FOR ALL USING (team_id = get_caller_team_id());
+-- REVOKE FROM PUBLIC + anon (padrão s72)
+```
+
+A chave real (`nxtai_live_<32 bytes random hex>`) é gerada uma vez, mostrada uma vez, e armazenada apenas como `SHA-256(chave)`. Padrão GitHub/Stripe.
+
+#### Tabela `api_access_log`
+
+```sql
+CREATE TABLE public.api_access_log (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  api_key_id   UUID        REFERENCES public.api_keys(id) ON DELETE SET NULL,
+  team_id      UUID        NOT NULL,
+  method       TEXT        NOT NULL,   -- GET, POST, PATCH, DELETE
+  path         TEXT        NOT NULL,   -- /api/v1/orders
+  status_code  INTEGER     NOT NULL,
+  duration_ms  INTEGER,
+  ip_address   TEXT,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- Retenção: 90 dias. Partition by month se volume alto.
+-- RLS: platform master lê tudo; tenant lê próprios logs.
+```
+
+#### Edge Function `api-gateway`
+
+```typescript
+// Fluxo de validação (toda requisição passa por aqui)
+const rawKey = req.headers.get('X-API-Key');          // nxtai_live_xxxxx
+const keyHash = await sha256(rawKey);
+const { data: apiKey } = await supabaseAdmin
+  .from('api_keys')
+  .select('id, team_id, scopes, is_active, expires_at')
+  .eq('key_hash', keyHash)
+  .single();
+
+if (!apiKey || !apiKey.is_active) return error(401, 'invalid_api_key');
+if (apiKey.expires_at && new Date(apiKey.expires_at) < new Date()) return error(401, 'api_key_expired');
+if (!hasScope(apiKey.scopes, requiredScope)) return error(403, 'insufficient_scope');
+
+// Rate limit: 1000 req/hora por chave (Deno KV, janela 1h)
+const { allowed } = await checkRateLimit(`apikey:${apiKey.id}`, 1000, 3_600_000);
+if (!allowed) return error(429, 'rate_limit_exceeded');
+
+// Atualiza last_used_at (fire-and-forget)
+supabaseAdmin.from('api_keys').update({ last_used_at: new Date() }).eq('id', apiKey.id);
+```
+
+#### Formato de erro RFC 7807
+
+```json
+{
+  "type": "https://api.nextai.com.br/errors/not-found",
+  "title": "Resource Not Found",
+  "status": 404,
+  "detail": "Order OS-2026-001234 not found or not accessible with current API key scopes.",
+  "instance": "/api/v1/orders/OS-2026-001234"
+}
+```
+
+---
+
+### Ph2 — Core Endpoints
+
+#### Estrutura de URL
+
+```
+GET    /api/v1/orders                   scope: orders:read
+GET    /api/v1/orders/:id               scope: orders:read
+POST   /api/v1/orders                   scope: orders:write
+PATCH  /api/v1/orders/:id               scope: orders:write
+GET    /api/v1/reimbursements           scope: reimbursements:read
+GET    /api/v1/clients                  scope: clients:read
+POST   /api/v1/clients                  scope: clients:write
+GET    /api/v1/quotes                   scope: quotes:read
+```
+
+#### Cursor pagination (todas as listagens)
+
+```json
+{
+  "data": [ /* array de recursos */ ],
+  "pagination": {
+    "cursor": "eyJpZCI6IjEyMyIsImNyZWF0ZWRfYXQiOiIyMDI2In0=",
+    "has_more": true,
+    "limit": 50
+  }
+}
+```
+
+Query params: `?limit=50&cursor=<opaque>&filter[status]=aberta&sort=-created_at`
+
+#### Idempotency keys (writes)
+
+Toda requisição POST/PATCH aceita header `Idempotency-Key: <uuid-v4>`.  
+Resposta cacheada por 24h: mesmo key → mesmo response. Previne OS/pagamento duplicado em retry de ERP.
+
+```sql
+CREATE TABLE public.api_idempotency_keys (
+  key         TEXT        PRIMARY KEY,
+  team_id     UUID        NOT NULL,
+  method      TEXT        NOT NULL,
+  path        TEXT        NOT NULL,
+  status_code INTEGER     NOT NULL,
+  response    JSONB       NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at  TIMESTAMPTZ NOT NULL DEFAULT now() + INTERVAL '24 hours'
+);
+```
+
+---
+
+### Ph3 — Webhook System
+
+#### Tabela `webhook_endpoints`
+
+```sql
+CREATE TABLE public.webhook_endpoints (
+  id          UUID     PRIMARY KEY DEFAULT gen_random_uuid(),
+  team_id     UUID     NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  url         TEXT     NOT NULL,
+  secret      TEXT     NOT NULL,   -- HMAC secret gerado no cadastro, nunca exposto depois
+  events      TEXT[]   NOT NULL,   -- ['order.created','order.completed','reimbursement.approved']
+  is_active   BOOLEAN  NOT NULL DEFAULT true,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+#### Tabela `webhook_deliveries`
+
+```sql
+CREATE TABLE public.webhook_deliveries (
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  endpoint_id     UUID        NOT NULL REFERENCES public.webhook_endpoints(id) ON DELETE CASCADE,
+  team_id         UUID        NOT NULL,
+  event_type      TEXT        NOT NULL,   -- 'order.completed'
+  event_version   TEXT        NOT NULL DEFAULT '1.0',
+  payload         JSONB       NOT NULL,
+  status          TEXT        NOT NULL DEFAULT 'pending',   -- pending|delivered|failed|dead
+  attempts        INTEGER     NOT NULL DEFAULT 0,
+  next_retry_at   TIMESTAMPTZ,
+  last_error      TEXT,
+  delivered_at    TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_webhook_deliveries_pending ON public.webhook_deliveries(next_retry_at) WHERE status = 'pending';
+```
+
+#### Schedule de retry (exponential backoff)
+
+| Tentativa | Delay | Status após falha |
+|-----------|-------|------------------|
+| 1 | imediato | pending |
+| 2 | 1 min | pending |
+| 3 | 5 min | pending |
+| 4 | 30 min | pending |
+| 5 | 2 horas | pending |
+| 6 | 24 horas | dead |
+
+#### HMAC-SHA256 signing
+
+```typescript
+// Edge Fn webhook-dispatcher assina cada entrega:
+const signature = await hmacSha256(endpoint.secret, JSON.stringify(payload));
+fetch(endpoint.url, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-NextAI-Signature': `sha256=${signature}`,
+    'X-NextAI-Event': eventType,          // 'order.completed'
+    'X-NextAI-Event-Version': '1.0',      // versionamento de schema
+    'X-NextAI-Delivery': deliveryId,      // para idempotência no receptor
+  },
+  body: JSON.stringify(payload),
+});
+```
+
+#### Catálogo de eventos (v1.0)
+
+| Evento | Payload principal |
+|--------|-----------------|
+| `order.created` | `{ id, number, status, client_id, technician_id, created_at }` |
+| `order.updated` | `{ id, number, status, updated_by, updated_at }` |
+| `order.completed` | `{ id, number, completed_at, signature_url }` |
+| `reimbursement.approved` | `{ id, amount, approved_by, approved_at }` |
+| `reimbursement.paid` | `{ id, amount, paid_by, paid_at }` |
+| `quote.signed` | `{ id, number, total, signed_at, client_id }` |
+| `payable.paid` | `{ id, valor_total, paid_by, paid_at }` |
+
+---
+
+### Ph4 — Developer Experience
+
+- **OpenAPI 3.0 spec** gerado a partir dos schemas e servido em `/api/docs` (Swagger UI ou Redoc)
+- **Getting started**: autenticação → primeira chamada → receber primeiro webhook (< 5 min)
+- **Postman collection** exportável com todas as rotas e exemplos de payload
+- **Sandbox**: tenant isolado `team_id = SANDBOX_TEAM_ID` com dados sintéticos, sem afetar produção
+
+---
+
+### Invariantes de segurança da API (não negociáveis)
+
+1. Chave nunca armazenada em plaintext — apenas `SHA-256(key)` no banco
+2. Todo endpoint valida scope antes de executar — nunca confiar só na autenticação
+3. Todo write tem idempotency key ou é idempotente por natureza (PUT)
+4. Webhook payload assinado com HMAC-SHA256 — receptor DEVE verificar antes de processar
+5. `api_access_log` escrito em todas as requisições — base para billing e detecção de abuso
+6. Rate limit por chave independente do rate limit por usuário do app
+
+---
+
 ## Onboarding SAP-level — concluído 2026-06-03
 
 ### Arquitetura
