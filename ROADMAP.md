@@ -67,7 +67,8 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 | PWA icons PNG 192×512 for Android/Chrome install | 🟢 Low | hours | — |
 | RAG Analytics — natural language search over reports (pgvector) | 🟡 Strategic | 5–8 days | — |
 | GPS Dispatching Map — real-time technician location tracking | 🟡 Strategic | 5–8 days | — |
-| ERP Integration (TOTVS / SAP / Omie) via Edge Function webhook | 🟡 Strategic | 3–5 days/ERP | — |
+| **Public API + Webhooks** (API Keys por tenant · Edge Function `api-gateway` · endpoints `/api/v1/` · eventos push para sistemas externos · OpenAPI doc) | 🔴 High | 3–5 days | [pre-ERP] |
+| ERP Integration (TOTVS / SAP / Omie) via Edge Function webhook | 🟡 Strategic | 3–5 days/ERP | [requires API] |
 | Phase 6 SaaS: subdomain routing per tenant + billing (Stripe) | 🟡 Strategic | 2–3 weeks | — |
 
 ---
