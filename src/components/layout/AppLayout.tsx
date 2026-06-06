@@ -33,6 +33,8 @@ import {
   Umbrella,
   Landmark,
   Clock,
+  KeyRound,
+  Webhook,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
@@ -68,6 +70,8 @@ const NAV_ONBOARDING: Record<string, string> = {
   '/admin/service-types':         'nav-service-types',
   '/admin/usuarios':              'nav-admin-usuarios',
   '/admin/tenants':               'nav-tenants',
+  '/admin/api-keys':              'nav-api-keys',
+  '/admin/webhooks':              'nav-webhooks',
 };
 
 // Navigation module structure — SAP-style functional groups
@@ -135,6 +139,13 @@ const NAV_GROUPS: NavGroup[] = [
       { name: 'Tipos de Serviço', path: '/admin/service-types', icon: Settings2, roles: ['Gestor', 'Admin', 'Master'] },
       { name: 'SLA', path: '/admin/sla', icon: ShieldCheck, roles: ['Gestor', 'Admin', 'Master'] },
       { name: 'Checklists', path: '/admin/checklist-templates', icon: ListChecks, roles: ['Gestor', 'Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Integrações',
+    items: [
+      { name: 'API Keys', path: '/admin/api-keys', icon: KeyRound, roles: ['Admin', 'Master'] },
+      { name: 'Webhooks',  path: '/admin/webhooks',  icon: Webhook,  roles: ['Admin', 'Master'] },
     ],
   },
   {

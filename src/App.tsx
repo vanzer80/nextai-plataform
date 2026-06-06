@@ -42,6 +42,10 @@ const KnowledgeBase      = lazy(() => import('@/src/pages/knowledge/KnowledgeBas
 const BudgetManagement      = lazy(() => import('@/src/pages/admin/BudgetManagement'));
 const MaintenancePlans      = lazy(() => import('@/src/pages/admin/MaintenancePlans'));
 
+// Integrações (Sprint G)
+const ApiKeys    = lazy(() => import('@/src/pages/admin/ApiKeys'));
+const Webhooks   = lazy(() => import('@/src/pages/admin/Webhooks'));
+
 // RH — Recursos Humanos
 const EmployeesList      = lazy(() => import('@/src/pages/rh/EmployeesList'));
 const EmployeeForm       = lazy(() => import('@/src/pages/rh/EmployeeForm'));
@@ -180,6 +184,8 @@ export default function App() {
                 <Route path="/admin/budget" element={<BudgetManagement />} />
                 <Route path="/admin/maintenance-plans" element={<MaintenancePlans />} />
                 <Route path="/admin/company-profile" element={<CompanyProfile />} />
+                <Route path="/admin/api-keys" element={<ApiKeys />} />
+                <Route path="/admin/webhooks" element={<Webhooks />} />
               </Route>
 
               {/* Master-only: tenant provisioning */}

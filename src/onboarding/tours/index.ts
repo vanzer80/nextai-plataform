@@ -23,6 +23,7 @@ import { adminBudgetTour }          from './admin-budget.tour';
 import { adminManutencaoTour }      from './admin-manutencao.tour';
 import { adminTenantsMgmtTour }     from './admin-tenants-mgmt.tour';
 import { platformTour }             from './platform.tour';
+import { apiKeysTour, webhooksTour } from './integrations.tour';
 
 export type Role =
   | 'Tecnico' | 'Administrativo' | 'Supervisor' | 'Gestor'
@@ -105,6 +106,10 @@ export const TOUR_MODULES: TourModule[] = [
   adminBudgetTour,
   adminManutencaoTour,
   adminTenantsMgmtTour,
+
+  // ── Integrações (Sprint G) ────────────────────────────────────────────────
+  apiKeysTour,
+  webhooksTour,
 
   // ── Platform (SuperMaster) ────────────────────────────────────────────────
   platformTour,
