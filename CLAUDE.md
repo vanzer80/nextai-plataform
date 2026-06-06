@@ -169,7 +169,7 @@ Labels usam `text-sidebar-foreground/40` (nunca `text-muted-foreground` — fica
 
 `ai-proxy` v10 (rate limiting 20 req/min Deno KV · `X-RateLimit-*` headers · versionada em `supabase/functions/ai-proxy/index.ts`)  
 `api-gateway` v2 (valida X-API-Key SHA-256 · rate limit 1000 req/hr · RFC 7807 · cursor pagination · idempotency · `api_access_log`)  
-`os-import-processor` v1 (X-API-Key · scope orders:write · mode json/pdf · Gemini 2.0 Flash PDF · resolução client/técnico · `os_import_log`)  
+`os-import-processor` v7 (X-API-Key + Bearer JWT · scope orders:write · mode json/pdf · **template registry** Decathlon + **IA híbrida** Gemini→OpenAI · per-field confidence scores · resolução client/técnico · `os_import_log` · `import_confidence` em service_reports)  
 `webhook-dispatcher` v2 (HMAC-SHA256 · retry 6× backoff [0,1m,5m,30m,2h,24h] · dead = attempts ≥ 6)  
 `admin-create-user` v4 · `admin-delete-user` v3 · `admin-reset-password` v1  
 `admin-provision-tenant` v1 · `platform-update-user` v1 · `sla-checker` v1 · `send-csat-email` v1
@@ -189,6 +189,7 @@ Secrets (nunca no .env): `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, `OPENAI_API_KEY
   - `tests/cp-module.spec.ts` — 8 testes CP (RBAC, lista, KPIs, status, navegação, filtro REST) ✅ 8/8
   - `tests/platform-company-profile.spec.ts` — 6 testes Perfil Comercial SuperMaster ✅ 6/6
   - `tests/sidebar-verify.spec.ts` — 5 testes sidebar SAP groups (grupos, roles, ordem, navegação, console errors)
+  - `tests/os-import.spec.ts` — 25 testes OS Import Bridge (IM-01→IM-25): RBAC, dialog UI, CORS, auth 401/403, validação 400/415, import mínima, deduplicação, resolução entidades, prioridade, admin page, filtros; IM-25 skipped sem `TEST_PDF_IMPORT=true`
 - Credenciais em `tests/.env.test` (gitignored)
 - **CRÍTICO:** nunca rodar spec files em paralelo com `run_in_background` — Supabase free tier + Vite não aguentam carga simultânea (ERR_CONNECTION_REFUSED cascata)
 
@@ -879,12 +880,16 @@ Widget em `/platform/intelligence`: visível quando `total_requests > 0`, vermel
 
 ---
 
-## OS Import Bridge — concluído 2026-06-06
+## OS Import Bridge — concluído 2026-06-06 (pipeline v7)
 
 ### Visão geral
 
 Permite que clientes enterprise importem OSs de sistemas legados (TOTVS, SAP, Omie, PDF exportado)
 sem redigitação. A OS normalizada fica disponível imediatamente para gerar orçamento via fluxo OS→Orçamento.
+
+**Pipeline de extração PDF (v7):** template registry (zero custo) → IA híbrida (Gemini → OpenAI).
+Per-field confidence scores em todos os campos. Badge visual na tela de detalhe da OS.
+Ver ADR-010 para decisões de arquitetura detalhadas.
 
 ### Endpoint
 
@@ -907,6 +912,7 @@ Headers: X-API-Key: nxtai_live_...    (scope: orders:write)
   // Obrigatório apenas em mode="pdf" (um dos dois)
   pdf_base64?:       string;          // PDF em base64
   pdf_url?:          string;          // URL pública do PDF (Deno faz fetch)
+  pdf_text?:         string;          // texto pré-extraído pelo browser (pdfjs-dist); opcional mas recomendado
 
   // Campos opcionais (mode="json"; ou override dos extraídos do PDF)
   client_name?:         string;
@@ -936,7 +942,12 @@ Headers: X-API-Key: nxtai_live_...    (scope: orders:write)
   "client_resolution":     "matched_cnpj | matched_name | auto_created | not_found",
   "technician_resolution": "matched_email | matched_name | not_found",
   "duplicate":             false,
-  "photos_uploaded":       3
+  "photos_uploaded":       3,
+  // Presentes somente em mode="pdf":
+  "extraction_method":     "template | ai:gemini | ai:openai | hybrid",
+  "overall_confidence":    0.921,
+  "requires_review":       false,
+  "template_id":           "decathlon-chamado | null"
 }}
 ```
 
@@ -986,14 +997,17 @@ Deduplicação: se `(team_id, external_source, external_ref_id)` já existe → 
 
 ```sql
 -- Colunas em service_reports
-external_source TEXT,
-external_ref_id TEXT,
+external_source          TEXT,
+external_ref_id          TEXT,
+import_confidence        NUMERIC(4,3),   -- 0.0–1.0; NULL = importação manual
+import_field_confidences JSONB,          -- snapshot dos scores por campo no momento da importação
 UNIQUE INDEX uq_sr_external_dedup (team_id, external_source, external_ref_id) WHERE NOT NULL
 
 -- Tabela de log
 os_import_log (id, team_id, api_key_id, external_source, external_ref_id, import_mode,
                status, os_id, client_resolution, technician_resolution, error_detail,
-               raw_payload JSONB, created_at)
+               raw_payload JSONB, extraction_method TEXT, overall_confidence NUMERIC(4,3),
+               field_confidences JSONB, created_at)
 
 -- Função sem auth.uid() para service_role
 reserve_os_number_service(p_team_id UUID) → TEXT

@@ -86,6 +86,8 @@ async function login(page: Page, email: string, password: string) {
   await page.fill('input[type="password"]', password);
   await page.click('button[type="submit"]');
   await page.waitForURL(/\/(dashboard|reports)/, { timeout: 20_000 });
+  // Suprime onboarding imediatamente pós-login, antes do timer de 1200ms disparar
+  await dismissOnboarding(page);
 }
 
 async function getJwt(api: APIRequestContext, email: string, password: string): Promise<string> {
@@ -97,12 +99,43 @@ async function getJwt(api: APIRequestContext, email: string, password: string): 
   return body.access_token ?? '';
 }
 
+/**
+ * Suprime o WelcomeModal de onboarding setando o localStorage antes do
+ * setTimeout de 1200ms disparar. O código da modal tem um comentário
+ * explícito suportando essa supressão por testes E2E.
+ * Fallback: clica "Pular por enquanto" se a modal já estiver visível.
+ */
+async function dismissOnboarding(page: Page) {
+  // Marca onboarding como concluído antes do timer de 1200ms disparar
+  await page.evaluate(() => {
+    try {
+      const raw = localStorage.getItem('sb-sksursvmgvxqbbdsztcd-auth-token');
+      if (!raw) return;
+      const session = JSON.parse(raw) as { user?: { id: string } };
+      const uid = session?.user?.id;
+      if (uid) localStorage.setItem(`onboarding_v1_done_${uid}`, 'true');
+    } catch { /* noop */ }
+  });
+  // Fallback: clica skip se a modal já tornou-se visível
+  const skipBtn = page.getByRole('button', { name: /pular por enquanto/i });
+  if (await skipBtn.isVisible({ timeout: 300 }).catch(() => false)) {
+    await skipBtn.click();
+    await skipBtn.waitFor({ state: 'hidden', timeout: 3_000 });
+  }
+}
+
+/** Retorna o locator do dialog de importação (escopo restrito, evita strict-mode). */
+function importDlg(page: Page) {
+  return page.getByRole('dialog', { name: /importar os de sistema externo/i });
+}
+
 /** Abre o dialog de importação assumindo que o gestor já está logado em /reports. */
 async function openImportDialog(page: Page) {
   await page.goto('/reports');
   await page.waitForSelector('text=Ordens de Serviço', { timeout: 10_000 });
+  await dismissOnboarding(page);
   await page.locator('[data-onboarding="os-importar"]').click();
-  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+  await expect(importDlg(page)).toBeVisible({ timeout: 5_000 });
 }
 
 /** Troca para a tab "Preencher campos" dentro do dialog já aberto. */
@@ -173,7 +206,7 @@ test('IM-03 — Dialog abre com título, duas tabs e seletor de sistema', async 
   await openImportDialog(page);
 
   // Título e descrição
-  await expect(page.getByRole('dialog').getByText('Importar OS de sistema externo')).toBeVisible();
+  await expect(importDlg(page).getByText('Importar OS de sistema externo')).toBeVisible();
 
   // Duas tabs presentes
   await expect(page.getByRole('button', { name: /importar pdf/i })).toBeVisible();
@@ -189,7 +222,7 @@ test('IM-03 — Dialog abre com título, duas tabs e seletor de sistema', async 
 
   // Fechar limpa o estado
   await page.getByRole('button', { name: /cancelar/i }).click();
-  await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 3_000 });
+  await expect(importDlg(page)).not.toBeVisible({ timeout: 3_000 });
 });
 
 test('IM-04 — Tab PDF: submeter sem arquivo mostra toast de erro', async ({ page }) => {
@@ -199,12 +232,12 @@ test('IM-04 — Tab PDF: submeter sem arquivo mostra toast de erro', async ({ pa
   await openImportDialog(page);
 
   // Tab PDF já ativa — clicar em "Importar OS" sem selecionar arquivo
-  await page.getByRole('dialog').getByRole('button', { name: /importar os/i }).click();
+  await importDlg(page).getByRole('button', { name: /importar os/i }).click();
 
   await expect(page.getByText(/selecione um arquivo pdf/i)).toBeVisible({ timeout: 5_000 });
 
   // Dialog permanece aberto — não fecha em caso de erro
-  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(importDlg(page)).toBeVisible();
 
   await page.getByRole('button', { name: /cancelar/i }).click();
 });
@@ -219,10 +252,10 @@ test('IM-05 — Tab Campos: submeter sem "Problema reportado" mostra toast de er
   // Preencher campos opcionais mas deixar o obrigatório em branco
   await page.getByPlaceholder('Ex: Empresa ABC Ltda').fill('Empresa Qualquer');
 
-  await page.getByRole('dialog').getByRole('button', { name: /importar os/i }).click();
+  await importDlg(page).getByRole('button', { name: /importar os/i }).click();
 
   await expect(page.getByText(/problema reportado é obrigatório/i)).toBeVisible({ timeout: 5_000 });
-  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(importDlg(page)).toBeVisible();
 
   await page.getByRole('button', { name: /cancelar/i }).click();
 });
@@ -247,7 +280,7 @@ test('IM-06 — Tab Campos: todos os campos opcionais estão visíveis', async (
   await expect(page.getByPlaceholder(/lista de peças/i)).toBeVisible();
 
   // Seletor de prioridade presente
-  await expect(page.getByText('Prioridade')).toBeVisible();
+  await expect(importDlg(page).getByText('Prioridade').first()).toBeVisible();
 
   await page.getByRole('button', { name: /cancelar/i }).click();
 });
@@ -402,7 +435,7 @@ test('IM-13 — Gestor importa OS mínima → estado de sucesso com número da O
   await page.getByPlaceholder(/lista de peças/i).fill('Filtro x1, Óleo 5L');
 
   // Submeter
-  await page.getByRole('dialog').getByRole('button', { name: /importar os/i }).click();
+  await importDlg(page).getByRole('button', { name: /importar os/i }).click();
 
   // Estado de sucesso deve aparecer em até 30s (Supabase free tier pode hibernar)
   await expect(page.getByText(/os importada com sucesso/i)).toBeVisible({ timeout: 35_000 });
@@ -427,7 +460,7 @@ test('IM-14 — "Ver OS" navega para /reports/{id} com status Aguardando Revisã
   await page.getByPlaceholder('Nº da OS no sistema de origem').fill(`${RUN_ID}-ver-os`);
   await switchToFieldsTab(page);
   await page.getByPlaceholder(/descreva o problema/i).fill('OS criada para testar navegação "Ver OS".');
-  await page.getByRole('dialog').getByRole('button', { name: /importar os/i }).click();
+  await importDlg(page).getByRole('button', { name: /importar os/i }).click();
 
   await expect(page.getByText(/os importada com sucesso/i)).toBeVisible({ timeout: 35_000 });
 
@@ -450,23 +483,24 @@ test('IM-15 — Fechar dialog → onImported atualiza a lista de OS', async ({ p
   await login(page, MGR_EMAIL, MGR_PASSWORD);
   await page.goto('/reports');
   await page.waitForSelector('text=Ordens de Serviço', { timeout: 10_000 });
+  await dismissOnboarding(page);
 
   // Conta OSs antes do import (pode ser 0 se lista vazia)
   const countAntes = await page.locator('a[href*="/reports/"]').count();
 
   await page.locator('[data-onboarding="os-importar"]').click();
-  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+  await expect(importDlg(page)).toBeVisible({ timeout: 5_000 });
 
   await page.getByPlaceholder('Nº da OS no sistema de origem').fill(`${RUN_ID}-lista-refresh`);
   await switchToFieldsTab(page);
   await page.getByPlaceholder(/descreva o problema/i).fill('OS para verificar refresh da lista.');
-  await page.getByRole('dialog').getByRole('button', { name: /importar os/i }).click();
+  await importDlg(page).getByRole('button', { name: /importar os/i }).click();
 
   await expect(page.getByText(/os importada com sucesso/i)).toBeVisible({ timeout: 35_000 });
 
   // Fechar dialog — dispara onImported → refresh()
   await page.getByRole('button', { name: /fechar/i }).click();
-  await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 3_000 });
+  await expect(importDlg(page)).not.toBeVisible({ timeout: 3_000 });
 
   // Aguardar atualização da lista (realtime/refresh)
   await page.waitForTimeout(1_500);
@@ -486,12 +520,13 @@ test('IM-16 — UI: reimportar mesma external_ref_id mostra "OS já importada an
   const dedupeRef = `${RUN_ID}-dedup-ui`;
 
   async function importWithRef() {
+    await dismissOnboarding(page);
     await page.locator('[data-onboarding="os-importar"]').click();
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await expect(importDlg(page)).toBeVisible({ timeout: 5_000 });
     await page.getByPlaceholder('Nº da OS no sistema de origem').fill(dedupeRef);
     await switchToFieldsTab(page);
     await page.getByPlaceholder(/descreva o problema/i).fill('Problema para teste de deduplicação.');
-    await page.getByRole('dialog').getByRole('button', { name: /importar os/i }).click();
+    await importDlg(page).getByRole('button', { name: /importar os/i }).click();
   }
 
   await login(page, MGR_EMAIL, MGR_PASSWORD);
@@ -502,7 +537,7 @@ test('IM-16 — UI: reimportar mesma external_ref_id mostra "OS já importada an
   await importWithRef();
   await expect(page.getByText(/os importada com sucesso/i)).toBeVisible({ timeout: 35_000 });
   await page.getByRole('button', { name: /fechar/i }).click();
-  await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 3_000 });
+  await expect(importDlg(page)).not.toBeVisible({ timeout: 3_000 });
 
   // Segundo import — mesma ref → duplicata
   await importWithRef();
@@ -647,6 +682,7 @@ test('IM-21 — /admin/os-imports carrega e exibe entradas dos imports anteriore
   // Gestor pode acessar a rota diretamente mesmo sem o link no menu lateral
   await page.goto('/admin/os-imports');
   await page.waitForSelector('text=Importação de OS', { timeout: 10_000 });
+  await dismissOnboarding(page);
 
   // Descrição da página visível
   await expect(page.getByText(/log de oss recebidas/i)).toBeVisible();
@@ -658,9 +694,10 @@ test('IM-21 — /admin/os-imports carrega e exibe entradas dos imports anteriore
   await expect(page.getByRole('button', { name: /atualizar/i })).toBeVisible();
 
   // Deve ter pelo menos uma entrada (os imports dos testes anteriores)
-  // Ou estado vazio — ambos são aceitáveis
-  const hasEntries = await page.locator('text=Sucesso').count() > 0
-    || await page.locator('text=Nenhuma importação encontrada').count() > 0;
+  // Ou estado vazio — ambos são aceitáveis. Usa isVisible com timeout para aguardar o fetch.
+  const hasEntries =
+    await page.locator('text=Sucesso').first().isVisible({ timeout: 10_000 }).catch(() => false)
+    || await page.locator('text=Nenhuma importação encontrada').first().isVisible({ timeout: 5_000 }).catch(() => false);
   expect(hasEntries).toBe(true);
 });
 
@@ -670,18 +707,19 @@ test('IM-22 — Expandir linha exibe payload sanitizado e resolução de entidad
   await login(page, MGR_EMAIL, MGR_PASSWORD);
   await page.goto('/admin/os-imports');
   await page.waitForSelector('text=Importação de OS', { timeout: 10_000 });
+  await dismissOnboarding(page);
 
   // Precisa de ao menos uma entrada de sucesso para expandir
   const successBadge = page.getByText('Sucesso').first();
   const hasSuccess   = await successBadge.isVisible({ timeout: 5_000 }).catch(() => false);
   if (!hasSuccess) { test.skip(); return; }
 
-  // Clicar na primeira linha para expandir
-  await page.locator('button.w-full.text-left').first().click();
+  // Clicar na primeira linha para expandir (escopo no container da página, evita pegar botão do sidebar)
+  await page.locator('[data-onboarding="os-imports-page"] button.w-full.text-left').first().click();
 
   // Detalhes de resolução visíveis
-  await expect(page.getByText(/cliente:/i).first()).toBeVisible({ timeout: 3_000 });
-  await expect(page.getByText(/técnico:/i).first()).toBeVisible();
+  await expect(page.getByText(/cliente:/i).first()).toBeVisible({ timeout: 8_000 });
+  await expect(page.getByText(/técnico:/i).first()).toBeVisible({ timeout: 8_000 });
 
   // Payload sanitizado presente
   await expect(page.getByText('Payload (sanitizado)')).toBeVisible();
@@ -703,6 +741,7 @@ test('IM-23 — Filtro por status "success" oculta entradas de falha e pendentes
   await login(page, MGR_EMAIL, MGR_PASSWORD);
   await page.goto('/admin/os-imports');
   await page.waitForSelector('text=Importação de OS', { timeout: 10_000 });
+  await dismissOnboarding(page);
 
   // Aplicar filtro "Sucesso"
   await page.getByRole('combobox').first().click();
@@ -732,6 +771,7 @@ test('IM-24 — Botão "Atualizar" recarrega a lista sem erro', async ({ page })
   await login(page, MGR_EMAIL, MGR_PASSWORD);
   await page.goto('/admin/os-imports');
   await page.waitForSelector('text=Importação de OS', { timeout: 10_000 });
+  await dismissOnboarding(page);
 
   // Capturar quaisquer erros de rede/JS antes do click
   const errors: string[] = [];
@@ -788,7 +828,7 @@ test('IM-25 — Upload de PDF → Edge Function processa via Gemini → OS criad
     await expect(page.getByRole('button', { name: /remover/i })).toBeVisible();
 
     // Submeter — Gemini pode levar até 30s; timeout generoso
-    await page.getByRole('dialog').getByRole('button', { name: /importar os/i }).click();
+    await importDlg(page).getByRole('button', { name: /importar os/i }).click();
 
     // Aguardar resultado — sucesso ou falha controlada (Gemini pode não extrair dados úteis de PDF mínimo)
     const resultado = page.getByText(/os importada com sucesso/i)

@@ -14,6 +14,7 @@ import { useAuth } from '@/src/contexts/AuthContext';
 import { useTenant } from '@/src/contexts/TenantContext';
 import { useReportDetail } from '@/src/hooks/useReportDetail';
 import ReportStatusBadge from './components/ReportStatusBadge';
+import { ImportConfidenceBadge } from '@/src/components/reports/ImportConfidenceBadge';
 import AttachmentGrid from './components/AttachmentGrid';
 import ApprovalPanel from './components/ApprovalPanel';
 import type { ReportChecklistItem, ReportStatusHistory } from '@/src/types/reports';
@@ -270,6 +271,13 @@ export default function ReportDetail() {
             <ReportStatusBadge status={report.status} />
             {report.service_type && (
               <span className="text-xs text-muted-foreground font-medium">{report.service_type}</span>
+            )}
+            {report.import_confidence != null && (
+              <ImportConfidenceBadge
+                confidence={report.import_confidence}
+                requiresReview={report.import_confidence < 0.70}
+                templateId={(report.import_field_confidences as { template_id?: string } | null)?.template_id ?? null}
+              />
             )}
           </div>
           <h1 className="text-xl font-bold text-foreground mt-1 leading-tight">

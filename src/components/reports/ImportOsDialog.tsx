@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { extractTextFromPdf } from '@/src/lib/pdf-text-extractor';
 import { useNavigate } from 'react-router-dom';
 import { UploadCloud, FileText, X, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -102,8 +103,15 @@ export default function ImportOsDialog({ open, onClose, onImported }: Props) {
       let payload: Record<string, unknown>;
 
       if (mode === 'pdf') {
-        const pdfBase64 = await fileToBase64(pdfFile!);
-        payload = { mode: 'pdf', external_source: source, external_ref_id: refId, pdf_base64: pdfBase64 };
+        const [pdfBase64, pdfText] = await Promise.all([
+          fileToBase64(pdfFile!),
+          extractTextFromPdf(pdfFile!),
+        ]);
+        payload = {
+          mode: 'pdf', external_source: source, external_ref_id: refId,
+          pdf_base64: pdfBase64,
+          ...(pdfText ? { pdf_text: pdfText } : {}),
+        };
       } else {
         payload = {
           mode: 'json',

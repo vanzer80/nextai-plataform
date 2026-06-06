@@ -55,6 +55,12 @@ export interface ServiceReport {
   created_at: string;
   updated_at: string;
 
+  // Campos de importação PDF (presentes somente em OS importadas)
+  external_source: string | null;
+  external_ref_id: string | null;
+  import_confidence: number | null;           // 0.0–1.0
+  import_field_confidences: Record<string, unknown> | null;
+
   // Joins opcionais (retornados por select com relações)
   clients?: { name: string } | null;
   users?: { full_name: string } | null;

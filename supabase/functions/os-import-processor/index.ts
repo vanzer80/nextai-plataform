@@ -1,4 +1,4 @@
-// os-import-processor v1 — NextAI OS Import Bridge
+// os-import-processor v7 — NextAI OS Import Bridge
 //
 // Recebe uma OS de qualquer sistema externo (TOTVS, SAP, Omie, PDF),
 // normaliza para o schema padrão NextAI e cria em service_reports.
@@ -14,10 +14,11 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { processDocument } from "./document/pipeline.ts";
+import type { ExtractionResult } from "./types.ts";
 
 const SUPABASE_URL              = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 const STORAGE_BUCKET = "reports";
 
 const corsHeaders = {
@@ -44,6 +45,7 @@ interface OsImportPayload {
   // PDF
   pdf_base64?:       string;
   pdf_url?:          string;
+  pdf_text?:         string; // texto pré-extraído pelo browser (pdf.js)
   // Campos do sistema externo (modo json e resultado de extração PDF)
   client_name?:         string;
   client_cnpj?:         string;
@@ -95,10 +97,11 @@ function rfc7807(status: number, code: string, detail: string, instance: string)
 
 // Sanitiza o payload antes de armazenar no log — remove PII sensível
 function sanitizePayload(body: Record<string, unknown>): Record<string, unknown> {
-  const { pdf_base64, photos, ...safe } = body;
+  const { pdf_base64, pdf_text, photos, ...safe } = body;
   return {
     ...safe,
     ...(pdf_base64            ? { pdf_base64: "[redacted]" }                           : {}),
+    ...(pdf_text              ? { pdf_text: "[redacted]" }                             : {}),
     ...(Array.isArray(photos) ? { photos_count: photos.length, photos: "[redacted]" } : {}),
   };
 }
@@ -212,88 +215,7 @@ async function mapServiceType(
   return data?.name ?? rawServiceType;
 }
 
-// ── Extração de OS por PDF via Gemini 2.0 Flash ───────────────────────────────
-
-const OS_EXTRACTION_SYSTEM_PROMPT = `Você é um extrator de dados técnicos especializado em Ordens de Serviço (OS).
-Analise o documento PDF fornecido e extraia os campos da OS com precisão.
-REGRA 1: Nunca invente dados — se um campo não está claramente visível no documento, retorne null.
-REGRA 2: Datas no formato YYYY-MM-DD. Se apenas mês/ano visível, use o primeiro dia do mês.
-REGRA 3: Anomalias visuais, danos observados em fotos ou imagens → concatenar em reported_problem.
-REGRA 4: Extraia exatamente o que está escrito, sem interpretações criativas ou inferências.
-REGRA 5: client_cnpj somente se CNPJ explicitamente visível no formato 00.000.000/0000-00.`;
-
-const OS_EXTRACTION_SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    client_name:        { type: "STRING" },
-    client_cnpj:        { type: "STRING" },
-    technician_name:    { type: "STRING" },
-    technician_email:   { type: "STRING" },
-    service_type:       { type: "STRING" },
-    service_date:       { type: "STRING" },
-    site_location:      { type: "STRING" },
-    asset_name:         { type: "STRING" },
-    priority:           { type: "STRING" },
-    reported_problem:   { type: "STRING" },
-    services_performed: { type: "STRING" },
-    final_diagnosis:    { type: "STRING" },
-    parts_used:         { type: "STRING" },
-    internal_notes:     { type: "STRING" },
-  },
-  required: [
-    "client_name", "client_cnpj", "technician_name", "technician_email",
-    "service_type", "service_date", "site_location", "asset_name",
-    "priority", "reported_problem", "services_performed", "final_diagnosis",
-    "parts_used", "internal_notes",
-  ],
-};
-
-async function extractOsFromPdf(pdfBase64: string): Promise<Partial<OsImportPayload>> {
-  const keys = [
-    Deno.env.get("GEMINI_API_KEY_1"),
-    Deno.env.get("GEMINI_API_KEY_2"),
-  ].filter((k): k is string => Boolean(k));
-
-  if (keys.length === 0) throw new Error("GEMINI_API_KEY não configurada.");
-
-  let lastErr: Error | null = null;
-  for (const key of keys) {
-    try {
-      const res = await fetch(`${GEMINI_URL}?key=${key}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            role: "user",
-            parts: [
-              { inline_data: { data: pdfBase64, mime_type: "application/pdf" } },
-              { text: "Extraia os dados desta Ordem de Serviço conforme o schema solicitado." },
-            ],
-          }],
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: OS_EXTRACTION_SCHEMA,
-          },
-          systemInstruction: { parts: [{ text: OS_EXTRACTION_SYSTEM_PROMPT }] },
-        }),
-      });
-      if (!res.ok) throw new Error(`GEMINI_${res.status}:${(await res.text()).slice(0, 200)}`);
-      const d = await res.json();
-      const text = d.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
-      const parsed = JSON.parse(text);
-      // null → undefined para que pick() ignore os campos não encontrados
-      return Object.fromEntries(
-        Object.entries(parsed).map(([k, v]) => [k, v === null ? undefined : v])
-      ) as Partial<OsImportPayload>;
-    } catch (err) {
-      lastErr = err instanceof Error ? err : new Error(String(err));
-      if (!lastErr.message.includes("GEMINI_429") && !lastErr.message.includes("GEMINI_503")) {
-        throw lastErr;
-      }
-    }
-  }
-  throw lastErr ?? new Error("Gemini indisponível.");
-}
+// Extração PDF migrada para ./document/pipeline.ts (template registry + IA híbrida)
 
 // ── Upload de fotos ───────────────────────────────────────────────────────────
 
@@ -498,8 +420,10 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // 7. Normalização — modo PDF extrai campos via Gemini ────────────────────────
+    // 7. Normalização — modo PDF usa pipeline de extração documental ────────────
     let normalized: Partial<OsImportPayload> = { ...payload };
+    let extractionResult: ExtractionResult | null = null;
+
     if (payload.mode === "pdf") {
       let pdfBase64 = payload.pdf_base64;
       if (!pdfBase64 && payload.pdf_url) {
@@ -507,7 +431,6 @@ Deno.serve(async (req: Request) => {
         if (!res.ok) return await failLog(`Não foi possível baixar o PDF: HTTP ${res.status}`);
         const buf = await res.arrayBuffer();
         const bytes = new Uint8Array(buf);
-        // Chunked encoding evita O(n²) de concatenação para PDFs grandes
         let binary = "";
         const CHUNK = 8192;
         for (let i = 0; i < bytes.length; i += CHUNK) {
@@ -516,9 +439,26 @@ Deno.serve(async (req: Request) => {
         pdfBase64 = btoa(binary);
       }
       if (!pdfBase64) return await failLog("pdf_base64 ou pdf_url obrigatório no modo pdf.");
-      const extracted = await extractOsFromPdf(pdfBase64);
-      // Campos do payload original sobrepõem os extraídos (permite override manual)
-      normalized = { ...extracted, ...payload };
+
+      // Pipeline: template registry (zero custo) → IA híbrida (Gemini → OpenAI)
+      extractionResult = await processDocument(
+        pdfBase64,
+        {
+          GEMINI_API_KEY_1: Deno.env.get("GEMINI_API_KEY_1"),
+          GEMINI_API_KEY_2: Deno.env.get("GEMINI_API_KEY_2"),
+          OPENAI_API_KEY:   Deno.env.get("OPENAI_API_KEY"),
+        },
+        payload.pdf_text,
+      );
+
+      const extractedFields: Partial<OsImportPayload> = {};
+      for (const [key, ef] of Object.entries(extractionResult.fields)) {
+        if (ef.value !== null) {
+          (extractedFields as Record<string, unknown>)[key] = ef.value;
+        }
+      }
+      // Campos explícitos do payload sobrepõem os extraídos (permite override manual)
+      normalized = { ...extractedFields, ...payload };
     }
 
     // 8. Resolução de entidades (IDs NextAI a partir de dados externos) ──────────
@@ -564,6 +504,12 @@ Deno.serve(async (req: Request) => {
     if (normalized.parts_used)         srInsert.parts_used          = normalized.parts_used;
     if (normalized.internal_notes)     srInsert.internal_notes      = normalized.internal_notes;
 
+    // Metadados de confiança de importação (somente modo PDF)
+    if (extractionResult) {
+      srInsert.import_confidence        = extractionResult.overall_confidence;
+      srInsert.import_field_confidences = extractionResult.fields;
+    }
+
     const { data: sr, error: srErr } = await admin.from("service_reports")
       .insert(srInsert)
       .select("id, os_number")
@@ -574,24 +520,36 @@ Deno.serve(async (req: Request) => {
     // 11. Upload de fotos (best-effort — falha não bloqueia importação) ──────────
     const photosUploaded = await uploadPhotos(admin, teamId, sr.id, normalized.photos);
 
-    // 12. Atualizar log para 'success' ───────────────────────────────────────────
+    // 12. Atualizar log para 'success' com metadados de extração ─────────────────
     if (logId) {
-      await admin.from("os_import_log").update({
-        status:               "success",
-        os_id:                sr.id,
-        client_resolution:    clientRes,
+      const logUpdate: Record<string, unknown> = {
+        status:                "success",
+        os_id:                 sr.id,
+        client_resolution:     clientRes,
         technician_resolution: techRes,
-      }).eq("id", logId);
+      };
+      if (extractionResult) {
+        logUpdate.extraction_method  = extractionResult.method;
+        logUpdate.overall_confidence = extractionResult.overall_confidence;
+        logUpdate.field_confidences  = extractionResult.fields;
+      }
+      await admin.from("os_import_log").update(logUpdate).eq("id", logId);
     }
 
     // 13. Resposta e cache de idempotência ───────────────────────────────────────
-    const respBody = { data: {
+    const respBody: Record<string, unknown> = { data: {
       os_id:                 sr.id,
       os_number:             sr.os_number,
       client_resolution:     clientRes,
       technician_resolution: techRes,
       duplicate:             false,
       photos_uploaded:       photosUploaded,
+      ...(extractionResult ? {
+        extraction_method:  extractionResult.method,
+        overall_confidence: extractionResult.overall_confidence,
+        requires_review:    extractionResult.requires_review,
+        template_id:        extractionResult.template_id,
+      } : {}),
     }};
 
     if (idempKey) {
@@ -609,6 +567,19 @@ Deno.serve(async (req: Request) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[os-import-processor] unhandled error:", msg);
+    if (msg.includes("GEMINI_429")) {
+      if (logId) {
+        await admin.from("os_import_log")
+          .update({ status: "failed", error_detail: msg.slice(0, 1000) })
+          .eq("id", logId);
+      }
+      return rfc7807(
+        503,
+        "ai_service_unavailable",
+        'Serviço de extração por IA temporariamente indisponível (cota excedida). Tente novamente em alguns minutos ou use a aba "Campos" para importar manualmente.',
+        instance,
+      );
+    }
     return await failLog(msg.slice(0, 500));
   }
 });
