@@ -22,7 +22,7 @@ const STORAGE_BUCKET = "reports";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":  "*",
-  "Access-Control-Allow-Headers": "x-api-key, content-type, idempotency-key",
+  "Access-Control-Allow-Headers": "x-api-key, content-type, idempotency-key, authorization, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
