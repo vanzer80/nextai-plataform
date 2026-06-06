@@ -53,6 +53,51 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 
 ---
 
+## API Public — Scorecard de Maturidade (Auditoria 2026-06-05)
+
+> Auditoria técnica completa realizada em s73 após entrega da Sprint G.  
+> Referência: análise linha a linha do `api-gateway/index.ts` e `webhook-dispatcher/index.ts`.
+
+| Dimensão | Estado Atual | Alvo SAP-level | Sprint |
+|----------|-------------|----------------|--------|
+| Segurança de autenticação | 7/10 · SHA-256 correto, sem OAuth 2.0 | 10/10 | I |
+| Segurança dos endpoints | 4/10 · body injection via service_role | 10/10 | **Patch 2** |
+| Completude do CRUD | 4/10 · metade dos endpoints faltando | 10/10 | **Patch 2** + I |
+| Delta sync / filtros | 2/10 · sem `updated_after` | 10/10 | **Patch 2** + I |
+| Rate limiting | 3/10 · 1k/hr flat, sem tiers | 10/10 | I |
+| Validação de input | 1/10 · nenhuma, body não sanitizado | 10/10 | **Patch 2** |
+| Webhook reliability | 7/10 · retry correto, falta rotação/test | 9/10 | I |
+| Webhook coverage | 3/10 · 7 eventos vs 50+ necessários | 10/10 | I |
+| Contrato de API (OpenAPI) | 0/10 · inexistente | 10/10 | I |
+| Developer experience | 1/10 · sem sandbox, sem SDK | 10/10 | I + J |
+| Observabilidade (UI) | 2/10 · log no banco, sem página | 10/10 | I |
+| **Média** | **3,1/10** | **10/10** | |
+
+---
+
+## Sprint G Patch 2 — Segurança & Completude da API (urgente)
+
+> Corrigir **antes** de qualquer divulgação pública do endpoint ou onboarding de cliente com integração.  
+> Todas as correções são na Edge Function `api-gateway` — sem migrations de banco.  
+> Detalhes técnicos completos: CLAUDE.md § "API — Vulnerabilidades & Padrões Corretos".
+
+| # | Vulnerabilidade / Lacuna | Severidade | Esforço |
+|---|--------------------------|-----------|---------|
+| 1 | **Field injection**: `...body` sem whitelist em POST/PATCH — service_role bypassa RLS, campos do sistema podem ser sobrescritos (`os_number`, `created_at`, `reviewer_id`) | 🔴 Crítico | 2h |
+| 2 | **Sem validação de input**: campos obrigatórios, tipos, enums não verificados — 500 sem mensagem útil em vez de 400 com detalhe campo a campo | 🔴 Crítico | 1 dia |
+| 3 | **Cursor pagination com bug**: `lt(created_at, ...)` perde registros quando múltiplos têm mesmo timestamp (batch inserts) | 🔴 Crítico | 2h |
+| 4 | **GET /reimbursements join frágil**: `users!inner` → reembolso some silenciosamente se usuário for deletado; usar `team_id` direto da tabela | 🟠 Alto | 30min |
+| 5 | **Response envelope inconsistente**: GET by ID retorna objeto raw, GET list retorna `{ data: [...] }` — quebra clients genéricos | 🟠 Alto | 1h |
+| 6 | **GET by ID faltando**: `/clients/:id` · `/reimbursements/:id` · `/quotes/:id` — impede lookup por chave estrangeira | 🟠 Alto | 2h |
+| 7 | **PATCH /clients faltando**: sem update de cliente, sync bidirecional é impossível | 🟠 Alto | 1h |
+| 8 | **Idempotency ausente**: POST /clients não cacheia resposta — retry cria duplicata | 🟠 Alto | 30min |
+| 9 | **Content-Type não validado**: body sem `application/json` resulta em 500 opaco | 🟡 Médio | 1h |
+| 10 | **Delta sync mínimo**: filtro `updated_after` em `/orders` — sem ele, ERP precisa full-scan a cada sync | 🟡 Médio | 2h |
+
+**Estimativa total:** ~2 dias · Edge Function only
+
+---
+
 ## Next Development Phase — Sprint H: Comunicação & Conformidade (~2 semanas)
 
 > Sprint G (Public API) concluída. Sprint H fecha três lacunas críticas do produto:  
@@ -67,7 +112,50 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 | **CR (Contas a Receber)** | Tabelas `receivables` + `receivable_payments` · trigger `quote.signed → receivable` · aging RPC · widget dashboard · página `/financeiro/cr` | 3–4 dias | CP sem CR = módulo financeiro incompleto; pergunta obrigatória em qualquer demo |
 
 **Desbloqueado pela Sprint G:** ERP Integration (TOTVS/SAP/Omie via webhook + adapter por ERP) — Sprint I  
-**Desbloqueado pela Sprint H:** Public API DX (OpenAPI/Postman — quando houver adoção externa)
+**Desbloqueado pela Sprint H:** Public API DX completo e CR permitem integração financeira bidirecional
+
+---
+
+## Sprint I — API Completeness + ERP Foundation (~3 semanas)
+
+> Eleva a API do estado "fundação funcional" para "production-ready para enterprise".  
+> Pré-requisito para onboarding de qualquer cliente com integração ERP.
+
+| Módulo | Escopo técnico | Esforço |
+|--------|---------------|---------|
+| **CRUD completo** | PATCH/DELETE clients · GET by ID em todos os recursos · filtros `status`, `cnpj`, `technician_id` em clientes e OS | 2–3 dias |
+| **Delta sync** | `updated_after` + `created_after` em todos os endpoints · `X-Total-Count` header nas listagens | 1 dia |
+| **Bulk read** | `GET /orders?ids=id1,id2,...` (max 100) · resposta idêntica ao list — batch lookup para reconciliação ERP | 1 dia |
+| **OAuth 2.0 Client Credentials** | Edge Fn `oauth-token` · tabela `api_clients` (client_id + hashed_secret) · access token JWT 1h · padrão RFC 6749 § 4.4 | 3 dias |
+| **Rate limit por tier** | Configurável por `api_key`: Basic 1k/hr · Pro 10k/hr · Enterprise 100k/hr · burst 200 req/min | 1 dia |
+| **OpenAPI 3.0 spec** | Spec YAML versionada em `docs/api/openapi.yaml` · servida em `/api/docs` via Swagger UI · inclui schemas de erro RFC 7807 e exemplos | 2–3 dias |
+| **Sandbox tenant** | `team_id = SANDBOX_TEAM_ID` fixo · seed com 50 OS + 20 clientes sintéticos · reset diário via cron | 1–2 dias |
+| **Webhook secret rotation** | `POST /api/v1/webhooks/:id/rotate-secret` · novo secret gerado · antigo válido 24h (zero-downtime) | 1 dia |
+| **Webhook test delivery** | `POST /api/v1/webhooks/:id/test` · payload sintético por `event_type` · retorna resultado imediato | 1 dia |
+| **Admin API usage** | Página `/admin/api-usage` · gráfico req/erros/latência por chave (última hora/dia/semana) · tabela últimas 100 chamadas | 2 dias |
+| **Webhook events +8** | `order.assigned` · `sla.breach` · `client.created/updated` · `reimbursement.rejected` · `payable.approved/overdue` · `quote.rejected/expired` | 2 dias |
+
+**Total estimado:** ~3 semanas · Blocker: Sprint G Patch 2 + Sprint H concluídas
+
+---
+
+## Sprint J — Enterprise Maturity (~4 semanas)
+
+> Produto capaz de competir com SAP Integration Suite e TOTVS Fluig no segmento enterprise.
+
+| Módulo | Escopo técnico | Esforço |
+|--------|---------------|---------|
+| **TOTVS adapter** | Bridge OAuth 2.0 TOTVS ↔ NextAI · mapeamento `ordem_servico ↔ service_report` · sync bidirecional · Edge Fn `totvs-adapter` | 5 dias |
+| **SAP S/4HANA adapter** | OData v4 → REST bridge · field mapping SAP PM/SD ↔ NextAI · event translate | 5 dias |
+| **Omie adapter** | `app_key` + `app_secret` bridge · sync OS/financeiro/clientes com Omie API | 3 dias |
+| **SDK TypeScript oficial** | Package `@nextai/sdk` no npm · typed client · retry automático · interceptors | 3–4 dias |
+| **Developer portal** | Redoc interativo · changelog semântico de API · getting started por ERP · exemplos de integração | 3 dias |
+| **Bulk operations** | `POST /orders/bulk` (max 100) · `POST /clients/bulk` · resposta 207 Multi-Status com status por item | 2 dias |
+| **Webhook circuit breaker** | Auto-desabilita endpoint após 10 falhas consecutivas · notifica via email · re-enable manual no UI | 1 dia |
+| **API versioning policy** | Suporte paralelo v1+v2 · headers `Sunset` + `Deprecation` · LTS 12 meses por versão major | 2 dias |
+| **Sparse fieldsets** | `?fields=id,os_number,status` em todas as listagens · reduz payload em integrações de alto volume | 1 dia |
+
+**Total estimado:** ~4 semanas · Resultado: API pronta para enterprise sales
 
 ---
 
@@ -90,8 +178,10 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 | PWA icons PNG 192×512 for Android/Chrome install | 🟢 Low | hours | — |
 | RAG Analytics — natural language search over reports (pgvector) | 🟡 Strategic | 5–8 days | — |
 | GPS Dispatching Map — real-time technician location tracking | 🟡 Strategic | 5–8 days | — |
-| ERP Integration (TOTVS / SAP / Omie) via webhook + adapter por ERP | 🟡 Strategic | 3–5 days/ERP | Sprint I (G concluída) |
-| Public API DX: OpenAPI 3.0 spec + Postman collection | 🟢 Low | 2–3 days | Sprint I ou J |
+| ERP Integration (TOTVS / SAP / Omie) via webhook + adapter por ERP | 🟡 Strategic | 3–5 days/ERP | Sprint J |
+| Public API DX: OpenAPI 3.0 spec + Swagger UI | 🟠 High | 2–3 days | Sprint I |
+| OAuth 2.0 Client Credentials (enterprise auth) | 🟠 High | 3 days | Sprint I |
+| SDK TypeScript oficial (`@nextai/sdk`) | 🟡 Strategic | 3–4 days | Sprint J |
 | Phase 6 SaaS: subdomain routing per tenant + billing (Stripe) | 🟡 Strategic | 2–3 weeks | — |
 
 ---
@@ -120,3 +210,4 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 - [ADR-006](docs/adr/006-dispatch-calendar-library.md) — Dispatch Calendar Library
 - [ADR-007](docs/adr/007-esignature-approach.md) — E-Signature: Own-Built vs DocuSign
 - [ADR-008](docs/adr/008-ocr-provider.md) — OCR Provider: GPT-4o vs Google Document AI
+- [ADR-009](docs/adr/009-public-api-design.md) — Public API: Design Principles, Auth Strategy & ERP Integration Path

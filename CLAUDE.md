@@ -260,6 +260,11 @@ get_dashboard_agenda_kpis()            → jsonb  -- os_hoje, tecnicos_hoje, cri
 50. **`CREATE OR REPLACE` não muda tipo de retorno em TABLE functions** → `ALTER TABLE ... SET RETURNING` e `CREATE OR REPLACE FUNCTION ... RETURNS TABLE(...)` com colunas diferentes falha com `ERROR: 42P13: cannot change return type of existing function`. Padrão correto: `DROP FUNCTION IF EXISTS public.fn(...); CREATE FUNCTION ...`. Aplicar antes de adicionar colunas (ex: `updated_at`) ao RETURNS TABLE.
 51. **PK em api_idempotency_keys deve ser composta (key, team_id)** → PK só em `key` permite cross-tenant collision: dois tenants enviam `Idempotency-Key: uuid-igual` → segundo recebe resposta do primeiro. Sempre PK composta `(key, team_id)` + RLS habilitada.
 52. **`COALESCE` em UPDATE impede setar campo para NULL** → `SET description = COALESCE(p_description, description)` nunca atualiza para NULL (usuário quer limpar o campo). Adicionar parâmetro flag separado: `p_clear_description BOOLEAN DEFAULT false` + `CASE WHEN p_clear_description THEN NULL ELSE COALESCE(...) END`.
+53. **`...body` spread em insert com service_role = field injection** → `admin.from('t').insert({ ...body, team_id })` permite que o chamador sobrescreva `os_number`, `created_at`, `reviewer_id`, `finished_at` — o service_role bypassa RLS e aceita qualquer campo. Sempre usar whitelist explícita: `pick(body, ALLOWED_FIELDS)` antes de inserir. Ver CLAUDE.md § "Vulnerabilidade 1 — Field Injection".
+54. **Cursor pagination por `created_at` único perde registros** → `lt("created_at", cursor.created_at)` pula todos os registros com timestamp idêntico que caem depois do cursor (batch inserts, triggers em loop). Sempre usar cursor composto `(created_at, id)` com condição `.or("created_at.lt.X,and(created_at.eq.X,id.lt.Y)")`. Ver CLAUDE.md § "Vulnerabilidade 2 — Cursor Pagination".
+55. **`req.json()` sem validação de Content-Type → 500 opaco** → se o client enviar body sem `Content-Type: application/json` ou com body malformado, `req.json()` lança exceção não tratada e o catch genérico retorna 500. Validar Content-Type antes de chamar `.json()` e retornar 415 explícito.
+56. **GET com `!inner` join perde registros quando FK é deletada** → `.select("..., users!inner(team_id)")` filtra fora silenciosamente todo registro cujo `user_id` não existe mais em `users` (usuário deletado). Para isolamento de tenant, sempre preferir `team_id` direto na tabela do recurso — o projeto tem `team_id` em todas as tabelas principais.
+57. **Rate limit 1k/hr bloqueia qualquer batch ERP com >1k registros** → sync noturno de 5.000 OS esgota o limite na primeira hora, travando a integração até reset. Antes de onboarding enterprise, implementar tiers (Basic/Pro/Enterprise) ou o cliente simplesmente não consegue usar a API para o caso de uso principal.
 
 ## Padrões de Segurança (s72)
 
@@ -570,6 +575,173 @@ fetch(endpoint.url, {
 4. Webhook payload assinado com HMAC-SHA256 — receptor DEVE verificar antes de processar
 5. `api_access_log` escrito em todas as requisições — base para billing e detecção de abuso
 6. Rate limit por chave independente do rate limit por usuário do app
+
+---
+
+### API — Vulnerabilidades & Padrões Corretos (Sprint G Patch 2)
+
+#### Vulnerabilidade 1 — Field Injection via service_role (CRÍTICO)
+
+O `createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)` bypassa RLS completamente.
+Fazer spread do body sem whitelist permite que o chamador sobrescreva campos do sistema.
+
+```typescript
+// ❌ COMO ESTÁ (vulnerável):
+await admin.from("service_reports")
+  .insert({ ...body, team_id: apiKey.team_id })
+// Chamador pode enviar: { "os_number": "OS-0001", "reviewer_id": "uuid-gestor",
+//                         "created_at": "2020-01-01", "finished_at": "2020-01-01" }
+// O service_role aceita tudo — sem RLS, sem checks.
+
+// ✅ PADRÃO CORRETO — whitelist explícita:
+const ALLOWED_FIELDS_CREATE_ORDER = ['client_id','technician_id','service_date',
+  'reported_problem','status'] as const;
+
+function pick<T extends object>(obj: T, keys: readonly string[]): Partial<T> {
+  return Object.fromEntries(
+    keys.filter(k => k in obj).map(k => [k, (obj as Record<string,unknown>)[k]])
+  ) as Partial<T>;
+}
+
+const safe = pick(body, ALLOWED_FIELDS_CREATE_ORDER);
+await admin.from("service_reports").insert({ ...safe, team_id: apiKey.team_id });
+```
+
+**Regra:** Todo INSERT/UPDATE via service_role em endpoint público **deve** ter whitelist explícita.
+Campos protegidos nunca devem aparecer no allow-list: `id`, `team_id`, `created_at`, `key_hash`, `os_number` (auto-gerado), `reviewer_id`, `finished_at`.
+
+---
+
+#### Vulnerabilidade 2 — Cursor Pagination com Timestamp Único (CRÍTICO)
+
+Múltiplos registros criados no mesmo instante (batch insert, trigger em loop) têm `created_at` idêntico.
+`lt(created_at, ...)` pula todos os registros do mesmo timestamp que vêm "depois" no cursor.
+
+```typescript
+// ❌ COMO ESTÁ (perde registros):
+if (cursor) {
+  const c = parseCursor(cursor);
+  if (c) q = q.lt("created_at", c.created_at);
+}
+
+// ✅ PADRÃO CORRETO — cursor composto (created_at, id):
+// Cursor encoda: { created_at, id } do último item
+// Query: (created_at < cursor.created_at) OR (created_at = cursor.created_at AND id < cursor.id)
+
+if (cursor) {
+  const c = parseCursor(cursor); // { id: string, created_at: string }
+  if (c) q = q.or(
+    `created_at.lt.${c.created_at},` +
+    `and(created_at.eq.${c.created_at},id.lt.${c.id})`
+  );
+}
+// Garante zero registros perdidos mesmo com timestamps idênticos.
+```
+
+---
+
+#### Vulnerabilidade 3 — GET /reimbursements: join frágil em `users`
+
+```typescript
+// ❌ COMO ESTÁ (registro desaparece se usuário for deletado):
+.select("..., users!inner(team_id)")
+.eq("users.team_id", apiKey.team_id)
+
+// ✅ CORRETO — tabela reimbursements tem team_id diretamente:
+.select("id, category, amount, status, description, created_at")
+.eq("team_id", apiKey.team_id)
+// Consistente com o padrão do projeto. A correção do trigger já usa team_id direto.
+```
+
+---
+
+#### Padrão: Validação de Input (obrigatório antes de tocar no banco)
+
+Todo endpoint de escrita deve validar antes de executar.
+Retornar 400 com detalhe campo a campo, nunca 500 opaco.
+
+```typescript
+interface ValidationError { field: string; message: string }
+
+function validateCreateOrder(body: unknown): ValidationError[] {
+  const errors: ValidationError[] = [];
+  if (!body || typeof body !== 'object') return [{ field: 'body', message: 'Must be a JSON object.' }];
+  const b = body as Record<string, unknown>;
+
+  if (!b.client_id)  errors.push({ field: 'client_id',  message: 'Required.' });
+  if (b.client_id && typeof b.client_id !== 'string')
+                     errors.push({ field: 'client_id',  message: 'Must be a UUID string.' });
+  if (b.status && !['draft','pending_review','approved','rejected'].includes(b.status as string))
+                     errors.push({ field: 'status',     message: 'Invalid value.' });
+  return errors;
+}
+
+// No handler:
+const errors = validateCreateOrder(body);
+if (errors.length > 0) {
+  return new Response(JSON.stringify({
+    type:   'https://api.nextai.com.br/errors/validation_error',
+    title:  'Validation Error',
+    status: 400,
+    errors, // array de { field, message }
+    instance,
+  }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/problem+json' } });
+}
+```
+
+---
+
+#### Padrão: Delta Sync — filtro `updated_after`
+
+Essencial para qualquer ERP que precisa sincronizar incrementalmente.
+
+```typescript
+// Em cada endpoint de listagem:
+const updatedAfter = url.searchParams.get("updated_after"); // ISO 8601
+if (updatedAfter) {
+  const ts = new Date(updatedAfter);
+  if (isNaN(ts.getTime())) {
+    return rfc7807(400, "invalid_parameter",
+      "'updated_after' must be an ISO 8601 datetime.", instance);
+  }
+  q = q.gte("updated_at", ts.toISOString());
+}
+
+// Resposta:
+headers["X-Total-Count"] = String(totalCount); // query COUNT(*) separada
+```
+
+**Nota:** requer que todas as tabelas expostas na API tenham coluna `updated_at` com trigger `handle_updated_at`. Verificar antes de adicionar o filtro.
+
+---
+
+#### Padrão: Content-Type Validation
+
+```typescript
+if (["POST", "PATCH"].includes(req.method)) {
+  const ct = req.headers.get("content-type") ?? "";
+  if (!ct.includes("application/json")) {
+    return rfc7807(415, "unsupported_media_type",
+      "Content-Type must be application/json.", instance);
+  }
+}
+// Garante 415 em vez de 500 quando body não é JSON.
+```
+
+---
+
+#### Padrão: Response Envelope Consistente
+
+```typescript
+// ✅ Todos os endpoints devem retornar { data: ... }
+// List:
+return { data: items, pagination: { cursor, has_more, limit } };
+// Single:
+return { data: record };        // não retornar o objeto diretamente
+
+// Permite que qualquer client genérico acesse sempre response.data
+// sem verificar se é lista ou objeto.
+```
 
 ---
 
