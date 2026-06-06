@@ -45,5 +45,58 @@ export const cpTour: TourModule = {
       },
       roles: ['Financeiro', 'Gestor', 'Admin', 'Master'],
     },
+    // ── Nova Conta a Pagar (formulário) ──────────────────────────────────────
+    {
+      element: '[data-onboarding="cp-form-classificacao"]',
+      route: '/cp/new',
+      popover: {
+        title: 'Classificação da Despesa',
+        description: 'Selecione o tipo (fornecedor, imposto, aluguel, folha…), informe a categoria e a descrição. O campo Fornecedor é opcional — vincule a um cadastro existente para facilitar o histórico por fornecedor.',
+        side: 'bottom',
+      },
+      roles: ['Financeiro', 'Gestor', 'Admin', 'Master'],
+    },
+    {
+      element: '[data-onboarding="cp-form-valores"]',
+      route: '/cp/new',
+      popover: {
+        title: 'Valor e Parcelamento',
+        description: 'Informe o valor total e o número de parcelas. O sistema calcula automaticamente o valor de cada parcela e o cronograma de vencimentos a partir da primeira data informada.',
+        side: 'bottom',
+      },
+      roles: ['Financeiro', 'Gestor', 'Admin', 'Master'],
+    },
+    {
+      element: '[data-onboarding="cp-form-acoes"]',
+      route: '/cp/new',
+      popover: {
+        title: 'Salvar ou Enviar para Aprovação',
+        description: '"Salvar Rascunho" mantém a conta editável sem notificar ninguém. "Enviar para Aprovação" dispara o workflow imediatamente — Gestor/Admin recebe a solicitação e pode aprovar ou rejeitar com comentário.',
+        side: 'top',
+        align: 'end',
+      },
+      roles: ['Financeiro', 'Gestor', 'Admin', 'Master'],
+    },
+    // ── Detalhe da Conta (PayableDetail) ─────────────────────────────────────
+    {
+      element: '[data-onboarding="cp-detalhe-info"]',
+      route: '/cp/payables',
+      popover: {
+        title: 'Dados e Status de Aprovação',
+        description: 'Veja tipo, categoria, fornecedor, valor, vencimento, forma de pagamento e o histórico completo do workflow: quando foi enviado, quem aprovou, quando foi rejeitado e o motivo.',
+        side: 'bottom',
+      },
+      roles: ['Financeiro', 'Gestor', 'Admin', 'Master'],
+    },
+    {
+      element: '[data-onboarding="cp-detalhe-historico"]',
+      route: '/cp/payables',
+      popover: {
+        title: 'Comentários e Auditoria',
+        description: 'Toda decisão do workflow (aprovação, rejeição, pagamento) gera um evento de sistema registrado aqui. Adicione comentários manuais para comunicação interna — tudo fica auditável e com timestamp.',
+        side: 'top',
+      },
+      roles: ['Financeiro', 'Gestor', 'Admin', 'Master'],
+    },
   ],
 };

@@ -717,7 +717,7 @@ export default function NovoOrcamento() {
         )}
 
         {/* ── Dados Gerais ──────────────────────────────────── */}
-        <Card>
+        <Card data-onboarding="orc-form-dados">
           <CardHeader><CardTitle className="text-base">Dados Gerais</CardTitle></CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
@@ -771,7 +771,7 @@ export default function NovoOrcamento() {
         </Card>
 
         {/* ── Itens ─────────────────────────────────────────── */}
-        <Card>
+        <Card data-onboarding="orc-form-itens">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">

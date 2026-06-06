@@ -168,7 +168,7 @@ export default function PayableForm() {
 
       <form className="space-y-6">
         {/* ── Classificação ── */}
-        <section className="bg-card border border-border rounded-xl p-5 space-y-4">
+        <section data-onboarding="cp-form-classificacao" className="bg-card border border-border rounded-xl p-5 space-y-4">
           <h2 className="font-semibold text-foreground border-b border-border pb-2">Classificação</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -224,7 +224,7 @@ export default function PayableForm() {
         </section>
 
         {/* ── Valor e Datas ── */}
-        <section className="bg-card border border-border rounded-xl p-5 space-y-4">
+        <section data-onboarding="cp-form-valores" className="bg-card border border-border rounded-xl p-5 space-y-4">
           <h2 className="font-semibold text-foreground border-b border-border pb-2">Valor e Datas</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
@@ -314,7 +314,7 @@ export default function PayableForm() {
         </section>
 
         {/* ── Actions ── */}
-        <div className="flex gap-3 justify-end">
+        <div data-onboarding="cp-form-acoes" className="flex gap-3 justify-end">
           <Button type="button" variant="outline" onClick={() => navigate('/cp')}>
             Cancelar
           </Button>

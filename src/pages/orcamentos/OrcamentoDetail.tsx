@@ -163,7 +163,7 @@ export default function OrcamentoDetail() {
   return (
     <div className="max-w-3xl mx-auto pb-8 flex flex-col gap-4">
       {/* Cabeçalho */}
-      <div className="flex items-start justify-between gap-3">
+      <div data-onboarding="orc-detalhe-cabecalho" className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <Link to="/orcamentos" className="text-slate-500 hover:text-slate-900 transition-colors">
             <ArrowLeft className="h-5 w-5" />
@@ -309,7 +309,7 @@ export default function OrcamentoDetail() {
       )}
 
       {/* Itens */}
-      <Card>
+      <Card data-onboarding="orc-detalhe-itens">
         <CardHeader><CardTitle className="text-base">Itens</CardTitle></CardHeader>
         <CardContent>
           <div className="overflow-x-auto">

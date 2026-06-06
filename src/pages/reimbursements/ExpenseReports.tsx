@@ -131,8 +131,8 @@ export default function ExpenseReports() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+    <div data-onboarding="exp-lista" className="space-y-6 animate-in fade-in duration-300">
+      <div data-onboarding="exp-header" className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <FileText className="h-6 w-6 text-primary" /> Relatórios de Despesas
@@ -141,7 +141,7 @@ export default function ExpenseReports() {
             Agrupe reembolsos por viagem ou período para aprovação em lote.
           </p>
         </div>
-        <Button onClick={openCreate} className="h-10 rounded-xl gap-2">
+        <Button data-onboarding="exp-novo" onClick={openCreate} className="h-10 rounded-xl gap-2">
           <Plus className="h-4 w-4" /> Novo Relatório
         </Button>
       </div>

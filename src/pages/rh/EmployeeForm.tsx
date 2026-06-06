@@ -229,7 +229,7 @@ export default function EmployeeForm() {
       </div>
 
       {/* Step indicator */}
-      <div className="flex items-center gap-0 bg-muted rounded-xl p-1 overflow-x-auto">
+      <div data-onboarding="rh-form-steps" className="flex items-center gap-0 bg-muted rounded-xl p-1 overflow-x-auto">
         {STEPS.map((s, i) => {
           const Icon = s.icon;
           const active = step === i;
@@ -716,7 +716,7 @@ export default function EmployeeForm() {
         )}
 
         {/* Navegação */}
-        <div className="flex items-center justify-between pt-4 border-t border-border">
+        <div data-onboarding="rh-form-nav" className="flex items-center justify-between pt-4 border-t border-border">
           <Button type="button" variant="outline" onClick={prevStep} disabled={step === 0} className="gap-2">
             <ChevronLeft className="h-4 w-4" /> Anterior
           </Button>

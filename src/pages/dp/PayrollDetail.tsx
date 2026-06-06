@@ -221,7 +221,7 @@ export default function PayrollDetail() {
   return (
     <div className="p-6 space-y-6">
       {/* ── Header ── */}
-      <div className="flex items-center gap-4">
+      <div data-onboarding="dp-holerite-header" className="flex items-center gap-4">
         <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate('/dp/payroll')}>
           <ArrowLeft className="h-4 w-4" /> Folhas
         </Button>
@@ -303,7 +303,7 @@ export default function PayrollDetail() {
       </div>
 
       {/* ── Table ── */}
-      <div className="bg-card border border-border rounded-xl overflow-x-auto">
+      <div data-onboarding="dp-holerite-tabela" className="bg-card border border-border rounded-xl overflow-x-auto">
         <table className="w-full text-sm min-w-[900px]">
           <thead>
             <tr className="border-b border-border bg-muted/40">

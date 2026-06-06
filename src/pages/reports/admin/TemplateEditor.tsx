@@ -307,7 +307,7 @@ export default function TemplateEditor() {
       </div>
 
       {/* Dados do template */}
-      <Card className="shadow-sm border-border">
+      <Card data-onboarding="admin-template-header" className="shadow-sm border-border">
         <CardHeader className="pb-3 border-b border-border bg-muted/40 rounded-t-xl">
           <CardTitle className="text-base">Informações do Template</CardTitle>
         </CardHeader>
@@ -377,7 +377,7 @@ export default function TemplateEditor() {
       </Card>
 
       {/* Itens */}
-      <Card className="shadow-sm border-border">
+      <Card data-onboarding="admin-template-itens" className="shadow-sm border-border">
         <CardHeader className="pb-3 border-b border-border bg-muted/40 rounded-t-xl">
           <CardTitle className="text-base flex items-center gap-2">
             Itens do Checklist

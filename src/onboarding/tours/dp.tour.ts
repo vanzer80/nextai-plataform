@@ -76,5 +76,26 @@ export const dpTour: TourModule = {
       },
       roles: ['Gestor', 'Admin', 'Master'],
     },
+    // ── Detalhe da Competência (PayrollDetail) ────────────────────────────────
+    {
+      element: '[data-onboarding="dp-holerite-header"]',
+      route: '/dp/payroll',
+      popover: {
+        title: 'Ações da Competência',
+        description: 'O fluxo da competência é: Aberta → Calcular Folha (INSS/IRRF automáticos) → Fechar → Marcar como Pago. Só é possível avançar após a etapa anterior. Fechar a folha bloqueia novas edições.',
+        side: 'bottom',
+      },
+      roles: ['Gestor', 'Admin', 'Master'],
+    },
+    {
+      element: '[data-onboarding="dp-holerite-tabela"]',
+      route: '/dp/payroll',
+      popover: {
+        title: 'Lançamentos por Colaborador',
+        description: 'Cada linha mostra salário bruto, INSS, IRRF, benefícios e líquido calculado. Clique no ícone de lápis para ajustar horas extras, comissões ou descontos manuais antes de fechar. O botão de holerite gera o PDF individual com logo da empresa.',
+        side: 'top',
+      },
+      roles: ['Gestor', 'Admin', 'Master'],
+    },
   ],
 };

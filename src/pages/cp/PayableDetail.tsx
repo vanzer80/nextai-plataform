@@ -267,7 +267,7 @@ export default function PayableDetail() {
       )}
 
       {/* ── Info sections ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div data-onboarding="cp-detalhe-info" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Section title="Dados do Pagamento">
           <Row label="Tipo"        value={p.tipo} />
           <Row label="Categoria"   value={p.categoria} />
@@ -347,6 +347,7 @@ export default function PayableDetail() {
       )}
 
       {/* ── Comments ── */}
+      <div data-onboarding="cp-detalhe-historico">
       <Section title="Comentários e Histórico">
         <div className="space-y-3">
           {(p.comments ?? []).map(c => (
@@ -374,6 +375,8 @@ export default function PayableDetail() {
           </Button>
         </div>
       </Section>
+
+      </div>
 
       {/* ── Reject dialog ── */}
       {showReject && (

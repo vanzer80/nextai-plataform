@@ -25,6 +25,28 @@ export const materiaisTour: TourModule = {
       },
       roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Comprador', 'Admin', 'Master'],
     },
+    // ── Formulário de Solicitação (NewMaterialRequest) ────────────────────────
+    {
+      element: '[data-onboarding="mat-form-material"]',
+      route: '/materials/new',
+      popover: {
+        title: 'Especificação do Material',
+        description: 'Campos preenchidos pela IA ficam destacados em azul — confirme ou ajuste. Inclua marca, modelo, tensão e código de referência na especificação técnica para facilitar a cotação pelo comprador.',
+        side: 'bottom',
+      },
+      roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Comprador', 'Admin', 'Master'],
+    },
+    {
+      element: '[data-onboarding="mat-form-acoes"]',
+      route: '/materials/new',
+      popover: {
+        title: 'Enviar Solicitação',
+        description: '"Enviar Solicitação" notifica todos os compradores em tempo real. "Voltar" retorna para a tela de captura de foto ou câmera sem perder os dados preenchidos.',
+        side: 'top',
+        align: 'end',
+      },
+      roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Comprador', 'Admin', 'Master'],
+    },
     {
       element: '[data-onboarding="mat-card-primeiro"]',
       route: '/materials',

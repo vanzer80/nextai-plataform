@@ -9,6 +9,7 @@ import { equipamentosTour }         from './equipamentos.tour';
 import { clientesTour }             from './clientes.tour';
 import { orcamentosTour }           from './orcamentos.tour';
 import { reembolsosTour }           from './reembolsos.tour';
+import { expenseReportsTour }      from './expense-reports.tour';
 import { materiaisTour }            from './materiais.tour';
 import { fornecedoresTour }         from './fornecedores.tour';
 import { pecasTour }                from './pecas.tour';
@@ -25,10 +26,12 @@ import { adminTenantsMgmtTour }     from './admin-tenants-mgmt.tour';
 import { platformTour }             from './platform.tour';
 import { apiKeysTour, webhooksTour } from './integrations.tour';
 import { osImportTour }              from './os-import.tour';
+import { clientPortalTour }         from './client-portal.tour';
 
 export type Role =
   | 'Tecnico' | 'Administrativo' | 'Supervisor' | 'Gestor'
-  | 'Financeiro' | 'Comprador' | 'Admin' | 'Master' | 'SuperMaster';
+  | 'Financeiro' | 'Comprador' | 'Admin' | 'Master' | 'SuperMaster'
+  | 'Cliente';
 
 export interface TourStep {
   /** CSS selector using data-onboarding attribute. Ex: [data-onboarding="nav-os"] */
@@ -86,6 +89,7 @@ export const TOUR_MODULES: TourModule[] = [
 
   // ── Finance & Procurement ─────────────────────────────────────────────────
   reembolsosTour,
+  expenseReportsTour,
   materiaisTour,
   cpTour,
 
@@ -116,6 +120,9 @@ export const TOUR_MODULES: TourModule[] = [
   // ── Platform (SuperMaster) ────────────────────────────────────────────────
   platformTour,
   platformCompanyProfileTour,
+
+  // ── Client Portal ─────────────────────────────────────────────────────────
+  clientPortalTour,
 ];
 
 export function getTourSteps(role: Role): TourStep[] {

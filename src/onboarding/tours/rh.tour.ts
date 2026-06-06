@@ -66,5 +66,27 @@ export const rhTour: TourModule = {
       },
       roles: ['Gestor', 'Admin', 'Master'],
     },
+    // ── Formulário de Admissão (EmployeeForm) ─────────────────────────────────
+    {
+      element: '[data-onboarding="rh-form-steps"]',
+      route: '/rh/employees/new',
+      popover: {
+        title: 'Admissão em 5 Etapas',
+        description: 'O formulário é dividido em Dados Pessoais → Profissional → Financeiro → Benefícios → Documentos Legais. Você pode navegar livremente entre as abas. "Salvar Rascunho" preserva o preenchimento parcial com status Pré-admissão.',
+        side: 'bottom',
+      },
+      roles: ['Gestor', 'Admin', 'Master'],
+    },
+    {
+      element: '[data-onboarding="rh-form-nav"]',
+      route: '/rh/employees/new',
+      popover: {
+        title: 'Confirmar Admissão',
+        description: '"Confirmar Admissão" valida todos os campos obrigatórios, gera a matrícula automaticamente e integra o colaborador à folha de pagamento do próximo ciclo. CPF inválido é bloqueado antes do envio.',
+        side: 'top',
+        align: 'end',
+      },
+      roles: ['Gestor', 'Admin', 'Master'],
+    },
   ],
 };
