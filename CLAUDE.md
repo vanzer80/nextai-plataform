@@ -747,7 +747,7 @@ return { data: record };        // não retornar o objeto diretamente
 
 ---
 
-## Onboarding SAP-level — concluído 2026-06-03
+## Onboarding SAP-level — concluído 2026-06-06
 
 ### Arquitetura
 
@@ -758,7 +758,7 @@ src/onboarding/
   useOnboardingDriver.ts   — driver.js: navega por rota, waitForElement(4s), skip gracioso
   tours/
     index.ts               — TOUR_MODULES[], getTourSteps(role), TourStep interface
-    *.tour.ts              — 24 módulos (ver lista abaixo)
+    *.tour.ts              — 31 módulos (ver lista abaixo)
 ```
 
 ### Como adicionar onboarding a um novo módulo
@@ -771,21 +771,22 @@ src/onboarding/
    - `route:` do step bate com `path=` real em `App.tsx`? (sem redirects, sem hífen errado)
    - `roles:[]` do step ⊆ `allowedRoles` do `RoleGuard` da rota?
 
-### 27 tour modules (cobertura 100% dos módulos)
+### 31 tour modules (cobertura 100% dos módulos) — atualizado 2026-06-06
 
 | Categoria | Tour | Steps | Roles |
 |-----------|------|-------|-------|
 | Nav & Dashboard | layout, dashboard, dashboard-customizer | 14+3+1 | todos |
 | Field Service | os-list, os-wizard, os-detail, agenda | 5+11+4+2 | Tecnico+ |
 | Assets & Clients | equipamentos, clientes | 3+1 | Supervisor+ |
-| Commercial | orcamentos | 2 | Supervisor+ |
-| Finance & Procurement | reembolsos, materiais, cp | 2+3+4 | Tecnico+/Financeiro+ |
+| Commercial | orcamentos | 6 | Supervisor+ |
+| Finance & Procurement | reembolsos, expense-reports, materiais, cp | 4+3+5+9 | Tecnico+/Financeiro+ |
 | Inventory | fornecedores, pecas | 2+2 | Supervisor+ |
 | Knowledge | conhecimento | 3 | todos |
-| HR & Payroll | rh, dp | 6+7 | Gestor+ |
-| Admin | admin, admin-sla, admin-budget, admin-manutencao, admin-tenants-mgmt | 5+2+2+2+1 | Gestor+/Master |
-| Integrações | apiKeysTour, webhooksTour | 4+4 | Admin/Master |
+| HR & Payroll | rh, dp | 8+9 | Gestor+ |
+| Admin | company-profile, admin, admin-sla, admin-budget, admin-manutencao, admin-tenants-mgmt | 2+7+2+2+2+1 | Gestor+/Master |
+| Integrações | api-keys, webhooks, os-import | 4+4+3 | Admin/Master |
 | Platform | platform, platform-company-profile | 4+1 | SuperMaster |
+| Client Portal | client-portal | 2 | Cliente |
 
 ### Storage key
 `onboarding_v1_done_{userId}` — resetar via `useOnboarding().resetTour()` ou removendo do localStorage.
