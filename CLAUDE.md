@@ -168,7 +168,8 @@ Labels usam `text-sidebar-foreground/40` (nunca `text-muted-foreground` — fica
 ## Edge Functions deployadas
 
 `ai-proxy` v10 (rate limiting 20 req/min Deno KV · `X-RateLimit-*` headers · versionada em `supabase/functions/ai-proxy/index.ts`)  
-`api-gateway` v1 (valida X-API-Key SHA-256 · rate limit 1000 req/hr · RFC 7807 · cursor pagination · idempotency · `api_access_log`)  
+`api-gateway` v2 (valida X-API-Key SHA-256 · rate limit 1000 req/hr · RFC 7807 · cursor pagination · idempotency · `api_access_log`)  
+`os-import-processor` v1 (X-API-Key · scope orders:write · mode json/pdf · Gemini 2.0 Flash PDF · resolução client/técnico · `os_import_log`)  
 `webhook-dispatcher` v2 (HMAC-SHA256 · retry 6× backoff [0,1m,5m,30m,2h,24h] · dead = attempts ≥ 6)  
 `admin-create-user` v4 · `admin-delete-user` v3 · `admin-reset-password` v1  
 `admin-provision-tenant` v1 · `platform-update-user` v1 · `sla-checker` v1 · `send-csat-email` v1
@@ -875,6 +876,135 @@ Widget em `/platform/intelligence`: visível quando `total_requests > 0`, vermel
 - Versionada em `supabase/functions/ai-proxy/index.ts`
 - `callWithFallback` retorna `{text, provider, isFallback}` para alimentar `logRouting`
 - `logRouting` é fire-and-forget via `service_role` + `SUPABASE_SERVICE_ROLE_KEY`
+
+---
+
+## OS Import Bridge — concluído 2026-06-06
+
+### Visão geral
+
+Permite que clientes enterprise importem OSs de sistemas legados (TOTVS, SAP, Omie, PDF exportado)
+sem redigitação. A OS normalizada fica disponível imediatamente para gerar orçamento via fluxo OS→Orçamento.
+
+### Endpoint
+
+```
+POST /functions/v1/os-import-processor
+Headers: X-API-Key: nxtai_live_...    (scope: orders:write)
+         Content-Type: application/json
+         Idempotency-Key: <uuid-v4>   (opcional)
+```
+
+### Schema do payload
+
+```typescript
+{
+  // Obrigatórios sempre
+  mode:              "json" | "pdf";
+  external_source:   "totvs" | "sap" | "omie" | "pdf" | "custom";
+  external_ref_id:   string;          // ID da OS no sistema de origem
+
+  // Obrigatório apenas em mode="pdf" (um dos dois)
+  pdf_base64?:       string;          // PDF em base64
+  pdf_url?:          string;          // URL pública do PDF (Deno faz fetch)
+
+  // Campos opcionais (mode="json"; ou override dos extraídos do PDF)
+  client_name?:         string;
+  client_cnpj?:         string;       // 14 dígitos ou formatado
+  technician_email?:    string;
+  technician_name?:     string;
+  service_type?:        string;
+  service_date?:        string;       // YYYY-MM-DD
+  site_location?:       string;
+  asset_name?:          string;
+  priority?:            string;       // baixa | normal | alta | critica (ou inglês)
+  reported_problem?:    string;
+  services_performed?:  string;
+  final_diagnosis?:     string;
+  parts_used?:          string;
+  internal_notes?:      string;
+  photos?:              Array<{ base64: string; mime_type: string } | string>; // base64 ou URL
+}
+```
+
+### Schema da resposta
+
+```json
+{ "data": {
+  "os_id":                 "uuid",
+  "os_number":             "OS-202606-00042",
+  "client_resolution":     "matched_cnpj | matched_name | auto_created | not_found",
+  "technician_resolution": "matched_email | matched_name | not_found",
+  "duplicate":             false,
+  "photos_uploaded":       3
+}}
+```
+
+Deduplicação: se `(team_id, external_source, external_ref_id)` já existe → retorna OS existente com `duplicate: true`, HTTP 200.
+
+### Exemplo — payload TOTVS
+
+```json
+{
+  "mode": "json",
+  "external_source": "totvs",
+  "external_ref_id": "OS-TOTVS-2026-009823",
+  "client_name": "Mopar Engenharia Ltda",
+  "client_cnpj": "12.345.678/0001-90",
+  "technician_email": "tecnico@empresa.com",
+  "service_type": "Manutenção Preventiva",
+  "service_date": "2026-06-05",
+  "site_location": "Planta Industrial São Paulo",
+  "asset_name": "Compressor Atlas Copco GA37",
+  "priority": "alta",
+  "reported_problem": "Compressor com vibração anormal e ruído metálico",
+  "services_performed": "Substituição de rolamentos e alinhamento do eixo"
+}
+```
+
+### Exemplo — payload PDF
+
+```json
+{
+  "mode": "pdf",
+  "external_source": "pdf",
+  "external_ref_id": "SAP-PM-2026-00451",
+  "pdf_url": "https://storage.empresa.com/os/2026/00451.pdf"
+}
+```
+
+### Resolução de entidades (invariante: zero redigitação)
+
+| Campo | Estratégia |
+|-------|-----------|
+| `client_id` | CNPJ exato → name ILIKE → auto_create cliente mínimo |
+| `technician_id` | email exato → full_name ILIKE → null (atribui manualmente) |
+| `service_type` | match ILIKE em service_types do tenant → string raw |
+| `priority` | mapa PT+EN: low/baixa → baixa; critical/urgente → critica |
+
+### Banco
+
+```sql
+-- Colunas em service_reports
+external_source TEXT,
+external_ref_id TEXT,
+UNIQUE INDEX uq_sr_external_dedup (team_id, external_source, external_ref_id) WHERE NOT NULL
+
+-- Tabela de log
+os_import_log (id, team_id, api_key_id, external_source, external_ref_id, import_mode,
+               status, os_id, client_resolution, technician_resolution, error_detail,
+               raw_payload JSONB, created_at)
+
+-- Função sem auth.uid() para service_role
+reserve_os_number_service(p_team_id UUID) → TEXT
+  SECURITY DEFINER · GRANT TO service_role · REVOKE FROM authenticated
+```
+
+### UI Admin
+
+Rota: `/admin/os-imports` · Roles: Admin, Master  
+Grupo: Integrações (sidebar) · Ícone: UploadCloud  
+Funcionalidades: tabela paginável · filtros status+source · row expandida com payload JSON · botão "Reprocessar" (copia payload) para status=failed
 
 ---
 

@@ -35,6 +35,7 @@ import {
   Clock,
   KeyRound,
   Webhook,
+  UploadCloud,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
@@ -72,6 +73,7 @@ const NAV_ONBOARDING: Record<string, string> = {
   '/admin/tenants':               'nav-tenants',
   '/admin/api-keys':              'nav-api-keys',
   '/admin/webhooks':              'nav-webhooks',
+  '/admin/os-imports':            'nav-os-imports',
 };
 
 // Navigation module structure — SAP-style functional groups
@@ -144,8 +146,9 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Integrações',
     items: [
-      { name: 'API Keys', path: '/admin/api-keys', icon: KeyRound, roles: ['Admin', 'Master'] },
-      { name: 'Webhooks',  path: '/admin/webhooks',  icon: Webhook,  roles: ['Admin', 'Master'] },
+      { name: 'API Keys',       path: '/admin/api-keys',   icon: KeyRound,   roles: ['Admin', 'Master'] },
+      { name: 'Webhooks',       path: '/admin/webhooks',   icon: Webhook,    roles: ['Admin', 'Master'] },
+      { name: 'Importação OS',  path: '/admin/os-imports', icon: UploadCloud, roles: ['Admin', 'Master'] },
     ],
   },
   {

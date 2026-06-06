@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
-import { Plus, ClipboardList, AlertCircle, Loader2, Wifi, WifiOff, FileSpreadsheet } from 'lucide-react';
+import { Plus, ClipboardList, AlertCircle, Loader2, Wifi, WifiOff, FileSpreadsheet, UploadCloud } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { useTechnicians } from '@/src/hooks/useTechnicians';
 import type { AppLayoutOutletContext } from '@/src/components/layout/AppLayout';
 import ReportCard from './components/ReportCard';
 import ReportFilters from './components/ReportFilters';
+import ImportOsDialog from '@/src/components/reports/ImportOsDialog';
 import type { ReportsFilter } from '@/src/hooks/useReports';
 
 const EMPTY_FILTER: ReportsFilter = {
@@ -74,7 +75,8 @@ export default function ReportsList() {
   );
 
   const { reports, loading, error, hasMore, loadMore, refresh, updateItem } = useReports(resolvedFilter);
-  const [isExporting, setIsExporting] = useState(false);
+  const [isExporting, setIsExporting]     = useState(false);
+  const [importOpen, setImportOpen]       = useState(false);
 
   const handleExportExcel = async () => {
     setIsExporting(true);
@@ -150,18 +152,30 @@ export default function ReportsList() {
         </div>
         <div className="flex items-center gap-2">
           {isManager && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportExcel}
-              disabled={isExporting}
-              className="h-10 rounded-xl gap-1.5 text-sm font-semibold border-border"
-            >
-              {isExporting
-                ? <Loader2 className="h-4 w-4 animate-spin" />
-                : <FileSpreadsheet className="h-4 w-4" />}
-              <span className="hidden sm:inline">Exportar</span>
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportExcel}
+                disabled={isExporting}
+                className="h-10 rounded-xl gap-1.5 text-sm font-semibold border-border"
+              >
+                {isExporting
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <FileSpreadsheet className="h-4 w-4" />}
+                <span className="hidden sm:inline">Exportar</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setImportOpen(true)}
+                className="h-10 rounded-xl gap-1.5 text-sm font-semibold border-border"
+                data-onboarding="os-importar"
+              >
+                <UploadCloud className="h-4 w-4" />
+                <span className="hidden sm:inline">Importar OS</span>
+              </Button>
+            </>
           )}
           <Link
             to="/reports/new"
@@ -253,6 +267,12 @@ export default function ReportsList() {
           </div>
         )}
       </div>
+
+      <ImportOsDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={refresh}
+      />
     </div>
   );
 }

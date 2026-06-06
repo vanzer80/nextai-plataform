@@ -1,7 +1,7 @@
 # NextAI — Engineering Roadmap 2026
 
 > Full documentation in Obsidian: `Sprints/00 - Master Roadmap B2B Enterprise.md`  
-> **Atualizado em:** 2026-06-05 (Sessão 73) · ~155 commits · Sprints A–G concluídas
+> **Atualizado em:** 2026-06-06 (Sessão 74) · ~156 commits · Sprints A–G + OS Import Bridge concluídas
 
 ## Current State
 
@@ -50,6 +50,7 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 | s71 | 2026-06-04 | Correção de agrupamento: Orçamentos→Comercial · Manutenção Preventiva→Operações de Campo · Equipamentos→Suprimentos · split Configurações/Administração · testes atualizados 5/5 |
 | s72 | 2026-06-05 | Security hardening: REVOKE anon+PUBLIC em 32 funções SECURITY DEFINER · search_path fixado em 4 funções · RLS em ai_routing_log · payable_status_history + audit trail (updated_by/updated_at) em payables+reimbursements · bucket tenant-assets restrito por team_id · ai-proxy rate limiting 20 req/min via Deno KV |
 | s73 | 2026-06-05 | **Sprint G** — Public API & Webhook System: 2 migrações SQL (schema + patch-1 com 11 fixes) · 2 Edge Functions (api-gateway v1 · webhook-dispatcher v2) · 5 tabelas + 10 RPCs SECURITY DEFINER · UI Admin ApiKeys + Webhooks · 7 eventos webhook · onboarding tours integrations |
+| s74 | 2026-06-06 | **OS Import Bridge** — Edge Fn os-import-processor v1 · mode json+pdf · Gemini 2.0 Flash extração · resolução client/técnico (CNPJ→name→auto_create) · reserve_os_number_service · migration 20260606 (external_source, external_ref_id, os_import_log, dedup index) · UI /admin/os-imports (log tabela + filtros + row expandida + reprocessar) · tour osImportTour |
 
 ---
 
