@@ -168,6 +168,8 @@ Labels usam `text-sidebar-foreground/40` (nunca `text-muted-foreground` — fica
 ## Edge Functions deployadas
 
 `ai-proxy` v10 (rate limiting 20 req/min Deno KV · `X-RateLimit-*` headers · versionada em `supabase/functions/ai-proxy/index.ts`)  
+`api-gateway` v1 (valida X-API-Key SHA-256 · rate limit 1000 req/hr · RFC 7807 · cursor pagination · idempotency · `api_access_log`)  
+`webhook-dispatcher` v2 (HMAC-SHA256 · retry 6× backoff [0,1m,5m,30m,2h,24h] · dead = attempts ≥ 6)  
 `admin-create-user` v4 · `admin-delete-user` v3 · `admin-reset-password` v1  
 `admin-provision-tenant` v1 · `platform-update-user` v1 · `sla-checker` v1 · `send-csat-email` v1
 
@@ -255,6 +257,9 @@ get_dashboard_agenda_kpis()            → jsonb  -- os_hoje, tecnicos_hoje, cri
     Nunca criar RPC SECURITY DEFINER sem ao menos um dos dois padrões. RPCs em `LANGUAGE sql` não suportam guard de runtime — converter para `plpgsql` quando necessário.
 48. **`REVOKE FROM anon` não fecha herança via `PUBLIC`** → o complemento da armadilha #22. `REVOKE FROM anon` remove apenas grant explícito para `anon` — `anon` ainda herda acesso via `PUBLIC` (default do `CREATE FUNCTION`). Padrão correto e completo para fechar acesso anônimo: `REVOKE EXECUTE ON FUNCTION ... FROM PUBLIC; REVOKE EXECUTE ON FUNCTION ... FROM anon; GRANT EXECUTE ON FUNCTION ... TO authenticated;`
 49. **Trigger functions SECURITY DEFINER aparecem no advisor `authenticated_security_definer_function_executable`** → triggers são chamados pelo mecanismo do banco, não por usuários. Para remover do advisor e do endpoint PostgREST: `REVOKE EXECUTE ON FUNCTION ... FROM PUBLIC; REVOKE EXECUTE ON FUNCTION ... FROM authenticated;`. O trigger continua funcionando — PostgreSQL executa como owner, independente de grants.
+50. **`CREATE OR REPLACE` não muda tipo de retorno em TABLE functions** → `ALTER TABLE ... SET RETURNING` e `CREATE OR REPLACE FUNCTION ... RETURNS TABLE(...)` com colunas diferentes falha com `ERROR: 42P13: cannot change return type of existing function`. Padrão correto: `DROP FUNCTION IF EXISTS public.fn(...); CREATE FUNCTION ...`. Aplicar antes de adicionar colunas (ex: `updated_at`) ao RETURNS TABLE.
+51. **PK em api_idempotency_keys deve ser composta (key, team_id)** → PK só em `key` permite cross-tenant collision: dois tenants enviam `Idempotency-Key: uuid-igual` → segundo recebe resposta do primeiro. Sempre PK composta `(key, team_id)` + RLS habilitada.
+52. **`COALESCE` em UPDATE impede setar campo para NULL** → `SET description = COALESCE(p_description, description)` nunca atualiza para NULL (usuário quer limpar o campo). Adicionar parâmetro flag separado: `p_clear_description BOOLEAN DEFAULT false` + `CASE WHEN p_clear_description THEN NULL ELSE COALESCE(...) END`.
 
 ## Padrões de Segurança (s72)
 
@@ -323,7 +328,7 @@ Extrair `userId` do JWT sem round-trip: `JSON.parse(atob(token.split('.')[1].rep
 
 ---
 
-## Public API — Arquitetura (Sprint G)
+## Public API & Webhook System — Sprint G (concluída 2026-06-05)
 
 ### Visão geral
 
@@ -592,7 +597,7 @@ src/onboarding/
    - `route:` do step bate com `path=` real em `App.tsx`? (sem redirects, sem hífen errado)
    - `roles:[]` do step ⊆ `allowedRoles` do `RoleGuard` da rota?
 
-### 25 tour modules (cobertura 100% dos módulos)
+### 27 tour modules (cobertura 100% dos módulos)
 
 | Categoria | Tour | Steps | Roles |
 |-----------|------|-------|-------|
@@ -605,6 +610,7 @@ src/onboarding/
 | Knowledge | conhecimento | 3 | todos |
 | HR & Payroll | rh, dp | 6+7 | Gestor+ |
 | Admin | admin, admin-sla, admin-budget, admin-manutencao, admin-tenants-mgmt | 5+2+2+2+1 | Gestor+/Master |
+| Integrações | apiKeysTour, webhooksTour | 4+4 | Admin/Master |
 | Platform | platform, platform-company-profile | 4+1 | SuperMaster |
 
 ### Storage key

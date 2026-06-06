@@ -1,7 +1,7 @@
 # NextAI — Engineering Roadmap 2026
 
 > Full documentation in Obsidian: `Sprints/00 - Master Roadmap B2B Enterprise.md`  
-> **Atualizado em:** 2026-06-05 (Sessão 72) · 141 commits · Sprints A–F concluídas
+> **Atualizado em:** 2026-06-05 (Sessão 73) · ~155 commits · Sprints A–G concluídas
 
 ## Current State
 
@@ -14,6 +14,8 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 **HR & Ops:** RH (CLT employees · departments · certifications · events) · DP (payroll INSS/IRRF/FGTS · holerites PDF · time records · vacation) · Dispatch Calendar · Knowledge Base (FTS pt-BR) · Asset Lifecycle (linear depreciation).
 
 **Platform:** Multi-tenant RLS isolation by `team_id` · OKLCH dynamic branding · SuperMaster (5 Platform pages · Intelligence cross-tenant 15 tabs · Commercial Profile editor) · Customer Portal · CSAT · PWA (SW `nextai-v7` · IndexedDB) · Onboarding 25 tours / 85+ steps (driver.js).
+
+**Integrações (Public API):** API Keys (SHA-256, scopes, rotação/revogação, reveal-once) · Edge Fn `api-gateway` (rate limit 1000 req/hr Deno KV · RFC 7807 errors · cursor pagination · idempotency keys) · Webhook System (HMAC-SHA256 signing · retry 6×backoff exponencial [0→24h] · dead-letter queue) · 7 eventos (order.created/updated/completed · reimbursement.approved/paid · quote.signed · payable.paid) · UI Admin (ApiKeys + Webhooks pages · log de entregas · disparo manual).
 
 **Tests:** 117 Vitest unit tests (8 files) · 24 Playwright E2E spec files / ~171 tests.
 
@@ -29,6 +31,7 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 | **D** | Quote E-Signature · Quote Versioning | `730d20a` | 2026-05-24 |
 | **E** | OCR Receipts · Budget Control · Knowledge Base · Asset Lifecycle | `8a7ddad` | 2026-05-24 |
 | **F** | RH (CLT) · DP (Payroll / Holerite / Ponto / Férias) · CP (Contas a Pagar) | `9bbb649` | 2026-05-26 |
+| **G** | Public API & Webhook System (api-gateway · webhook-dispatcher · ApiKeys UI · Webhooks UI) | `a8f961c` | 2026-06-05 |
 
 ---
 
@@ -46,22 +49,23 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 | s70 | 2026-06-04 | Sidebar reorganizado em 9 grupos funcionais SAP-style (NAV_GROUPS) · 5 testes E2E sidebar-verify |
 | s71 | 2026-06-04 | Correção de agrupamento: Orçamentos→Comercial · Manutenção Preventiva→Operações de Campo · Equipamentos→Suprimentos · split Configurações/Administração · testes atualizados 5/5 |
 | s72 | 2026-06-05 | Security hardening: REVOKE anon+PUBLIC em 32 funções SECURITY DEFINER · search_path fixado em 4 funções · RLS em ai_routing_log · payable_status_history + audit trail (updated_by/updated_at) em payables+reimbursements · bucket tenant-assets restrito por team_id · ai-proxy rate limiting 20 req/min via Deno KV |
+| s73 | 2026-06-05 | **Sprint G** — Public API & Webhook System: 2 migrações SQL (schema + patch-1 com 11 fixes) · 2 Edge Functions (api-gateway v1 · webhook-dispatcher v2) · 5 tabelas + 10 RPCs SECURITY DEFINER · UI Admin ApiKeys + Webhooks · 7 eventos webhook · onboarding tours integrations |
 
 ---
 
-## Next Development Phase — Sprint G: Public API (4 semanas)
+## Next Development Phase — Sprint H: Developer Experience + Notificações
 
-> Habilita integração com ERPs (SAP/TOTVS/Omie), BI tools, iPaaS (Zapier/n8n) e sistemas legados.  
-> Arquitetura detalhada em CLAUDE.md § "Public API — Arquitetura".
+> Sprint G (Public API) concluída — ERP Integration agora desbloqueada.  
+> Sprint H foca em completar o ciclo de integração e comunicação proativa.
 
-| Fase | Escopo | Esforço |
-|------|--------|---------|
-| **Ph1 · Foundation** | Tabela `api_keys` (hash SHA-256, scopes, rotação/revogação) · Edge Fn `api-gateway` (validação, rate limit por chave, tenant resolution) · `api_access_log` · RFC 7807 error format | 1 semana |
-| **Ph2 · Core Endpoints** | `/api/v1/orders` · `/api/v1/reimbursements` · `/api/v1/clients` · `/api/v1/quotes` · cursor pagination · idempotency keys em writes · OpenAPI 3.0 spec | 1 semana |
-| **Ph3 · Webhook System** | Tabela `webhook_endpoints` + `webhook_deliveries` · HMAC-SHA256 signing · retry backoff 1m→5m→30m→2h→24h · dead letter queue · event schema versioning · SuperMaster delivery view | 1 semana |
-| **Ph4 · Developer Experience** | OpenAPI docs em `/api/docs` · getting started guide · Postman collection · sandbox environment | 3–5 dias |
+| Módulo | Escopo | Esforço |
+|--------|--------|---------|
+| **Public API DX** | OpenAPI 3.0 spec em `/api/docs` (Swagger UI) · Getting started guide · Postman collection | 2–3 dias |
+| **Notificações** | Email (Resend) + WhatsApp (Evolution API): SLA vencido · aprovação pendente · OS concluída | 1–2 dias |
+| **AI Report Writer** | Free text → linguagem técnica profissional (GPT-4o) para laudos de OS | 1–2 dias |
+| **CR (Contas a Receber)** | Ciclo financeiro completo: fatura → pagamento → aging report | 3–4 dias |
 
-**Pré-requisito para:** ERP Integration · Phase 6 SaaS (billing por consumo de API)
+**Desbloqueado pela Sprint G:** ERP Integration (TOTVS/SAP/Omie via webhook + adapter por ERP)
 
 ---
 
@@ -83,7 +87,7 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 | PWA icons PNG 192×512 for Android/Chrome install | 🟢 Low | hours | — |
 | RAG Analytics — natural language search over reports (pgvector) | 🟡 Strategic | 5–8 days | — |
 | GPS Dispatching Map — real-time technician location tracking | 🟡 Strategic | 5–8 days | — |
-| ERP Integration (TOTVS / SAP / Omie) via webhook + adapter por ERP | 🟡 Strategic | 3–5 days/ERP | [requires Sprint G] |
+| ERP Integration (TOTVS / SAP / Omie) via webhook + adapter por ERP | 🟡 Strategic | 3–5 days/ERP | ✅ Sprint G concluída |
 | Phase 6 SaaS: subdomain routing per tenant + billing (Stripe) | 🟡 Strategic | 2–3 weeks | — |
 
 ---
