@@ -1,6 +1,10 @@
-// api-gateway v1 — NextAI Public API
+// api-gateway v2 — NextAI Public API
 // Validates X-API-Key, rate-limits (1000 req/hr per key), logs access, routes to resource handlers.
 // Error format: RFC 7807 (application/problem+json)
+// Patch 2: field injection whitelist · input validation · composite cursor pagination ·
+//          direct team_id filter on reimbursements · consistent { data } envelope ·
+//          GET by ID for all resources · PATCH /clients · idempotency for POST /clients ·
+//          Content-Type validation (415) · updated_after delta sync on /orders.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -16,6 +20,15 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
 };
 
+// ── Field whitelists (Fix 1 — field injection: service_role bypasses RLS, so every
+//    INSERT/UPDATE from a public endpoint must restrict to known-safe columns only) ──
+
+const ALLOWED_CREATE_ORDER  = ["client_id","technician_id","service_date","reported_problem","status"] as const;
+const ALLOWED_PATCH_ORDER   = ["status","technician_id","service_date","reported_problem","final_diagnosis","services_performed"] as const;
+const ALLOWED_CREATE_CLIENT = ["name","cnpj","email","phone","cidade","estado"] as const;
+const ALLOWED_PATCH_CLIENT  = ["name","cnpj","email","phone","cidade","estado"] as const;
+const ORDER_STATUSES        = ["draft","pending_review","returned","approved","rejected"] as const;
+
 // ── Utilities ──────────────────────────────────────────────────────────────────
 
 async function sha256hex(text: string): Promise<string> {
@@ -29,6 +42,68 @@ function rfc7807(status: number, code: string, detail: string, instance: string)
     JSON.stringify({ type: `https://api.nextai.com.br/errors/${code}`, title, status, detail, instance }),
     { status, headers: { ...corsHeaders, "Content-Type": "application/problem+json" } },
   );
+}
+
+function pick(obj: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> {
+  return Object.fromEntries(keys.filter(k => k in obj).map(k => [k, obj[k]]));
+}
+
+interface ValidationError { field: string; message: string }
+
+function validationResponse(errors: ValidationError[], instance: string): Response {
+  return new Response(JSON.stringify({
+    type:   "https://api.nextai.com.br/errors/validation_error",
+    title:  "Validation Error",
+    status: 400,
+    errors,
+    instance,
+  }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/problem+json" } });
+}
+
+function validateCreateOrder(body: unknown): ValidationError[] {
+  if (!body || typeof body !== "object" || Array.isArray(body))
+    return [{ field: "body", message: "Must be a JSON object." }];
+  const b = body as Record<string, unknown>;
+  const errs: ValidationError[] = [];
+  if (!b.client_id)                                              errs.push({ field: "client_id",     message: "Required." });
+  if (b.client_id    && typeof b.client_id    !== "string")      errs.push({ field: "client_id",     message: "Must be a UUID string." });
+  if (b.technician_id && typeof b.technician_id !== "string")    errs.push({ field: "technician_id", message: "Must be a UUID string." });
+  if (b.service_date  && typeof b.service_date  !== "string")    errs.push({ field: "service_date",  message: "Must be a date string." });
+  if (b.status && !ORDER_STATUSES.includes(b.status as never))   errs.push({ field: "status",        message: `Must be one of: ${ORDER_STATUSES.join(", ")}.` });
+  return errs;
+}
+
+function validatePatchOrder(body: unknown): ValidationError[] {
+  if (!body || typeof body !== "object" || Array.isArray(body))
+    return [{ field: "body", message: "Must be a JSON object." }];
+  const b = body as Record<string, unknown>;
+  const errs: ValidationError[] = [];
+  if (Object.keys(b).length === 0)                               errs.push({ field: "body",          message: "At least one field required." });
+  if (b.status && !ORDER_STATUSES.includes(b.status as never))   errs.push({ field: "status",        message: `Must be one of: ${ORDER_STATUSES.join(", ")}.` });
+  if (b.technician_id && typeof b.technician_id !== "string")    errs.push({ field: "technician_id", message: "Must be a UUID string." });
+  return errs;
+}
+
+function validateCreateClient(body: unknown): ValidationError[] {
+  if (!body || typeof body !== "object" || Array.isArray(body))
+    return [{ field: "body", message: "Must be a JSON object." }];
+  const b = body as Record<string, unknown>;
+  const errs: ValidationError[] = [];
+  if (!b.name)                                    errs.push({ field: "name",  message: "Required." });
+  if (b.name  && typeof b.name  !== "string")     errs.push({ field: "name",  message: "Must be a string." });
+  if (b.email && typeof b.email !== "string")     errs.push({ field: "email", message: "Must be a string." });
+  return errs;
+}
+
+function validatePatchClient(body: unknown): ValidationError[] {
+  if (!body || typeof body !== "object" || Array.isArray(body))
+    return [{ field: "body", message: "Must be a JSON object." }];
+  const b = body as Record<string, unknown>;
+  const errs: ValidationError[] = [];
+  if (Object.keys(b).length === 0)                errs.push({ field: "body",  message: "At least one field required." });
+  if (b.name  && typeof b.name  !== "string")     errs.push({ field: "name",  message: "Must be a string." });
+  if (b.email && typeof b.email !== "string")     errs.push({ field: "email", message: "Must be a string." });
+  return errs;
 }
 
 function paginationCursor(id: string, createdAt: string): string {
@@ -102,7 +177,15 @@ Deno.serve(async (req: Request) => {
       : rfc7807(403, "insufficient_scope", `Scope '${scope}' required.`, instance);
   }
 
-  // 4. Idempotency (POST / PATCH) ───────────────────────────────────────────────
+  // 4. Content-Type validation (POST / PATCH) ───────────────────────────────────
+  if (["POST", "PATCH"].includes(req.method)) {
+    const ct = req.headers.get("content-type") ?? "";
+    if (!ct.includes("application/json")) {
+      return rfc7807(415, "unsupported_media_type", "Content-Type must be application/json.", instance);
+    }
+  }
+
+  // 5. Idempotency (POST / PATCH) ───────────────────────────────────────────────
   const idempKey = req.headers.get("Idempotency-Key");
   if (idempKey && ["POST", "PATCH"].includes(req.method)) {
     const { data: cached } = await admin
@@ -120,7 +203,7 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // 5. Route ────────────────────────────────────────────────────────────────────
+  // 6. Route ────────────────────────────────────────────────────────────────────
   const ip           = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   let responseBody: unknown = null;
   let statusCode    = 200;
@@ -133,25 +216,41 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+
     // GET /orders ──────────────────────────────────────────────────────────────
     if (req.method === "GET" && path === "/orders") {
       const err = needScope("orders:read"); if (err) return endRequest(err);
-      const limit      = Math.min(Number(url.searchParams.get("limit") ?? "50"), 100);
-      const cursor     = url.searchParams.get("cursor");
-      const filterSt   = url.searchParams.get("filter[status]");
-      const teamId     = apiKey.team_id;
+      const limit        = Math.min(Number(url.searchParams.get("limit") ?? "50"), 100);
+      const cursor       = url.searchParams.get("cursor");
+      const filterSt     = url.searchParams.get("filter[status]");
+      const updatedAfter = url.searchParams.get("updated_after");
+
+      if (updatedAfter) {
+        const ts = new Date(updatedAfter);
+        if (isNaN(ts.getTime())) {
+          return endRequest(rfc7807(400, "invalid_parameter", "'updated_after' must be an ISO 8601 datetime.", instance));
+        }
+      }
 
       let q = admin.from("service_reports")
-        .select("id, os_number, status, client_id, technician_id, service_date, created_at")
-        .eq("team_id", teamId).order("created_at", { ascending: false }).limit(limit + 1);
-      if (filterSt) q = q.eq("status", filterSt);
-      if (cursor) { const c = parseCursor(cursor); if (c) q = q.lt("created_at", c.created_at); }
+        .select("id, os_number, status, client_id, technician_id, service_date, created_at, updated_at")
+        .eq("team_id", apiKey.team_id)
+        .order("created_at", { ascending: false })
+        .order("id",         { ascending: false })
+        .limit(limit + 1);
+      if (filterSt)    q = q.eq("status", filterSt);
+      if (updatedAfter) q = q.gte("updated_at", new Date(updatedAfter).toISOString());
+      if (cursor) {
+        const c = parseCursor(cursor);
+        // Composite cursor prevents skipping records with identical created_at (batch inserts).
+        if (c) q = q.or(`created_at.lt.${c.created_at},and(created_at.eq.${c.created_at},id.lt.${c.id})`);
+      }
 
       const { data, error } = await q;
       if (error) throw error;
-      const hasMore  = (data?.length ?? 0) > limit;
-      const items    = (data ?? []).slice(0, limit);
-      const nextCur  = hasMore && items.length > 0
+      const hasMore = (data?.length ?? 0) > limit;
+      const items   = (data ?? []).slice(0, limit);
+      const nextCur = hasMore && items.length > 0
         ? paginationCursor(items[items.length - 1].id, items[items.length - 1].created_at) : null;
       responseBody = { data: items, pagination: { cursor: nextCur, has_more: hasMore, limit } };
     }
@@ -164,33 +263,49 @@ Deno.serve(async (req: Request) => {
         .select("id, os_number, status, client_id, technician_id, service_date, reported_problem, final_diagnosis, services_performed, created_at, updated_at")
         .eq("id", id).eq("team_id", apiKey.team_id).maybeSingle();
       if (error) throw error;
-      if (!data) { statusCode = 404; responseBody = { type: `https://api.nextai.com.br/errors/not_found`, status: 404, detail: `Order ${id} not found.`, instance }; }
-      else responseBody = data;
+      if (!data) {
+        statusCode   = 404;
+        responseBody = { type: "https://api.nextai.com.br/errors/not_found", title: "Not Found", status: 404, detail: `Order ${id} not found.`, instance };
+      } else {
+        responseBody = { data };
+      }
     }
 
     // POST /orders ─────────────────────────────────────────────────────────────
     else if (req.method === "POST" && path === "/orders") {
       const err = needScope("orders:write"); if (err) return endRequest(err);
       const body = await req.json();
+      const errs = validateCreateOrder(body);
+      if (errs.length > 0) return endRequest(validationResponse(errs, instance));
+      const safe = pick(body as Record<string, unknown>, ALLOWED_CREATE_ORDER);
       const { data, error } = await admin.from("service_reports")
-        .insert({ ...body, team_id: apiKey.team_id, status: body.status ?? "draft" })
+        .insert({ ...safe, team_id: apiKey.team_id, status: (safe.status as string) ?? "draft" })
         .select("id, os_number, status, created_at").single();
       if (error) throw error;
-      statusCode = 201; responseBody = data;
-      await cacheIdempotency("POST", "/orders", 201, data);
+      statusCode   = 201;
+      responseBody = { data };
+      await cacheIdempotency("POST", "/orders", 201, { data });
     }
 
     // PATCH /orders/:id ────────────────────────────────────────────────────────
     else if (req.method === "PATCH" && /^\/orders\/[^/]+$/.test(path)) {
       const err = needScope("orders:write"); if (err) return endRequest(err);
-      const id = path.split("/")[2];
+      const id   = path.split("/")[2];
       const body = await req.json();
+      const errs = validatePatchOrder(body);
+      if (errs.length > 0) return endRequest(validationResponse(errs, instance));
+      const safe = pick(body as Record<string, unknown>, ALLOWED_PATCH_ORDER);
       const { data, error } = await admin.from("service_reports")
-        .update(body).eq("id", id).eq("team_id", apiKey.team_id)
+        .update(safe).eq("id", id).eq("team_id", apiKey.team_id)
         .select("id, os_number, status, updated_at").maybeSingle();
       if (error) throw error;
-      if (!data) { statusCode = 404; responseBody = { status: 404, detail: `Order ${id} not found.` }; }
-      else { responseBody = data; await cacheIdempotency("PATCH", `/orders/${id}`, 200, data); }
+      if (!data) {
+        statusCode   = 404;
+        responseBody = { type: "https://api.nextai.com.br/errors/not_found", title: "Not Found", status: 404, detail: `Order ${id} not found.`, instance };
+      } else {
+        responseBody = { data };
+        await cacheIdempotency("PATCH", `/orders/${id}`, 200, { data });
+      }
     }
 
     // GET /reimbursements ──────────────────────────────────────────────────────
@@ -198,16 +313,46 @@ Deno.serve(async (req: Request) => {
       const err = needScope("reimbursements:read"); if (err) return endRequest(err);
       const limit  = Math.min(Number(url.searchParams.get("limit") ?? "50"), 100);
       const cursor = url.searchParams.get("cursor");
+      // team_id is on the reimbursements table directly — no join needed.
+      // Using !inner + users.team_id filter loses records when the user is deleted.
       let q = admin.from("reimbursements")
-        .select("id, category, amount, status, description, created_at, users!inner(team_id)")
-        .eq("users.team_id", apiKey.team_id)
-        .order("created_at", { ascending: false }).limit(limit + 1);
-      if (cursor) { const c = parseCursor(cursor); if (c) q = q.lt("created_at", c.created_at); }
+        .select("id, category, amount, status, description, created_at")
+        .eq("team_id", apiKey.team_id)
+        .order("created_at", { ascending: false })
+        .order("id",         { ascending: false })
+        .limit(limit + 1);
+      if (cursor) {
+        const c = parseCursor(cursor);
+        if (c) q = q.or(`created_at.lt.${c.created_at},and(created_at.eq.${c.created_at},id.lt.${c.id})`);
+      }
       const { data, error } = await q;
       if (error) throw error;
       const hasMore = (data?.length ?? 0) > limit;
-      const items   = (data ?? []).slice(0, limit).map(({ users: _u, ...r }) => r);
-      responseBody = { data: items, pagination: { cursor: hasMore && items.length > 0 ? paginationCursor(items[items.length-1].id, items[items.length-1].created_at) : null, has_more: hasMore, limit } };
+      const items   = (data ?? []).slice(0, limit);
+      responseBody  = {
+        data: items,
+        pagination: {
+          cursor:   hasMore && items.length > 0 ? paginationCursor(items[items.length - 1].id, items[items.length - 1].created_at) : null,
+          has_more: hasMore,
+          limit,
+        },
+      };
+    }
+
+    // GET /reimbursements/:id ──────────────────────────────────────────────────
+    else if (req.method === "GET" && /^\/reimbursements\/[^/]+$/.test(path)) {
+      const err = needScope("reimbursements:read"); if (err) return endRequest(err);
+      const id = path.split("/")[2];
+      const { data, error } = await admin.from("reimbursements")
+        .select("id, category, amount, status, description, created_at, updated_at")
+        .eq("id", id).eq("team_id", apiKey.team_id).maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        statusCode   = 404;
+        responseBody = { type: "https://api.nextai.com.br/errors/not_found", title: "Not Found", status: 404, detail: `Reimbursement ${id} not found.`, instance };
+      } else {
+        responseBody = { data };
+      }
     }
 
     // GET /clients ─────────────────────────────────────────────────────────────
@@ -217,23 +362,78 @@ Deno.serve(async (req: Request) => {
       const cursor = url.searchParams.get("cursor");
       let q = admin.from("clients")
         .select("id, name, cnpj, email, phone, cidade, estado, created_at")
-        .eq("team_id", apiKey.team_id).order("created_at", { ascending: false }).limit(limit + 1);
-      if (cursor) { const c = parseCursor(cursor); if (c) q = q.lt("created_at", c.created_at); }
+        .eq("team_id", apiKey.team_id)
+        .order("created_at", { ascending: false })
+        .order("id",         { ascending: false })
+        .limit(limit + 1);
+      if (cursor) {
+        const c = parseCursor(cursor);
+        if (c) q = q.or(`created_at.lt.${c.created_at},and(created_at.eq.${c.created_at},id.lt.${c.id})`);
+      }
       const { data, error } = await q;
       if (error) throw error;
       const hasMore = (data?.length ?? 0) > limit;
       const items   = (data ?? []).slice(0, limit);
-      responseBody = { data: items, pagination: { cursor: hasMore && items.length > 0 ? paginationCursor(items[items.length-1].id, items[items.length-1].created_at) : null, has_more: hasMore, limit } };
+      responseBody  = {
+        data: items,
+        pagination: {
+          cursor:   hasMore && items.length > 0 ? paginationCursor(items[items.length - 1].id, items[items.length - 1].created_at) : null,
+          has_more: hasMore,
+          limit,
+        },
+      };
+    }
+
+    // GET /clients/:id ─────────────────────────────────────────────────────────
+    else if (req.method === "GET" && /^\/clients\/[^/]+$/.test(path)) {
+      const err = needScope("clients:read"); if (err) return endRequest(err);
+      const id = path.split("/")[2];
+      const { data, error } = await admin.from("clients")
+        .select("id, name, cnpj, email, phone, cidade, estado, created_at")
+        .eq("id", id).eq("team_id", apiKey.team_id).maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        statusCode   = 404;
+        responseBody = { type: "https://api.nextai.com.br/errors/not_found", title: "Not Found", status: 404, detail: `Client ${id} not found.`, instance };
+      } else {
+        responseBody = { data };
+      }
     }
 
     // POST /clients ────────────────────────────────────────────────────────────
     else if (req.method === "POST" && path === "/clients") {
       const err = needScope("clients:write"); if (err) return endRequest(err);
       const body = await req.json();
+      const errs = validateCreateClient(body);
+      if (errs.length > 0) return endRequest(validationResponse(errs, instance));
+      const safe = pick(body as Record<string, unknown>, ALLOWED_CREATE_CLIENT);
       const { data, error } = await admin.from("clients")
-        .insert({ ...body, team_id: apiKey.team_id }).select("id, name, created_at").single();
+        .insert({ ...safe, team_id: apiKey.team_id }).select("id, name, created_at").single();
       if (error) throw error;
-      statusCode = 201; responseBody = data;
+      statusCode   = 201;
+      responseBody = { data };
+      await cacheIdempotency("POST", "/clients", 201, { data });
+    }
+
+    // PATCH /clients/:id ───────────────────────────────────────────────────────
+    else if (req.method === "PATCH" && /^\/clients\/[^/]+$/.test(path)) {
+      const err = needScope("clients:write"); if (err) return endRequest(err);
+      const id   = path.split("/")[2];
+      const body = await req.json();
+      const errs = validatePatchClient(body);
+      if (errs.length > 0) return endRequest(validationResponse(errs, instance));
+      const safe = pick(body as Record<string, unknown>, ALLOWED_PATCH_CLIENT);
+      const { data, error } = await admin.from("clients")
+        .update(safe).eq("id", id).eq("team_id", apiKey.team_id)
+        .select("id, name, created_at").maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        statusCode   = 404;
+        responseBody = { type: "https://api.nextai.com.br/errors/not_found", title: "Not Found", status: 404, detail: `Client ${id} not found.`, instance };
+      } else {
+        responseBody = { data };
+        await cacheIdempotency("PATCH", `/clients/${id}`, 200, { data });
+      }
     }
 
     // GET /quotes ──────────────────────────────────────────────────────────────
@@ -243,30 +443,59 @@ Deno.serve(async (req: Request) => {
       const cursor = url.searchParams.get("cursor");
       let q = admin.from("orcamentos")
         .select("id, status, titulo, client_id, signed_at, validade, desconto_pct, created_at")
-        .eq("team_id", apiKey.team_id).order("created_at", { ascending: false }).limit(limit + 1);
-      if (cursor) { const c = parseCursor(cursor); if (c) q = q.lt("created_at", c.created_at); }
+        .eq("team_id", apiKey.team_id)
+        .order("created_at", { ascending: false })
+        .order("id",         { ascending: false })
+        .limit(limit + 1);
+      if (cursor) {
+        const c = parseCursor(cursor);
+        if (c) q = q.or(`created_at.lt.${c.created_at},and(created_at.eq.${c.created_at},id.lt.${c.id})`);
+      }
       const { data, error } = await q;
       if (error) throw error;
       const hasMore = (data?.length ?? 0) > limit;
       const items   = (data ?? []).slice(0, limit);
-      responseBody = { data: items, pagination: { cursor: hasMore && items.length > 0 ? paginationCursor(items[items.length-1].id, items[items.length-1].created_at) : null, has_more: hasMore, limit } };
+      responseBody  = {
+        data: items,
+        pagination: {
+          cursor:   hasMore && items.length > 0 ? paginationCursor(items[items.length - 1].id, items[items.length - 1].created_at) : null,
+          has_more: hasMore,
+          limit,
+        },
+      };
+    }
+
+    // GET /quotes/:id ──────────────────────────────────────────────────────────
+    else if (req.method === "GET" && /^\/quotes\/[^/]+$/.test(path)) {
+      const err = needScope("quotes:read"); if (err) return endRequest(err);
+      const id = path.split("/")[2];
+      const { data, error } = await admin.from("orcamentos")
+        .select("id, status, titulo, client_id, signed_at, validade, desconto_pct, report_id, created_at, updated_at")
+        .eq("id", id).eq("team_id", apiKey.team_id).maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        statusCode   = 404;
+        responseBody = { type: "https://api.nextai.com.br/errors/not_found", title: "Not Found", status: 404, detail: `Quote ${id} not found.`, instance };
+      } else {
+        responseBody = { data };
+      }
     }
 
     // 404 ──────────────────────────────────────────────────────────────────────
     else {
-      statusCode = 404;
-      responseBody = { type: "https://api.nextai.com.br/errors/not_found", status: 404, detail: `Route ${req.method} ${path} not found.`, instance };
+      statusCode   = 404;
+      responseBody = { type: "https://api.nextai.com.br/errors/not_found", title: "Not Found", status: 404, detail: `Route ${req.method} ${path} not found.`, instance };
     }
 
   } catch (e) {
     console.error("api-gateway error:", e);
     statusCode   = 500;
-    responseBody = { type: "https://api.nextai.com.br/errors/internal_error", status: 500, detail: "An unexpected error occurred.", instance };
+    responseBody = { type: "https://api.nextai.com.br/errors/internal_error", title: "Internal Error", status: 500, detail: "An unexpected error occurred.", instance };
   }
 
   const duration = Date.now() - startMs;
 
-  // 6. Log access (fire-and-forget) ─────────────────────────────────────────────
+  // 7. Log access (fire-and-forget) ─────────────────────────────────────────────
   Promise.all([
     admin.from("api_access_log").insert({
       api_key_id: apiKey.id, team_id: apiKey.team_id,
