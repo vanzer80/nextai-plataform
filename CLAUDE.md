@@ -706,6 +706,169 @@ Widget em `/platform/intelligence`: visível quando `total_requests > 0`, vermel
 
 ---
 
+## Sprint H — Comunicação & Conformidade (próxima sprint)
+
+### Módulo 1: Notificações (Email + WhatsApp)
+
+**Providers:** Resend (email) · Evolution API (WhatsApp)
+
+**Eventos notificados:**
+
+| Evento | Canal | Destinatário |
+|--------|-------|-------------|
+| OS criada e atribuída | Email + WhatsApp | Técnico responsável |
+| OS concluída | Email | Gestor + criador |
+| SLA prestes a vencer (2h antes) | WhatsApp | Técnico + Gestor |
+| SLA vencido | Email + WhatsApp | Técnico + Gestor + Admin |
+| Reembolso aprovado/rejeitado | Email | Solicitante |
+| CP: aprovação pendente | Email | Financeiro + Admin |
+| CP: conta quitada | Email | Gestor |
+
+**Arquitetura:**
+
+```
+Evento de domínio (trigger Supabase ou webhook Sprint G)
+  → Edge Fn notification-dispatcher
+      → lê notification_preferences do destinatário (opt-in por canal/tipo)
+      → Resend.send() e/ou Evolution API POST
+      → insere em notification_log
+```
+
+**Schema:**
+
+```sql
+-- Preferências por usuário (opt-in granular)
+CREATE TABLE public.notification_preferences (
+  user_id    UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  team_id    UUID NOT NULL,
+  channels   JSONB NOT NULL DEFAULT '{"email": true, "whatsapp": false}',
+  events     JSONB NOT NULL DEFAULT '{}'  -- { "sla.breach": true, "order.assigned": true }
+);
+
+-- Log de envios (auditoria + debug)
+CREATE TABLE public.notification_log (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  team_id      UUID NOT NULL,
+  user_id      UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  channel      TEXT NOT NULL,   -- 'email' | 'whatsapp'
+  event_type   TEXT NOT NULL,
+  recipient    TEXT NOT NULL,   -- email ou phone
+  status       TEXT NOT NULL,   -- 'sent' | 'failed'
+  error        TEXT,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+**Secrets necessários:** `RESEND_API_KEY` · `EVOLUTION_API_URL` · `EVOLUTION_API_KEY`
+
+---
+
+### Módulo 2: LGPD Baseline
+
+**Requisito:** Lei 13.709/2018 — titular tem direito ao esquecimento. B2B SaaS em Brasil precisa estar em conformidade antes de escalar.
+
+**O que implementar:**
+
+```sql
+-- 1. Soft-delete em users
+ALTER TABLE public.users
+  ADD COLUMN deleted_at   TIMESTAMPTZ,
+  ADD COLUMN pii_cleared_at TIMESTAMPTZ;
+
+-- 2. RPC de anonimização (SECURITY DEFINER, Master/Admin only)
+CREATE FUNCTION public.anonymize_user_pii(p_user_id UUID)
+-- Zera: name → 'Usuário Removido', email → null, phone → null, CPF → null
+-- Seta: deleted_at = now(), pii_cleared_at = now()
+-- NÃO deleta: mantém registros de OS, reembolso, etc. (integridade referencial)
+
+-- 3. Registro de operações de tratamento
+CREATE TABLE public.pii_treatment_log (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  team_id      UUID NOT NULL,
+  operation    TEXT NOT NULL,   -- 'anonymize' | 'export' | 'delete_request'
+  subject_id   UUID,            -- user_id afetado
+  requested_by UUID,
+  reason       TEXT,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+**UI:** Botão "Remover dados pessoais" no perfil do usuário (Admin/Master) com AlertDialog de confirmação.
+
+---
+
+### Módulo 3: AI Report Writer
+
+**Proposta de valor:** Técnico digita "trocou a bomba d'agua que estava com folga e vazamento" → GPT-4o transforma em "Identificado desgaste prematuro no conjunto de vedação da bomba d'água, com folga axial de ~0,8mm e vazamento por falha de gaxeta. Efetuada substituição do conjunto por componente OEM. Teste de pressão realizado com êxito."
+
+**Arquitetura:**
+
+```typescript
+// Edge Fn: ai-report-writer (reutiliza ai-proxy)
+// Input: { raw_text: string, os_context: { vehicle, symptoms, parts_used } }
+// Output: { professional_text: string, tokens_used: number }
+
+// Prompt engineering:
+const SYSTEM_PROMPT = `
+Você é um redator técnico especializado em laudos de serviços automotivos.
+Transforme a descrição informal do técnico em linguagem técnica profissional,
+mantendo todas as informações factuais. Tom: objetivo, preciso, norma ABNT NBR.
+`;
+```
+
+**Integração:** Botão "Melhorar com IA" no campo "Descrição do problema/solução" da OS (step 2 e step 6 do wizard). Substitui o texto selecionado com confirmação do técnico.
+
+**Rate limit:** 10 chamadas/hora por usuário (Deno KV, reutiliza padrão ai-proxy).
+
+---
+
+### Módulo 4: CR — Contas a Receber
+
+**Justificativa:** CP sem CR = módulo financeiro incompleto. Orçamento aprovado (quote.signed) deveria gerar automaticamente uma conta a receber.
+
+**Schema:**
+
+```sql
+CREATE TABLE public.receivables (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  team_id         UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  quote_id        UUID REFERENCES public.orcamentos(id) ON DELETE SET NULL,
+  client_id       UUID REFERENCES public.clients(id) ON DELETE SET NULL,
+  description     TEXT NOT NULL,
+  total_amount    NUMERIC(12,2) NOT NULL,
+  status          TEXT NOT NULL DEFAULT 'pendente',  -- pendente|parcial|quitado|cancelado
+  due_date        DATE NOT NULL,
+  created_by      UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_by      UUID REFERENCES public.users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE public.receivable_payments (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  receivable_id UUID NOT NULL REFERENCES public.receivables(id) ON DELETE CASCADE,
+  team_id       UUID NOT NULL,
+  amount        NUMERIC(12,2) NOT NULL,
+  payment_date  DATE NOT NULL,
+  method        TEXT,   -- 'pix'|'boleto'|'transferência'|'dinheiro'
+  notes         TEXT,
+  registered_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+**Aging report (widget dashboard):**
+
+```sql
+-- RPC get_receivables_aging(p_days int DEFAULT 30)
+-- Retorna: { current, d30, d60, d90, over90, total_overdue }
+-- Trigger: quote.signed → INSERT INTO receivables (via enqueue_webhook_event reaproveitado)
+```
+
+**UI:** Página `/financeiro/cr` com lista + filtros status/vencimento + botão "Registrar Pagamento" + widget aging no dashboard (roles: Financeiro, Gestor, Admin, Master).
+
+---
+
 ## Próximas sprints disponíveis
 
 Arquivos completos em `C:\cerebro\Mopar Engenharia\Projeto App Portal Mopar\Sprints\`
@@ -715,8 +878,8 @@ Arquivos completos em `C:\cerebro\Mopar Engenharia\Projeto App Portal Mopar\Spri
 - **Dashboard Real** — ✅ Concluído 2026-05-31 (personalização, 3 novos widgets, período, refresh automático)
 - **Correções s69** — ✅ Concluído 2026-06-04 (FK CP, RPC atômica orçamento, observabilidade IA, ai-proxy versionada)
 - **Holerite PDF** — `gerarHolerite.ts` já existe
-- **Notificações cross-módulo** — alertas SLA, aprovações pendentes, vencimentos CP (próximo passo SAP)
-- **CR (Contas a Receber)** — ciclo financeiro completo: fatura → pagamento → aging
+- **Notificações cross-módulo** — ✅ Sprint H (ver acima)
+- **CR (Contas a Receber)** — ✅ Sprint H (ver acima)
 - **Testes E2E RH/DP/CP** — ✅ Concluído 2026-06-03
 
 ---

@@ -53,19 +53,21 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 
 ---
 
-## Next Development Phase — Sprint H: Developer Experience + Notificações
+## Next Development Phase — Sprint H: Comunicação & Conformidade (~2 semanas)
 
-> Sprint G (Public API) concluída — ERP Integration agora desbloqueada.  
-> Sprint H foca em completar o ciclo de integração e comunicação proativa.
+> Sprint G (Public API) concluída. Sprint H fecha três lacunas críticas do produto:  
+> comunicação proativa (maior gap de UX), compliance legal (LGPD) e ciclo financeiro completo (CR).  
+> Arquitetura detalhada em CLAUDE.md § "Sprint H — Comunicação & Conformidade".
 
-| Módulo | Escopo | Esforço |
-|--------|--------|---------|
-| **Public API DX** | OpenAPI 3.0 spec em `/api/docs` (Swagger UI) · Getting started guide · Postman collection | 2–3 dias |
-| **Notificações** | Email (Resend) + WhatsApp (Evolution API): SLA vencido · aprovação pendente · OS concluída | 1–2 dias |
-| **AI Report Writer** | Free text → linguagem técnica profissional (GPT-4o) para laudos de OS | 1–2 dias |
-| **CR (Contas a Receber)** | Ciclo financeiro completo: fatura → pagamento → aging report | 3–4 dias |
+| Módulo | Escopo | Esforço | Justificativa |
+|--------|--------|---------|---------------|
+| **Notificações** | Email (Resend) + WhatsApp (Evolution API): OS atribuída/concluída · SLA vencendo · aprovação CP · reembolso aprovado/rejeitado · `notification_preferences` + `notification_log` · Edge Fn `notification-dispatcher` | 2–3 dias | Maior gap de UX — a plataforma captura todos os eventos mas não comunica proativamente |
+| **LGPD baseline** | Soft-delete PII em `users` · RPC `anonymize_user_pii()` · `pii_treatment_log` · botão "Remover dados" na UI | 1–2 dias | Requisito legal (Lei 13.709/2018) — custo de remediar pós-escala é exponencial |
+| **AI Report Writer** | Edge Fn `ai-report-writer` · botão "Melhorar com IA" no wizard OS (steps 2+6) · GPT-4o · rate limit 10/hr | 1–2 dias | No workflow central do técnico · alta frequência de uso · diferenciador real |
+| **CR (Contas a Receber)** | Tabelas `receivables` + `receivable_payments` · trigger `quote.signed → receivable` · aging RPC · widget dashboard · página `/financeiro/cr` | 3–4 dias | CP sem CR = módulo financeiro incompleto; pergunta obrigatória em qualquer demo |
 
-**Desbloqueado pela Sprint G:** ERP Integration (TOTVS/SAP/Omie via webhook + adapter por ERP)
+**Desbloqueado pela Sprint G:** ERP Integration (TOTVS/SAP/Omie via webhook + adapter por ERP) — Sprint I  
+**Desbloqueado pela Sprint H:** Public API DX (OpenAPI/Postman — quando houver adoção externa)
 
 ---
 
@@ -80,14 +82,16 @@ All core modules implemented across Sprints A–F + Sessions 31–69:
 | ~~Version `ai-proxy` Edge Function in repository~~ | ✅ Done (s72) | — | ops |
 | Ativar HaveIBeenPwned password protection no Supabase Dashboard | 🔴 Urgent | 2 min | security |
 | AI cost observability: SuperMaster widget + webhook alert por tenant | 🔴 High | 1 day | [pre-ERP] |
-| LGPD baseline: soft-delete de PII por tenant + registro de operações de tratamento | 🔴 High | 1–2 days | compliance |
-| Email notifications (Resend) + WhatsApp (Evolution API) | 🔴 High | 1–2 days | — |
-| AI Report Writer (free text → professional technical language) | 🔴 High | 1–2 days | — |
+| LGPD baseline: soft-delete de PII por tenant + registro de operações de tratamento | 🔴 High | 1–2 days | Sprint H |
+| Email notifications (Resend) + WhatsApp (Evolution API) | 🔴 High | 1–2 days | Sprint H |
+| AI Report Writer (free text → professional technical language) | 🔴 High | 1–2 days | Sprint H |
+| CR (Contas a Receber): fatura → pagamento → aging report | 🔴 High | 3–4 days | Sprint H |
 | Background Sync (Service Worker offline queue auto-sync) | 🟡 Medium | 1 day | — |
 | PWA icons PNG 192×512 for Android/Chrome install | 🟢 Low | hours | — |
 | RAG Analytics — natural language search over reports (pgvector) | 🟡 Strategic | 5–8 days | — |
 | GPS Dispatching Map — real-time technician location tracking | 🟡 Strategic | 5–8 days | — |
-| ERP Integration (TOTVS / SAP / Omie) via webhook + adapter por ERP | 🟡 Strategic | 3–5 days/ERP | ✅ Sprint G concluída |
+| ERP Integration (TOTVS / SAP / Omie) via webhook + adapter por ERP | 🟡 Strategic | 3–5 days/ERP | Sprint I (G concluída) |
+| Public API DX: OpenAPI 3.0 spec + Postman collection | 🟢 Low | 2–3 days | Sprint I ou J |
 | Phase 6 SaaS: subdomain routing per tenant + billing (Stripe) | 🟡 Strategic | 2–3 weeks | — |
 
 ---
