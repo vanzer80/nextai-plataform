@@ -1,0 +1,29 @@
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    - cron: '17 8 * * *'   # diário ~08:17 UTC (evita pico do minuto 0)
+  workflow_dispatch: {}     # fallback manual
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping Supabase (mantém o projeto ativo)
+        run: |
+          set -euo pipefail
+          # PATCH em app_health: leitura + escrita = atividade confirmada pelo Free Tier
+          curl --fail --silent --show-error \
+            -X PATCH "${SUPABASE_URL}/rest/v1/app_health?id=eq.1" \
+            -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=representation" \
+            -d "{\"last_ping\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
