@@ -7,12 +7,12 @@ import { ProtectedRoute, RoleGuard, PlatformGuard } from '@/src/components/auth/
 import AppLayout from '@/src/components/layout/AppLayout';
 import PlatformLayout from '@/src/components/layout/PlatformLayout';
 import ClientPortalLayout from '@/src/components/layout/ClientPortalLayout';
-import Login from '@/src/pages/auth/Login';
 import CsatPage from '@/src/pages/csat/CsatPage';
-const PrivacyPolicy = lazy(() => import('@/src/pages/PrivacyPolicy'));
+const Login          = lazy(() => import('@/src/pages/auth/Login'));
+const PrivacyPolicy  = lazy(() => import('@/src/pages/PrivacyPolicy'));
 import { Toaster } from '@/components/ui/sonner';
 
-// All routes are lazy — only the shell (Login + AppLayout) is in the initial bundle
+// All routes are lazy — only AppLayout is in the initial bundle
 const Dashboard          = lazy(() => import('@/src/pages/dashboard/Dashboard'));
 const ReportsList        = lazy(() => import('@/src/pages/reports/ReportsList'));
 const NewReport          = lazy(() => import('@/src/pages/reports/NewReport'));
@@ -63,6 +63,8 @@ const PayablesList       = lazy(() => import('@/src/pages/cp/PayablesList'));
 const PayableForm        = lazy(() => import('@/src/pages/cp/PayableForm'));
 const PayableDetail      = lazy(() => import('@/src/pages/cp/PayableDetail'));
 
+const NotFound               = lazy(() => import('@/src/pages/NotFound'));
+
 // Platform admin pages (SuperMaster only)
 const PlatformTenants       = lazy(() => import('@/src/pages/platform/PlatformTenants'));
 const PlatformUsers         = lazy(() => import('@/src/pages/platform/PlatformUsers'));
@@ -87,7 +89,7 @@ export default function App() {
       <BrowserRouter>
         <OnboardingProvider>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<Suspense fallback={null}><Login /></Suspense>} />
           {/* Public pages — no auth required */}
           <Route path="/csat/:token" element={<CsatPage />} />
           <Route path="/privacy" element={<Suspense fallback={null}><PrivacyPolicy /></Suspense>} />
@@ -221,6 +223,9 @@ export default function App() {
                 <Route path="/cp/:id"                    element={<PayableDetail />} />
                 <Route path="/cp/:id/edit"               element={<PayableForm />} />
               </Route>
+
+              {/* Catch-all para rotas autenticadas desconhecidas → 404 amigável */}
+              <Route path="*" element={<NotFound />} />
             </Route>
           </Route>
 
