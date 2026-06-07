@@ -9,7 +9,7 @@ export const platformTour: TourModule = {
       route: '/platform/tenants',
       popover: {
         title: 'Gerenciamento de Tenants',
-        description: 'Visão completa de todas as empresas na plataforma: status, data de criação, usuários ativos. Você é o SuperMaster — acesso cross-tenant para suporte e operação da NextAI.',
+        description: 'Visão completa de todas as empresas na plataforma: status, data de criação, usuários ativos. O menu ⋯ de cada empresa oferece Editar, Ver Usuários, Suspender/Ativar e Deletar empresa (ação SuperMaster — irreversível no modo hard delete).',
         side: 'bottom',
       },
       roles: ['SuperMaster'],

@@ -7,6 +7,7 @@ import {
   Plus, Globe, Loader2, Palette, MoreHorizontal,
   Pencil, Image as ImageIcon, Users, PowerOff, Power, Search,
   Phone, Globe2, Building2, Mail, Hash, MapPin, FileText,
+  Trash2, RotateCcw, Eye, EyeOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
@@ -86,7 +87,10 @@ interface TenantRow {
   user_count: number;
   master_name: string | null;
   master_email: string | null;
+  deleted_at: string | null;
 }
+
+type DeleteMode = 'soft' | 'hard';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -163,6 +167,8 @@ export default function PlatformTenants() {
   const createLogoRef = useRef<HTMLInputElement>(null);
   const [slugTouched, setSlugTouched]     = useState(false);
 
+  const isRestoringRef = useRef(false);
+
   // Edit sheet
   const [editingTenant, setEditingTenant]         = useState<TenantRow | null>(null);
   const [isEditOpen, setIsEditOpen]               = useState(false);
@@ -176,6 +182,13 @@ export default function PlatformTenants() {
   // Toggle active
   const [toggleTarget, setToggleTarget] = useState<TenantRow | null>(null);
   const [togglingId, setTogglingId]     = useState<string | null>(null);
+
+  // Delete
+  const [deleteTarget, setDeleteTarget]       = useState<TenantRow | null>(null);
+  const [deleteMode, setDeleteMode]           = useState<DeleteMode>('soft');
+  const [confirmSlugInput, setConfirmSlugInput] = useState('');
+  const [isDeleting, setIsDeleting]           = useState(false);
+  const [showDeleted, setShowDeleted]         = useState(false);
 
   // Forms
   const createForm = useForm<CreateFormValues>({
@@ -221,10 +234,12 @@ export default function PlatformTenants() {
 
   // ── Data fetching ──────────────────────────────────────────────────────────
 
-  const fetchTenants = async () => {
+  const fetchTenants = async (includeDeleted = showDeleted) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.rpc('get_platform_tenants');
+      const { data, error } = await supabase.rpc('get_platform_tenants', {
+        p_include_deleted: includeDeleted,
+      });
       if (error) throw error;
       setTenants((data ?? []) as TenantRow[]);
     } catch (err: unknown) {
@@ -234,7 +249,7 @@ export default function PlatformTenants() {
     }
   };
 
-  useEffect(() => { fetchTenants(); }, []);
+  useEffect(() => { fetchTenants(showDeleted); }, [showDeleted]);
 
   // ── CEP auto-fill ──────────────────────────────────────────────────────────
 
@@ -420,6 +435,72 @@ export default function PlatformTenants() {
     }
   };
 
+  const openDelete = (t: TenantRow) => {
+    setDeleteTarget(t);
+    setDeleteMode('soft');
+    setConfirmSlugInput('');
+  };
+
+  const closeDelete = () => {
+    setDeleteTarget(null);
+    setConfirmSlugInput('');
+    setDeleteMode('soft');
+  };
+
+  const handleSoftDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.rpc('soft_delete_tenant', { p_tenant_id: deleteTarget.id });
+      if (error) throw error;
+      toast.success(`"${deleteTarget.name}" removida do sistema.`, {
+        description: 'Os dados foram preservados. Use "Mostrar removidas" para restaurar.',
+      });
+      closeDelete();
+      await fetchTenants();
+    } catch (err: unknown) {
+      toast.error('Erro ao remover empresa', { description: (err as Error).message });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleHardDelete = async () => {
+    if (!deleteTarget || confirmSlugInput !== deleteTarget.slug) return;
+    setIsDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-delete-tenant', {
+        body: { tenantId: deleteTarget.id, confirmSlug: deleteTarget.slug },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      toast.success(`"${deleteTarget.name}" deletada permanentemente.`, {
+        description: `${data?.deletedUsers ?? 0} usuário(s) removido(s).`,
+      });
+      closeDelete();
+      await fetchTenants();
+    } catch (err: unknown) {
+      toast.error('Erro ao deletar empresa', { description: (err as Error).message });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleRestore = async (t: TenantRow) => {
+    if (isRestoringRef.current) return;
+    isRestoringRef.current = true;
+    try {
+      const { error } = await supabase.rpc('restore_tenant', { p_tenant_id: t.id });
+      if (error) throw error;
+      toast.success(`"${t.name}" restaurada com sucesso.`);
+      await fetchTenants();
+    } catch (err: unknown) {
+      toast.error('Erro ao restaurar empresa', { description: (err as Error).message });
+    } finally {
+      isRestoringRef.current = false;
+    }
+  };
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -434,14 +515,24 @@ export default function PlatformTenants() {
           </h1>
           <p className="text-sm text-muted-foreground">Gerencie as empresas clientes da plataforma NextAI.</p>
         </div>
-        <Button
-          onClick={() => setIsCreateOpen(true)}
-          data-onboarding="platform-tenants-novo"
-          className="h-11 px-6 rounded-xl font-semibold w-full sm:w-auto"
-        >
-          <Plus className="h-5 w-5 mr-1 -ml-1" />
-          Nova Empresa
-        </Button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            onClick={() => setShowDeleted(v => !v)}
+            className="h-11 px-4 rounded-xl font-semibold flex-1 sm:flex-none"
+          >
+            {showDeleted ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+            {showDeleted ? 'Ocultar removidas' : 'Mostrar removidas'}
+          </Button>
+          <Button
+            onClick={() => setIsCreateOpen(true)}
+            data-onboarding="platform-tenants-novo"
+            className="h-11 px-6 rounded-xl font-semibold flex-1 sm:flex-none"
+          >
+            <Plus className="h-5 w-5 mr-1 -ml-1" />
+            Nova Empresa
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
@@ -526,9 +617,11 @@ export default function PlatformTenants() {
 
                     {/* Status */}
                     <TableCell>
-                      {t.is_active
-                        ? <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300 border-0">Ativa</Badge>
-                        : <Badge className="bg-muted text-muted-foreground border-0">Inativa</Badge>
+                      {t.deleted_at
+                        ? <Badge className="bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400 border-0">Removida</Badge>
+                        : t.is_active
+                          ? <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300 border-0">Ativa</Badge>
+                          : <Badge className="bg-muted text-muted-foreground border-0">Inativa</Badge>
                       }
                     </TableCell>
 
@@ -549,17 +642,19 @@ export default function PlatformTenants() {
                             : <MoreHorizontal className="h-4 w-4" />
                           }
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44 rounded-xl">
-                          <DropdownMenuItem className="cursor-pointer font-medium" onClick={() => openEdit(t)}>
-                            <Pencil className="mr-2 h-4 w-4" /> Editar
-                          </DropdownMenuItem>
+                        <DropdownMenuContent align="end" className="w-48 rounded-xl">
+                          {!t.deleted_at && (
+                            <DropdownMenuItem className="cursor-pointer font-medium" onClick={() => openEdit(t)}>
+                              <Pencil className="mr-2 h-4 w-4" /> Editar
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem
                             className="cursor-pointer font-medium"
                             onClick={() => navigate(`/platform/users?tenant_id=${t.id}`)}
                           >
                             <Users className="mr-2 h-4 w-4" /> Ver Usuários
                           </DropdownMenuItem>
-                          {!t.is_platform && (
+                          {!t.is_platform && !t.deleted_at && (
                             <DropdownMenuItem
                               variant="destructive"
                               className="cursor-pointer font-medium"
@@ -569,6 +664,23 @@ export default function PlatformTenants() {
                                 ? <><PowerOff className="mr-2 h-4 w-4" /> Suspender</>
                                 : <><Power className="mr-2 h-4 w-4" /> Ativar</>
                               }
+                            </DropdownMenuItem>
+                          )}
+                          {!t.is_platform && t.deleted_at && (
+                            <DropdownMenuItem
+                              className="cursor-pointer font-medium text-emerald-600 focus:text-emerald-600"
+                              onClick={() => handleRestore(t)}
+                            >
+                              <RotateCcw className="mr-2 h-4 w-4" /> Restaurar
+                            </DropdownMenuItem>
+                          )}
+                          {!t.is_platform && (
+                            <DropdownMenuItem
+                              variant="destructive"
+                              className="cursor-pointer font-medium"
+                              onClick={() => openDelete(t)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Deletar empresa
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
@@ -1000,6 +1112,142 @@ export default function PlatformTenants() {
             >
               {toggleTarget?.is_active ? 'Confirmar suspensão' : 'Confirmar ativação'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Dialog ──────────────────────────────────────────────────── */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open && !isDeleting) closeDelete(); }}>
+        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden rounded-2xl">
+          <DialogHeader className="p-6 pb-4 border-b border-border bg-muted/40">
+            <DialogTitle className="text-lg font-bold flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-destructive" />
+              Deletar empresa
+            </DialogTitle>
+            <DialogDescription>
+              <span className="font-semibold text-foreground">{deleteTarget?.name}</span>
+              {' · slug: '}
+              <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{deleteTarget?.slug}</code>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-6 space-y-5">
+            {/* Seletor de modo */}
+            <div className="grid grid-cols-1 gap-3" role="radiogroup" aria-label="Modo de deleção">
+              {/* Modo A — Soft delete */}
+              <label
+                htmlFor="mode-soft"
+                className={`flex items-start gap-3 rounded-xl border-2 p-4 cursor-pointer transition-colors ${
+                  deleteMode === 'soft'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-muted-foreground/40'
+                }`}
+              >
+                <input
+                  type="radio"
+                  id="mode-soft"
+                  name="delete-mode"
+                  value="soft"
+                  checked={deleteMode === 'soft'}
+                  onChange={() => { setDeleteMode('soft'); setConfirmSlugInput(''); }}
+                  className="mt-0.5 shrink-0 accent-primary"
+                />
+                <div className="space-y-0.5">
+                  <p className="font-semibold text-sm text-foreground">Remover do sistema</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    A empresa some da listagem, mas nenhum dado é apagado do banco. Reversível — você pode restaurar depois.
+                  </p>
+                </div>
+              </label>
+
+              {/* Modo B — Hard delete */}
+              <label
+                htmlFor="mode-hard"
+                className={`flex items-start gap-3 rounded-xl border-2 p-4 cursor-pointer transition-colors ${
+                  deleteMode === 'hard'
+                    ? 'border-destructive bg-destructive/5'
+                    : 'border-border hover:border-muted-foreground/40'
+                }`}
+              >
+                <input
+                  type="radio"
+                  id="mode-hard"
+                  name="delete-mode"
+                  value="hard"
+                  checked={deleteMode === 'hard'}
+                  onChange={() => { setDeleteMode('hard'); setConfirmSlugInput(''); }}
+                  className="mt-0.5 shrink-0 accent-destructive"
+                />
+                <div className="space-y-0.5">
+                  <p className="font-semibold text-sm text-destructive">Deletar do banco de dados</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Apaga permanentemente todos os dados, usuários e arquivos da empresa.
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            {/* Aviso e confirmação hard delete */}
+            {deleteMode === 'hard' && (
+              <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 space-y-3">
+                <p className="text-sm font-semibold text-destructive leading-relaxed">
+                  ⚠️ Esta ação é IRREVERSÍVEL. Todos os dados, usuários e arquivos da empresa serão
+                  permanentemente apagados do banco de dados e NÃO poderão ser recuperados.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Serão apagados: <strong>{deleteTarget?.user_count ?? 0} usuário(s)</strong>, todos os
+                  registros, OS, orçamentos, arquivos de storage e dados fiscais de{' '}
+                  <strong className="text-foreground">{deleteTarget?.name}</strong>.
+                </p>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">
+                    Digite o slug{' '}
+                    <code className="bg-muted px-1 py-0.5 rounded font-mono">{deleteTarget?.slug}</code>{' '}
+                    para confirmar:
+                  </Label>
+                  <Input
+                    value={confirmSlugInput}
+                    onChange={(e) => setConfirmSlugInput(e.target.value)}
+                    placeholder={deleteTarget?.slug ?? ''}
+                    className="h-10 rounded-lg font-mono text-sm"
+                    autoComplete="off"
+                    disabled={isDeleting}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="p-6 pt-4 border-t border-border bg-muted/40 sm:justify-end gap-2">
+            <Button
+              variant="outline"
+              className="rounded-lg h-10 font-semibold"
+              onClick={closeDelete}
+              disabled={isDeleting}
+            >
+              Cancelar
+            </Button>
+            {deleteMode === 'soft' ? (
+              <Button
+                variant="destructive"
+                className="rounded-lg h-10 font-semibold"
+                onClick={handleSoftDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Remover do sistema
+              </Button>
+            ) : (
+              <Button
+                variant="destructive"
+                className="rounded-lg h-10 font-semibold"
+                onClick={handleHardDelete}
+                disabled={isDeleting || confirmSlugInput !== deleteTarget?.slug}
+              >
+                {isDeleting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Deletar permanentemente
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
