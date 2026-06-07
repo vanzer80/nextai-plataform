@@ -172,7 +172,7 @@ Labels usam `text-sidebar-foreground/40` (nunca `text-muted-foreground` — fica
 `os-import-processor` v7 (X-API-Key + Bearer JWT · scope orders:write · mode json/pdf · **template registry** Decathlon + **IA híbrida** Gemini→OpenAI · per-field confidence scores · resolução client/técnico · `os_import_log` · `import_confidence` em service_reports)  
 `webhook-dispatcher` v2 (HMAC-SHA256 · retry 6× backoff [0,1m,5m,30m,2h,24h] · dead = attempts ≥ 6)  
 `admin-create-user` v4 · `admin-delete-user` v3 · `admin-reset-password` v1  
-`admin-provision-tenant` v1 · `platform-update-user` v1 · `sla-checker` v1 · `send-csat-email` v1
+`admin-provision-tenant` v1 · `admin-delete-tenant` v1 · `platform-update-user` v1 · `sla-checker` v1 · `send-csat-email` v1
 
 Secrets (nunca no .env): `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, `OPENAI_API_KEY`
 
@@ -843,6 +843,71 @@ form.setValue('address_state', json.uf.toUpperCase());
 ### Onboarding
 - `company-profile.tour.ts` — 2 steps, roles `['Gestor','Admin','Master']`
 - `platformCompanyProfileTour` (mesmo arquivo) — 1 step, role `['SuperMaster']`
+
+---
+
+## Deletar Empresa (SuperMaster) — concluído 2026-06-06
+
+### Migration `20260606_tenant_delete`
+
+```sql
+-- Nova coluna
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+
+-- Tabela de auditoria (tenant_id sem FK — preserva histórico após hard delete)
+CREATE TABLE public.tenant_deletion_log (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id   UUID,
+  tenant_slug TEXT NOT NULL,
+  tenant_name TEXT NOT NULL,
+  operation   TEXT NOT NULL CHECK (operation IN ('soft', 'hard', 'restore')),
+  deleted_by  UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  user_count  INTEGER NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- RLS: FOR SELECT USING (is_platform_master())
+
+-- RPCs SECURITY DEFINER (armadilha #50: DROP + CREATE)
+get_platform_tenants(p_include_deleted boolean DEFAULT false)
+  → mesmas 26 colunas anteriores + deleted_at
+  → WHERE (p_include_deleted OR t.deleted_at IS NULL)
+
+soft_delete_tenant(p_tenant_id uuid) → void
+  -- guards: is_platform_master(), NOT is_platform, NOT já deletado
+  -- seta deleted_at = now(), insere log
+
+restore_tenant(p_tenant_id uuid) → void
+  -- guards: is_platform_master(), IS deletado
+  -- seta deleted_at = NULL, insere log
+```
+
+### Edge Function `admin-delete-tenant` v1
+
+Sequência de hard delete (irreversível):
+```
+(0) UPDATE tenants SET deleted_at = now()   ← mitigação atomicidade: crash = tenant invisível, não zumbi
+(a) auth.admin.deleteUser para cada usuário
+(b) DELETE FROM <ORPHAN_PURGE_TABLES>        ← ON DELETE SET NULL; apagamos para não deixar orphans
+(c) Storage: remove tenant-assets/{slug}/
+(d) DELETE FROM tenants                      ← CASCADE apaga 25 tabelas filhas
+(e) INSERT INTO tenant_deletion_log
+```
+
+`ORPHAN_PURGE_TABLES` = service_reports, clients, orcamentos, equipments, material_requests,
+notifications, checklist_templates, reimbursements, sites (FKs ON DELETE SET NULL).
+
+Guards: JWT via `callerClient.auth.getUser()` · SuperMaster check via service_role ·
+auto-deleção bloqueada · confirmSlug validado servidor-side · is_platform bloqueado.
+
+### Frontend `PlatformTenants.tsx`
+
+- Toggle "Mostrar removidas / Ocultar removidas" no header → `get_platform_tenants(true/false)`
+- Badge "Removida" (vermelho) na coluna Status quando `deleted_at` não é null
+- Menu ⋯: "Editar" oculto quando `deleted_at` não é null (fluxo: restaurar → depois editar)
+- Menu ⋯: "Restaurar" (verde) só para `!is_platform && deleted_at`
+- Menu ⋯: "Deletar empresa" abre Dialog com seletor Modo A / Modo B
+  - Modo A (soft): RPC `soft_delete_tenant`; reversível
+  - Modo B (hard): Edge Function; exige digitar slug exato; irreversível
 
 ---
 
