@@ -52,6 +52,7 @@
     "autoprefixer": "^10.4.21",
     "dotenv": "^17.2.3",
     "jsdom": "^25.0.1",
+    "rollup-plugin-visualizer": "^7.0.1",
     "shadcn": "^4.2.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",

@@ -268,6 +268,8 @@ get_dashboard_agenda_kpis()            → jsonb  -- os_hoje, tecnicos_hoje, cri
 55. **`req.json()` sem validação de Content-Type → 500 opaco** → se o client enviar body sem `Content-Type: application/json` ou com body malformado, `req.json()` lança exceção não tratada e o catch genérico retorna 500. Validar Content-Type antes de chamar `.json()` e retornar 415 explícito.
 56. **GET com `!inner` join perde registros quando FK é deletada** → `.select("..., users!inner(team_id)")` filtra fora silenciosamente todo registro cujo `user_id` não existe mais em `users` (usuário deletado). Para isolamento de tenant, sempre preferir `team_id` direto na tabela do recurso — o projeto tem `team_id` em todas as tabelas principais.
 57. **Rate limit 1k/hr bloqueia qualquer batch ERP com >1k registros** → sync noturno de 5.000 OS esgota o limite na primeira hora, travando a integração até reset. Antes de onboarding enterprise, implementar tiers (Basic/Pro/Enterprise) ou o cliente simplesmente não consegue usar a API para o caso de uso principal.
+58. **RLS performance — sempre `(SELECT auth.uid())`, nunca `auth.uid()` raw** → `auth.uid()` direto numa policy USING/WITH CHECK é reavaliado para cada linha da tabela (O(n) por query). `(SELECT auth.uid())` cria um init plan: avaliado uma vez por query e cacheado. Mesmo problema com `auth.role()`. O lint do Supabase `auth_rls_initplan` detecta o anti-pattern. Toda policy nova deve usar a forma wrapped.
+59. **Toda tabela com `team_id` precisa de índice em `team_id`** → a RLS filtra por `team_id = get_caller_team_id()` em todo SELECT de usuário autenticado. Sem índice = seq scan completo na tabela a cada read. Sempre criar `CREATE INDEX IF NOT EXISTS idx_<tabela>_team_id ON public.<tabela>(team_id)` no mesmo migration da tabela.
 
 ## Padrões de Segurança (s72)
 
@@ -1408,3 +1410,121 @@ cd audit && npm run check:axe
 ### Armadilha nova (não repetir)
 
 36. **`git stash` não captura arquivos untracked** — ao fazer `git stash` em branch que tem diretório não versionado (como `audit/`), os arquivos untracked NÃO são stashados. Ao mudar de branch e commitar esses arquivos no novo branch, eles ficam tracked lá. Ao voltar ao branch original, git remove esses arquivos tracked do working tree. Solução: `git stash -u` para incluir untracked, ou gerenciar os arquivos separadamente.
+
+37. **`manualChunks` com array não captura `react-dom/client`** — `import { createRoot } from 'react-dom/client'` resolve para `react-dom/cjs/react-dom-client.production.js` (93 kB gzip-equiv). O formato objeto/array do manualChunks usa `id.includes('/node_modules/react-dom/')` internamente, mas isso só capturou o stub `react-dom.production.js` (1.8 kB), não o `react-dom-client`. Solução: converter para função com regex ancorada: `/node_modules[/\\]react-dom[/\\]/`.
+
+38. **`id.includes('react-dom')` faz match em `@floating-ui/react-dom`** — ao usar `id.includes('react-dom')` para atribuir ao `vendor-react`, o pacote `@floating-ui/react-dom` (dependência de `@base-ui/react`) também faz match, criando um circular chunk `vendor-ui → vendor-react → vendor-ui`. Solução: usar regex ancorada `/node_modules[/\\]react-dom[/\\]/` E adicionar `@floating-ui` explicitamente ao `vendor-ui`.
+
+---
+
+## Bundle Optimization — concluído 2026-06-07
+
+### Root cause
+
+`react-dom/cjs/react-dom-client.production.js` (93 kB gzip-equiv, módulo `createRoot` do React 18) estava no chunk principal porque o `manualChunks` em formato objeto/array apenas capturava o stub `react-dom.production.js` (1.8 kB), não o arquivo específico `react-dom-client.production.js`.
+
+### Fix aplicado — `vite.config.ts`
+
+Convertido `manualChunks` de objeto/array para função com regex ancorada:
+
+```js
+manualChunks(id) {
+  if (!id.includes('node_modules')) return;
+  if (/node_modules[/\\]react-dom[/\\]/.test(id))     return 'vendor-react';
+  if (/node_modules[/\\]react-router/.test(id))        return 'vendor-react';
+  if (/node_modules[/\\]react[/\\]/.test(id))          return 'vendor-react';
+  if (/node_modules[/\\]scheduler[/\\]/.test(id))      return 'vendor-react';
+  if (id.includes('@supabase'))                         return 'vendor-supabase';
+  if (id.includes('recharts'))                          return 'vendor-charts';
+  if (id.includes('jspdf'))                             return 'vendor-pdf';
+  if (id.includes('xlsx'))                              return 'vendor-xlsx';
+  if (id.includes('@base-ui'))                          return 'vendor-ui';
+  if (id.includes('@floating-ui'))                      return 'vendor-ui';
+  if (id.includes('sonner'))                            return 'vendor-ui';
+  if (id.includes('next-themes'))                       return 'vendor-ui';
+  if (id.includes('driver.js'))                         return 'vendor-driver';
+  if (id.includes('tailwind-merge'))                    return 'vendor-utils';
+}
+```
+
+Também adicionado `rollup-plugin-visualizer` para análise de composição de chunks (`dist/stats.html`).
+
+### Resultado
+
+| Chunk | Antes | Depois |
+|---|---|---|
+| `index-*.js` (principal) | **110.19 kB gzip** | **44.73 kB gzip** ✅ |
+| `vendor-react-*.js` | 17 kB (stub) | 74.50 kB (react-dom-client incluído) |
+| `vendor-ui-*.js` | 76.80 kB | 78.41 kB (@floating-ui incluído) |
+| `vendor-utils-*.js` | — | 8.23 kB (tailwind-merge separado) |
+
+Gate: tsc EXIT:0, vitest 117/117, chunk principal 44.73 kB ≤ 100 kB ✅
+
+---
+
+## Auditoria QA + Hardening de Escala — concluído 2026-06-07
+
+Commits: `af996ef` (a11y/404/login) · `9ce7fa4` (touch-targets) · `5d00e0d` (CI harness) · `16ea4b8` (bundle) · `897c886` (DB Fases 2+3) · `07c4b57` (DB Fase 4)
+
+### QA Harness automatizado
+
+`audit/` — Playwright + axe-core + Lighthouse rodando contra produção:
+- `run-audit.mjs` com `waitForAppReady()` — aguarda `/rest/v1/users?...` responder antes de auditar; resolve falso-negativo do cold-start do free tier (app renderizava antes do DB acordar)
+- `check-axe-diff.mjs` — diff contra `baseline-axe.json`; falha apenas em NEW critical/serious (não regride em violações pré-existentes aceitas)
+- `.github/workflows/a11y-audit.yml` — CI por PR com concurrency cancel + upload de artefatos; secrets `AUDIT_BASE_URL`, `AUDIT_USER`, `AUDIT_PASS`
+
+### Fixes a11y, 404 e Login
+
+| Fix | Arquivo | Detalhe |
+|---|---|---|
+| aria-labels botão sino | `AppLayout.tsx:364` | Label dinâmico com contagem; `Bell aria-hidden` |
+| aria-label menu mobile | `AppLayout.tsx:604` | `aria-label="Menu principal"`; `Menu aria-hidden` |
+| nested-interactive | `AppLayout.tsx:223` | `SheetTrigger asChild` + `<button>` interno eliminados |
+| Página 404 | `NotFound.tsx` + `App.tsx:228` | `<Route path="*">` dentro de `<AppLayout>` → `NotFound` lazy |
+| Login Zod | `Login.tsx` | `loginSchema` + `zodResolver` + `role="alert"` + `aria-invalid` |
+| Login lazy | `App.tsx:11` | `Login = lazy(...)` → RHF+Zod saem do initial bundle (110→44.7 kB gzip) |
+| Touch targets | 5 arquivos | Área de clique expandida para ≥24px crítico (WCAG 2.5.8 AA) em sino, hamburger, DropdownTrigger |
+
+### Keep-alive Supabase
+
+`supabase-keepalive.yml` + migration `20260607_app_health` — GitHub Actions faz PATCH em `app_health(id=1, last_ping)` às 08:17 UTC via `SUPABASE_SERVICE_ROLE_KEY`. Tabela singleton RLS sem policies (deny-all público; BYPASSRLS apenas para service_role). Eliminou os "Failed to fetch" de projetos hibernando após 7 dias sem atividade.
+
+### Cross-browser responsivo
+
+Chromium + Firefox + WebKit × 4 viewports (390, 768, 1280, 1440) — **0 overflows** em todas as combinações.
+
+### Prontidão de escala do banco (DBA audit)
+
+| Fase | O que foi feito |
+|---|---|
+| **Fase 0** — Reconhecimento | P5 eliminado: 7/8 tabelas têm `DEFAULT get_caller_team_id()` na coluna; employees passa `team_id` explícito no service. Tabelas filhas sem team_id (documentos, itens de checklist) isoladas via FK — correto por design. |
+| **Fase 2** — Índices | 12 índices `CREATE INDEX … team_id` + 3 FK `idx_employee_*_employee_id` (`897c886`) |
+| **Fase 3** — service_types | Policy `team_isolation` migrada de raw subquery `(SELECT users.team_id … WHERE id = auth.uid())` para `get_caller_team_id()` |
+| **Fase 4** — RLS initplan | 62 policies `auth.uid()` → `(SELECT auth.uid())` + 2 policies `auth.role()` → `(SELECT auth.role())` em `sites` e `equipments` (`07c4b57`) |
+
+Gate triplo Fase 4: **(a)** `auth_rls_initplan = 0` no advisor de performance; **(b)** isolamento cross-tenant intacto (Mopar vê 75 OS, nextai vê 0; DB truth confirma que nextai tem 0 registros próprios); **(c)** zero novos alertas no advisor de segurança (67 WARNs todos pré-existentes).
+
+---
+
+## Roadmap — Prontidão de Escala do Banco
+
+| # | Item | Status |
+|---|------|--------|
+| 1 | GitHub Actions keep-alive Supabase | ✅ Concluído (2026-06-07) |
+| 2 | 15 índices `team_id` + FK `employee_*` | ✅ Concluído (2026-06-07 — `897c886`) |
+| 3 | `service_types` RLS → `get_caller_team_id()` | ✅ Concluído (2026-06-07) |
+| 4 | `auth_rls_initplan` eliminado em 64 policies | ✅ Concluído (2026-06-07 — `07c4b57`) |
+| 5 | P5 — writes sem `team_id` | ✅ Falso-positivo — DEFAULTs existem |
+| 6 | P6 — cursor pagination cursor composto | 🔲 Pendente — ver Pendências |
+| 7 | `multiple_permissive_policies` | 🔲 Pendente — ver Pendências |
+| 8 | Read replica | 🔲 Pendente — ver Pendências |
+
+---
+
+## Pendências — abertos com gatilho de ativação
+
+| Item | Descrição | Gatilho para agir |
+|------|-----------|-------------------|
+| **P6 — Cursor pagination composto** | Listagens da API paginam por `created_at` único; batch inserts com timestamps idênticos perdem registros. Fix: cursor composto `(created_at, id)` com `.or("created_at.lt.X,and(created_at.eq.X,id.lt.Y)")`. Ver armadilha #54. | Antes do onboarding real do primeiro cliente enterprise que faça sync noturno em batch |
+| **multiple_permissive_policies** | Supabase lint: várias policies permissivas (FOR SELECT OR …) na mesma tabela combinam em `OR` — PostgreSQL avalia todas mesmo se a primeira satisfizer. Consolidar em policy única com lógica `OR` explícita. | Quando CPU do Supabase virar gargalo mensurável após os fixes de initplan |
+| **Read replica** | Rotear queries de leitura pesada (relatórios, dashboard, listagens paginadas) para réplica Supabase. | Somente no plano Pro+ e somente se CPU do primary saturar após os fixes de initplan; não antecipar |
