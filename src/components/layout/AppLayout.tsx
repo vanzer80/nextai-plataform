@@ -357,10 +357,14 @@ function NotificationsDropdown({ notifications, unreadCount, onMarkAsRead }: Not
   const navigate = useNavigate();
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger data-onboarding="nav-notificacoes" className="relative p-2 rounded-full hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <Bell className="h-5 w-5 text-sidebar-foreground/80 hover:text-sidebar-foreground transition-colors" />
+      <DropdownMenuTrigger
+        data-onboarding="nav-notificacoes"
+        aria-label={unreadCount > 0 ? `Notificações, ${unreadCount} não lidas` : 'Notificações'}
+        className="relative p-2 rounded-full hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Bell className="h-5 w-5 text-sidebar-foreground/80 hover:text-sidebar-foreground transition-colors" aria-hidden="true" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 h-2.5 w-2.5 bg-destructive rounded-full border-2 border-sidebar animate-pulse" />
+          <span aria-hidden="true" className="absolute top-1 right-1 h-2.5 w-2.5 bg-destructive rounded-full border-2 border-sidebar animate-pulse" />
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 p-0" sideOffset={8}>
@@ -594,8 +598,11 @@ export default function AppLayout() {
           </div>
 
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-            <SheetTrigger className="inline-flex items-center justify-center shrink-0 h-10 w-10 rounded-md text-sidebar-foreground hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <Menu className="h-6 w-6" />
+            <SheetTrigger
+              aria-label="Menu principal"
+              className="inline-flex items-center justify-center shrink-0 h-10 w-10 rounded-md text-sidebar-foreground hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Menu className="h-6 w-6" aria-hidden="true" />
             </SheetTrigger>
             <SheetContent side="right" className="w-[80vw] sm:w-[350px] bg-sidebar text-sidebar-foreground border-l border-sidebar-border p-0 flex flex-col">
               <SheetHeader className="p-6 text-left border-b border-sidebar-border shrink-0">
