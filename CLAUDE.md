@@ -1408,3 +1408,52 @@ cd audit && npm run check:axe
 ### Armadilha nova (não repetir)
 
 36. **`git stash` não captura arquivos untracked** — ao fazer `git stash` em branch que tem diretório não versionado (como `audit/`), os arquivos untracked NÃO são stashados. Ao mudar de branch e commitar esses arquivos no novo branch, eles ficam tracked lá. Ao voltar ao branch original, git remove esses arquivos tracked do working tree. Solução: `git stash -u` para incluir untracked, ou gerenciar os arquivos separadamente.
+
+37. **`manualChunks` com array não captura `react-dom/client`** — `import { createRoot } from 'react-dom/client'` resolve para `react-dom/cjs/react-dom-client.production.js` (93 kB gzip-equiv). O formato objeto/array do manualChunks usa `id.includes('/node_modules/react-dom/')` internamente, mas isso só capturou o stub `react-dom.production.js` (1.8 kB), não o `react-dom-client`. Solução: converter para função com regex ancorada: `/node_modules[/\\]react-dom[/\\]/`.
+
+38. **`id.includes('react-dom')` faz match em `@floating-ui/react-dom`** — ao usar `id.includes('react-dom')` para atribuir ao `vendor-react`, o pacote `@floating-ui/react-dom` (dependência de `@base-ui/react`) também faz match, criando um circular chunk `vendor-ui → vendor-react → vendor-ui`. Solução: usar regex ancorada `/node_modules[/\\]react-dom[/\\]/` E adicionar `@floating-ui` explicitamente ao `vendor-ui`.
+
+---
+
+## Bundle Optimization — concluído 2026-06-07
+
+### Root cause
+
+`react-dom/cjs/react-dom-client.production.js` (93 kB gzip-equiv, módulo `createRoot` do React 18) estava no chunk principal porque o `manualChunks` em formato objeto/array apenas capturava o stub `react-dom.production.js` (1.8 kB), não o arquivo específico `react-dom-client.production.js`.
+
+### Fix aplicado — `vite.config.ts`
+
+Convertido `manualChunks` de objeto/array para função com regex ancorada:
+
+```js
+manualChunks(id) {
+  if (!id.includes('node_modules')) return;
+  if (/node_modules[/\\]react-dom[/\\]/.test(id))     return 'vendor-react';
+  if (/node_modules[/\\]react-router/.test(id))        return 'vendor-react';
+  if (/node_modules[/\\]react[/\\]/.test(id))          return 'vendor-react';
+  if (/node_modules[/\\]scheduler[/\\]/.test(id))      return 'vendor-react';
+  if (id.includes('@supabase'))                         return 'vendor-supabase';
+  if (id.includes('recharts'))                          return 'vendor-charts';
+  if (id.includes('jspdf'))                             return 'vendor-pdf';
+  if (id.includes('xlsx'))                              return 'vendor-xlsx';
+  if (id.includes('@base-ui'))                          return 'vendor-ui';
+  if (id.includes('@floating-ui'))                      return 'vendor-ui';
+  if (id.includes('sonner'))                            return 'vendor-ui';
+  if (id.includes('next-themes'))                       return 'vendor-ui';
+  if (id.includes('driver.js'))                         return 'vendor-driver';
+  if (id.includes('tailwind-merge'))                    return 'vendor-utils';
+}
+```
+
+Também adicionado `rollup-plugin-visualizer` para análise de composição de chunks (`dist/stats.html`).
+
+### Resultado
+
+| Chunk | Antes | Depois |
+|---|---|---|
+| `index-*.js` (principal) | **110.19 kB gzip** | **44.73 kB gzip** ✅ |
+| `vendor-react-*.js` | 17 kB (stub) | 74.50 kB (react-dom-client incluído) |
+| `vendor-ui-*.js` | 76.80 kB | 78.41 kB (@floating-ui incluído) |
+| `vendor-utils-*.js` | — | 8.23 kB (tailwind-merge separado) |
+
+Gate: tsc EXIT:0, vitest 117/117, chunk principal 44.73 kB ≤ 100 kB ✅
