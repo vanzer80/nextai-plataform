@@ -63,6 +63,8 @@ const PayablesList       = lazy(() => import('@/src/pages/cp/PayablesList'));
 const PayableForm        = lazy(() => import('@/src/pages/cp/PayableForm'));
 const PayableDetail      = lazy(() => import('@/src/pages/cp/PayableDetail'));
 
+const NotFound               = lazy(() => import('@/src/pages/NotFound'));
+
 // Platform admin pages (SuperMaster only)
 const PlatformTenants       = lazy(() => import('@/src/pages/platform/PlatformTenants'));
 const PlatformUsers         = lazy(() => import('@/src/pages/platform/PlatformUsers'));
@@ -221,6 +223,9 @@ export default function App() {
                 <Route path="/cp/:id"                    element={<PayableDetail />} />
                 <Route path="/cp/:id/edit"               element={<PayableForm />} />
               </Route>
+
+              {/* Catch-all para rotas autenticadas desconhecidas → 404 amigável */}
+              <Route path="*" element={<NotFound />} />
             </Route>
           </Route>
 
