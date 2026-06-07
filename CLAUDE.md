@@ -160,7 +160,7 @@ Labels usam `text-sidebar-foreground/40` (nunca `text-muted-foreground` — fica
 - Nenhum comentário óbvio — só comentar WHY não-óbvio
 - Nenhum `any` explícito — `tsc --noEmit` deve ser EXIT:0
 - Services: async/await com throw em erro, sem `.eq('team_id', teamId)` nos reads
-- Lazy loading: toda rota em `App.tsx` deve ser `React.lazy()` — sem exceção
+- Lazy loading: toda rota em `App.tsx` deve ser `React.lazy()` — sem exceção (inclui Login; AppLayout é o único componente síncrono no initial bundle)
 - Bundle alvo: chunk principal ≤ 100 kB gzip
 - Novo módulo: migration → types → service → hook → componente → página → rota + nav + **onboarding tour** (ver seção abaixo)
 - **Adicionar item ao sidebar:** incluir em `NAV_GROUPS` (AppLayout.tsx) no grupo funcional correto. Nunca adicionar fora de um grupo existente — se necessário, criar novo `NavGroup`. `authorizedLinks` é derivado via `flatMap` automático.
@@ -1319,3 +1319,33 @@ const METRICS: Metric[] = [{ value: null, label: '...', collection: 'instrução
 
 - `Problem.tsx` — absorvida pelo Hero + Pillars (redundante)
 - `Personas.tsx` — substituída por `Sectors.tsx` (setores, não roles)
+
+---
+
+## Auditoria v3 + Fixes de A11y / 404 / Login — concluído 2026-06-07
+
+Commit de release: `af996ef` — "release: a11y WCAG, 404 page, login validation, Login lazy bundle"
+
+### Fixes entregues
+
+| Fix | Arquivo | Detalhe |
+|---|---|---|
+| A11y #1 — botão sino | `AppLayout.tsx:364` | `aria-label` dinâmico com contagem de não lidas; `Bell aria-hidden` |
+| A11y #1 — menu mobile | `AppLayout.tsx:604` | `aria-label="Menu principal"`; `Menu aria-hidden` |
+| A11y #2 — nested-interactive | `AppLayout.tsx:223` | `SheetTrigger asChild` removido; `<button>` interno eliminado |
+| Fix #3 — 404 page | `src/pages/NotFound.tsx` + `App.tsx:228` | `<Route path="*">` dentro de `<AppLayout>` → `NotFound` lazy |
+| Fix #4 — Login Zod | `Login.tsx:17,36` | `loginSchema` + `zodResolver` + `role="alert"` + `aria-invalid` |
+| Fix #5 — keep-alive | `supabase-keepalive.yml` + `20260607_app_health.sql` | PATCH diário 08:17 UTC via `SUPABASE_SERVICE_ROLE_KEY` |
+| Perf — Login lazy | `App.tsx:11` | `Login = lazy(...)` → RHF+zod saem do initial bundle |
+
+### Resultados da auditoria (localhost + produção)
+
+- `axe violations` → **0** (eram 54 antes: 2 por página × 27 páginas)
+- `has404Heading` → **true** (`/financeiro/cr` fica na rota; `h1: "Página não encontrada"`)
+- `chunk principal` → **110 kB gzip** (paridade com pré-merge, sem regressão)
+- Cross-browser: Chromium + Firefox + WebKit × 4 devices → **0 overflows**
+- Produção confirmada: `/financeiro/cr` → `h1: Página não encontrada` ✅
+
+### Armadilha nova (não repetir)
+
+35. **Login lazy + RHF/Zod no initial bundle** — Login é renderizado no initial bundle (não lazy). Se adicionarmos `import { useForm } from 'react-hook-form'` diretamente no Login, react-hook-form + zod entram no initial chunk (+31 kB gzip). Solução: Login **deve** ser `lazy()` — único componente público que pode usar RHF sem penalizar o initial load.
