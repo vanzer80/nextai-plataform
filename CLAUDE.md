@@ -83,7 +83,8 @@ department:department_id(name)
 department:departments(name)
 ```
 
-### Auth cold-start (Supabase Free Tier hiberna 15-30s)
+### Auth cold-start (Supabase Free Tier hiberna ~7 dias sem atividade)
+- **Keep-alive automático ✅** — `.github/workflows/supabase-keepalive.yml` faz PATCH em `public.app_health` diariamente às 08:17 UTC via `SUPABASE_SERVICE_ROLE_KEY` (GitHub Secret). Tabela singleton `app_health(id=1, last_ping)` com RLS sem policies → só service_role acessa (BYPASSRLS).
 - `withTimeout(8000)` em todas as queries de perfil
 - Cache `localStorage` `nextai-profile-v1-{uid}` com TTL 7 dias
 - Safety net de 10s no AuthContext desbloqueando loading compulsoriamente
