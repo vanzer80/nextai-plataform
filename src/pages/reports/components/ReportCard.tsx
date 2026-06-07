@@ -143,7 +143,7 @@ export default function ReportCard({ report, localSyncStatus }: ReportCardProps)
 
           <Link
             to={`/reports/${report.id}`}
-            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors py-2 min-h-[32px]"
           >
             Detalhes <ChevronRight className="h-3.5 w-3.5" />
           </Link>

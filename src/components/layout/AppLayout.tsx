@@ -362,7 +362,7 @@ function NotificationsDropdown({ notifications, unreadCount, onMarkAsRead }: Not
       <DropdownMenuTrigger
         data-onboarding="nav-notificacoes"
         aria-label={unreadCount > 0 ? `Notificações, ${unreadCount} não lidas` : 'Notificações'}
-        className="relative p-2 rounded-full hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="relative flex items-center justify-center h-11 w-11 rounded-full hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Bell className="h-5 w-5 text-sidebar-foreground/80 hover:text-sidebar-foreground transition-colors" aria-hidden="true" />
         {unreadCount > 0 && (
@@ -602,7 +602,7 @@ export default function AppLayout() {
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger
               aria-label="Menu principal"
-              className="inline-flex items-center justify-center shrink-0 h-10 w-10 rounded-md text-sidebar-foreground hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex items-center justify-center shrink-0 h-11 w-11 rounded-md text-sidebar-foreground hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Menu className="h-6 w-6" aria-hidden="true" />
             </SheetTrigger>
