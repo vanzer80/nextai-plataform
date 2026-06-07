@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { supabase } from '@/src/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -9,18 +12,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2 } from 'lucide-react';
 import ThemeToggle from '@/src/components/theme/ThemeToggle';
 import { NextAILogo } from '@/src/components/brand/NextAILogo';
+import { useState } from 'react';
+
+const loginSchema = z.object({
+  email: z.string().min(1, 'E-mail é obrigatório.').email('Insira um e-mail válido.'),
+  password: z.string().min(1, 'Senha é obrigatória.'),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Se já estiver logado, redireciona
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '' },
+  });
+
   React.useEffect(() => {
     if (user) {
       const from = location.state?.from?.pathname || '/';
@@ -30,15 +46,14 @@ export default function Login() {
 
   if (user) return null;
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: LoginFormValues) => {
     setErrorMsg('');
     setLoading(true);
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: data.email,
+        password: data.password,
       });
 
       if (error) {
@@ -47,10 +62,8 @@ export default function Login() {
         }
         throw new Error('Erro na autenticação: ' + error.message);
       }
-      
-      // O redirecionamento ocorrerá automaticamente pelo AuthProvider / ProtectedRoute
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Ocorreu um erro inesperado ao fazer login.');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Ocorreu um erro inesperado ao fazer login.');
       setLoading(false);
     }
   };
@@ -72,35 +85,45 @@ export default function Login() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
               <div className="space-y-2 text-left">
                 <Label htmlFor="email">E-mail</Label>
                 <Input
                   id="email"
                   type="email"
                   placeholder="seu@email.com.br"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
+                  {...register('email')}
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? 'email-error' : undefined}
                   className="focus-visible:ring-ring"
                   disabled={loading}
                 />
+                {errors.email && (
+                  <p id="email-error" role="alert" className="text-sm font-medium text-destructive">
+                    {errors.email.message}
+                  </p>
+                )}
               </div>
               <div className="space-y-2 text-left">
                 <Label htmlFor="password">Senha</Label>
                 <Input
                   id="password"
                   type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+                  {...register('password')}
+                  aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? 'password-error' : undefined}
                   className="focus-visible:ring-ring"
                   disabled={loading}
                 />
+                {errors.password && (
+                  <p id="password-error" role="alert" className="text-sm font-medium text-destructive">
+                    {errors.password.message}
+                  </p>
+                )}
               </div>
 
               {errorMsg && (
-                <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm font-medium text-destructive shadow-sm">
+                <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm font-medium text-destructive shadow-sm">
                   {errorMsg}
                 </div>
               )}
@@ -112,7 +135,7 @@ export default function Login() {
               >
                 {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
                     Autenticando...
                   </>
                 ) : (
