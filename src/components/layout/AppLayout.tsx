@@ -220,20 +220,22 @@ function UserProfileDropdown({ user, userRole, onSignOut, authorizedLinks, activ
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <button data-onboarding="nav-perfil" className="flex items-center gap-3 text-left w-full p-2 rounded-xl transition-colors hover:bg-sidebar-accent outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer">
-          <Avatar className="h-10 w-10 border-2 border-sidebar-border shrink-0">
-            <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-sm font-bold">
-              {getInitials(user?.full_name)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 overflow-hidden hidden lg:block">
-            <p className="text-sm font-semibold text-sidebar-foreground truncate">
-              {user?.full_name || user?.email?.split('@')[0] || 'Usuário'}
-            </p>
-            <p className="text-xs text-sidebar-foreground/70 truncate">{userRole}</p>
-          </div>
-        </button>
+      <SheetTrigger
+        data-onboarding="nav-perfil"
+        aria-label={user?.full_name ? `Perfil de ${user.full_name}` : 'Minha conta'}
+        className="flex items-center gap-3 text-left w-full p-2 rounded-xl transition-colors hover:bg-sidebar-accent outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+      >
+        <Avatar className="h-10 w-10 border-2 border-sidebar-border shrink-0">
+          <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-sm font-bold">
+            {getInitials(user?.full_name)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1 overflow-hidden hidden lg:block">
+          <p className="text-sm font-semibold text-sidebar-foreground truncate">
+            {user?.full_name || user?.email?.split('@')[0] || 'Usuário'}
+          </p>
+          <p className="text-xs text-sidebar-foreground/70 truncate">{userRole}</p>
+        </div>
       </SheetTrigger>
 
       <SheetContent side="right" className="w-[300px] sm:w-[340px] p-0 flex flex-col">
