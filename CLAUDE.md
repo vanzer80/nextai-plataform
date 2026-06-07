@@ -1349,3 +1349,62 @@ Commit de release: `af996ef` — "release: a11y WCAG, 404 page, login validation
 ### Armadilha nova (não repetir)
 
 35. **Login lazy + RHF/Zod no initial bundle** — Login é renderizado no initial bundle (não lazy). Se adicionarmos `import { useForm } from 'react-hook-form'` diretamente no Login, react-hook-form + zod entram no initial chunk (+31 kB gzip). Solução: Login **deve** ser `lazy()` — único componente público que pode usar RHF sem penalizar o initial load.
+
+---
+
+## Touch Targets WCAG 2.5.8 AA — concluído 2026-06-07
+
+Branch: `fix/touch-targets` (commit `9ce7fa4`)
+
+### Fixes entregues
+
+| Arquivo | Mudança | Antes → Depois |
+|---|---|---|
+| `ReportCard.tsx:146` | `py-2 min-h-[32px]` no link "Detalhes" | 68×16px → 68×32px (AA ✅) |
+| `ThemeToggle.tsx:55` | compact `h-9 w-9` → `h-11 w-11` | 36×36 → 44×44px |
+| `AppLayout.tsx:365` | bell: `p-2` → `flex items-center justify-center h-11 w-11` | 36×36 → 44×44px |
+| `AppLayout.tsx:605` | hamburger: `h-10 w-10` → `h-11 w-11` | 40×40 → 44×44px |
+| `ClientsList.tsx:97` | DropdownMenuTrigger: `h-8 w-8` → `h-11 w-11` | 32×32 → 44×44px |
+
+### Gate — resultado (Chromium mobile 390×844)
+
+| Rota | critical <24px (AA) | small <44px (AAA) |
+|---|---|---|
+| /reports | ✅ 0 | 29 (filtros/selects ≥32px) |
+| /clients | ✅ 0 | 0 |
+| /rh/employees | ✅ 0 | 0 |
+
+Ícones internos (`h-4 w-4`, `h-5 w-5`) inalterados. `aria-label` e `focus-visible` preservados.
+
+---
+
+## CI Harness de A11y — concluído 2026-06-07
+
+Branch: `ci/a11y-harness` (commit `5d00e0d`)
+
+### O que foi commitado
+
+- `audit/` diretório completo com `.gitignore` (exclui `node_modules/`, `audit-output/`)
+- `audit/audit.config.mjs` — lê `AUDIT_BASE_URL`, `AUDIT_USER`, `AUDIT_PASS` de env vars
+- `audit/check-axe-diff.mjs` — diff contra `baseline-axe.json`; falha apenas em NEW critical/serious
+- `audit/baseline-axe.json` — baseline atual: 0 violações axe wcag2a/wcag2aa
+- `audit/responsive-cross.mjs` — adiciona `criticalTouchTargets` (<24px) separado de `smallTouchTargets` (<44px)
+- `.github/workflows/a11y-audit.yml` — PR + `workflow_dispatch`; concurrency cancel; upload artifacts
+- Secrets GitHub: `AUDIT_BASE_URL`, `AUDIT_USER`, `AUDIT_PASS`
+
+### Uso
+
+```bash
+# Local — rodar auditoria completa + diff
+cd audit && npm run ci
+
+# Atualizar baseline (após aceitar violações intencionais)
+cd audit && npm run audit && npm run baseline:update
+
+# Verificar diff sem re-rodar audit
+cd audit && npm run check:axe
+```
+
+### Armadilha nova (não repetir)
+
+36. **`git stash` não captura arquivos untracked** — ao fazer `git stash` em branch que tem diretório não versionado (como `audit/`), os arquivos untracked NÃO são stashados. Ao mudar de branch e commitar esses arquivos no novo branch, eles ficam tracked lá. Ao voltar ao branch original, git remove esses arquivos tracked do working tree. Solução: `git stash -u` para incluir untracked, ou gerenciar os arquivos separadamente.
