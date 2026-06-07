@@ -1,0 +1,18 @@
+{
+  "name": "nextai-audit",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "audit": "node run-audit.mjs && node report-gen.mjs",
+    "audit:headed": "node run-audit.mjs --headed",
+    "report": "node report-gen.mjs",
+    "responsive": "node responsive-cross.mjs",
+    "check:axe": "node check-axe-diff.mjs",
+    "ci": "node run-audit.mjs && node report-gen.mjs && node check-axe-diff.mjs",
+    "baseline:update": "node -e \"const f='baseline-axe.json',r=JSON.parse(require('fs').readFileSync('audit-output/results.json','utf-8'));const routes=Array.isArray(r.routes)?r.routes:Object.values(r.routes);const v=[];for(const ro of routes)for(const vi of(ro.axeViolations||[]))v.push({route:ro.route,id:vi.id,impact:vi.impact,help:vi.help});require('fs').writeFileSync(f,JSON.stringify({generatedAt:new Date().toISOString().slice(0,10),violations:v},null,2));console.log('Baseline updated:',v.length,'violations')\""
+  },
+  "dependencies": {
+    "@axe-core/playwright": "^4.10.1",
+    "playwright": "^1.52.0"
+  }
+}
