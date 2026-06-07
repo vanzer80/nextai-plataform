@@ -151,6 +151,38 @@
   }
 }
 
+/* ── NextAI logo — animação de respiração (tela de autenticação) ── */
+@keyframes nextai-breathe {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.06); }
+}
+
+@keyframes nextai-shimmer {
+  0%, 100% { opacity: 0.55; }
+  50%       { opacity: 1; }
+}
+
+.nextai-symbol-animated {
+  animation: nextai-breathe 1.4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.nextai-symbol-animated polygon {
+  animation: nextai-shimmer 1.4s ease-in-out infinite;
+  animation-fill-mode: backwards;
+}
+
+.nextai-symbol-animated polygon:nth-child(1) { animation-delay: 0s; }
+.nextai-symbol-animated polygon:nth-child(2) { animation-delay: 0.15s; }
+.nextai-symbol-animated polygon:nth-child(3) { animation-delay: 0.3s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nextai-symbol-animated,
+  .nextai-symbol-animated polygon {
+    animation: none;
+  }
+}
+
 /* ── Driver.js — personalização para seguir o design system ── */
 .driver-popover {
   background: var(--card) !important;

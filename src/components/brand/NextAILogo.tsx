@@ -4,19 +4,23 @@ interface NextAILogoProps {
   variant?: 'horizontal' | 'symbol';
   height?: number;
   className?: string;
+  animated?: boolean;
 }
 
-export function NextAILogo({ variant = 'horizontal', height, className }: NextAILogoProps) {
+export function NextAILogo({ variant = 'horizontal', height, className, animated }: NextAILogoProps) {
   if (variant === 'symbol') {
     const h = height ?? 40;
     const w = Math.round(h * 152 / 162);
+    const svgClass = animated
+      ? ['nextai-symbol-animated', className].filter(Boolean).join(' ')
+      : className;
     return (
       <svg
         width={w}
         height={h}
         viewBox="0 0 152 162"
         xmlns="http://www.w3.org/2000/svg"
-        className={className}
+        className={svgClass}
         aria-label="NextAI"
         role="img"
       >
