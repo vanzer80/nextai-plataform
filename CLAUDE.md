@@ -1464,7 +1464,7 @@ Gate: tsc EXIT:0, vitest 117/117, chunk principal 44.73 kB ≤ 100 kB ✅
 
 ## Auditoria QA + Hardening de Escala — concluído 2026-06-07
 
-Commits: `af996ef` (a11y/404/login) · `9ce7fa4` (touch-targets) · `5d00e0d` (CI harness) · `16ea4b8` (bundle) · `897c886` (DB Fases 2+3) · `07c4b57` (DB Fase 4)
+Commits: `af996ef` (a11y/404/login) · `9ce7fa4` (touch-targets) · `5d00e0d` (CI harness) · `16ea4b8` (bundle) · `897c886` (DB Fases 2+3) · `07c4b57` (DB Fase 4) · `b32b8c1` (merge ci/a11y-harness) · `938b146` (merge perf/bundle-optimization)
 
 ### QA Harness automatizado
 
@@ -1503,6 +1503,23 @@ Chromium + Firefox + WebKit × 4 viewports (390, 768, 1280, 1440) — **0 overfl
 | **Fase 4** — RLS initplan | 62 policies `auth.uid()` → `(SELECT auth.uid())` + 2 policies `auth.role()` → `(SELECT auth.role())` em `sites` e `equipments` (`07c4b57`) |
 
 Gate triplo Fase 4: **(a)** `auth_rls_initplan = 0` no advisor de performance; **(b)** isolamento cross-tenant intacto (Mopar vê 75 OS, nextai vê 0; DB truth confirma que nextai tem 0 registros próprios); **(c)** zero novos alertas no advisor de segurança (67 WARNs todos pré-existentes).
+
+### Reconciliação de branches + confirmação master ≡ produção
+
+Branches órfãos mergeados em master na ordem de menor risco:
+
+| Ordem | Branch | Tipo de merge | Gate |
+|---|---|---|---|
+| 1 | `fix/touch-targets` | fast-forward → `1fef019` | tsc ✅ vitest 117/117 ✅ build ≤100 kB ✅ |
+| 2 | `ci/a11y-harness` | merge commit `b32b8c1` (só novos arquivos, sem conflito) | tsc ✅ vitest 117/117 ✅ |
+| 3 | `perf/bundle-optimization` | merge commit `938b146` (CLAUDE.md sem conflito — ci não o tocou) | tsc ✅ vitest 117/117 ✅ build 44.73 kB ✅ |
+
+`git push origin master` → `7d601c2..938b146` ✅
+
+**Produção confirmada — 2026-06-07:**
+- Vercel `dpl_7MADLPPjg2WagGqeih4FxCyFjiMM` → READY, target `production`, commit `938b146`
+- DB: 6 migrations `20260607` aplicadas no Supabase = arquivos no repo (idêntico)
+- `vercel.json` não tem migration runner — nenhuma migration foi re-aplicada no push
 
 ---
 
