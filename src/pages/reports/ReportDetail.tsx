@@ -1,11 +1,11 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   ArrowLeft, AlertTriangle, Calendar, MapPin, Wrench,
   Stethoscope, ClipboardList, Camera, PenLine, History,
-  CheckCircle2, XCircle, Loader2, FileDown,
+  CheckCircle2, XCircle, Loader2, FileDown, SquarePen, Send, Copy, RotateCcw, Receipt,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,11 +14,15 @@ import { useAuth } from '@/src/contexts/AuthContext';
 import { useTenant } from '@/src/contexts/TenantContext';
 import { useReportDetail } from '@/src/hooks/useReportDetail';
 import ReportStatusBadge from './components/ReportStatusBadge';
+import { ImportConfidenceBadge } from '@/src/components/reports/ImportConfidenceBadge';
 import AttachmentGrid from './components/AttachmentGrid';
 import ApprovalPanel from './components/ApprovalPanel';
 import type { ReportChecklistItem, ReportStatusHistory } from '@/src/types/reports';
 import { REPORT_STATUS_LABEL } from '@/src/types/reports';
 import { gerarPdfRelatorio } from '@/src/utils/gerarPdfRelatorio';
+import { resubmitReport, reopenReport } from '@/src/services/reportService';
+import { toast } from 'sonner';
+import { Textarea } from '@/components/ui/textarea';
 
 const REVIEWER_ROLES = ['Gestor', 'Supervisor', 'Admin', 'Master'] as const;
 
@@ -117,6 +121,87 @@ export default function ReportDetail() {
   const isReviewer = REVIEWER_ROLES.includes(user?.role as typeof REVIEWER_ROLES[number]);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
 
+  // Verificação bidirecional: OS já tem orçamento vinculado?
+  const [orcamentoVinculado, setOrcamentoVinculado] = useState<{ id: string; titulo: string | null } | null>(null);
+  useEffect(() => {
+    if (!report?.id || report.status === 'draft') return;
+    supabase
+      .from('orcamentos')
+      .select('id, titulo')
+      .eq('report_id', report.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setOrcamentoVinculado(data ?? null));
+  }, [report?.id, report?.status]);
+
+  // ── Correção inline para OS devolvidas ───────────────────────
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSendingCorrection, setIsSendingCorrection] = useState(false);
+  const [editData, setEditData] = useState({
+    reported_problem: '',
+    preliminary_diagnosis: '',
+    final_diagnosis: '',
+    services_performed: '',
+    parts_used: '',
+    pending_issues: '',
+    technical_recommendation: '',
+    internal_notes: '',
+  });
+
+  useEffect(() => {
+    if (isEditing && report) {
+      setEditData({
+        reported_problem:         report.reported_problem ?? '',
+        preliminary_diagnosis:    report.preliminary_diagnosis ?? '',
+        final_diagnosis:          report.final_diagnosis ?? '',
+        services_performed:       report.services_performed ?? '',
+        parts_used:               report.parts_used ?? '',
+        pending_issues:           report.pending_issues ?? '',
+        technical_recommendation: report.technical_recommendation ?? '',
+        internal_notes:           report.internal_notes ?? '',
+      });
+    }
+  }, [isEditing, report]);
+
+  // ── Reabrir OS reprovada ─────────────────────────────────────
+  const [isReopening, setIsReopening] = useState(false);
+  const [isSubmittingReopen, setIsSubmittingReopen] = useState(false);
+
+  const handleReopen = useCallback(async () => {
+    if (!report) return;
+    setIsSubmittingReopen(true);
+    try {
+      await reopenReport(report.id);
+      toast.success('OS reaberta para correção.', {
+        description: 'Use o formulário de correção para ajustar e reenviar.',
+      });
+      setIsReopening(false);
+      refresh();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao reabrir OS.');
+    } finally {
+      setIsSubmittingReopen(false);
+    }
+  }, [report, refresh]);
+
+  const handleSubmitCorrection = useCallback(async () => {
+    if (!report) return;
+    setIsSendingCorrection(true);
+    try {
+      await resubmitReport({ reportId: report.id, ...editData });
+      toast.success('OS reenviada para revisão.', {
+        description: 'O gestor será notificado para nova análise.',
+      });
+      setIsEditing(false);
+      refresh();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao reenviar OS.');
+    } finally {
+      setIsSendingCorrection(false);
+    }
+  }, [report, editData, refresh]);
+
   const handleExportPdf = async () => {
     if (!report) return;
     setIsPdfLoading(true);
@@ -187,27 +272,73 @@ export default function ReportDetail() {
             {report.service_type && (
               <span className="text-xs text-muted-foreground font-medium">{report.service_type}</span>
             )}
+            {report.import_confidence != null && (
+              <ImportConfidenceBadge
+                confidence={report.import_confidence}
+                requiresReview={report.import_confidence < 0.70}
+                templateId={(report.import_field_confidences as { template_id?: string } | null)?.template_id ?? null}
+              />
+            )}
           </div>
           <h1 className="text-xl font-bold text-foreground mt-1 leading-tight">
             {report.os_number ? `OS ${report.os_number}` : 'OS sem número'}
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">{fmtDate(report.service_date)}</p>
         </div>
-        {report.status === 'approved' && (
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Duplicar — disponível para todos os status */}
           <Button
             variant="outline"
             size="sm"
-            onClick={handleExportPdf}
-            disabled={isPdfLoading}
-            data-onboarding="detail-pdf"
-            className="shrink-0 gap-1.5 rounded-xl border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700/60 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
+            onClick={() => navigate(`/reports/new?duplicateFrom=${report.id}`)}
+            className="gap-1.5 rounded-xl"
+            title="Usar esta OS como base para uma nova"
           >
-            {isPdfLoading
-              ? <Loader2 className="h-4 w-4 animate-spin" />
-              : <FileDown className="h-4 w-4" />}
-            <span className="hidden sm:inline">Exportar PDF</span>
+            <Copy className="h-4 w-4" />
+            <span className="hidden sm:inline">Duplicar</span>
           </Button>
-        )}
+
+          {/* Orçamento — bidirecional: cria ou navega para o existente */}
+          {report.status !== 'draft' && isReviewer && (
+            orcamentoVinculado ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/orcamentos/${orcamentoVinculado.id}`)}
+                className="gap-1.5 rounded-xl border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-700/60 dark:text-blue-400 dark:hover:bg-blue-950/40"
+                title={orcamentoVinculado.titulo ?? 'Ver orçamento vinculado'}
+              >
+                <Receipt className="h-4 w-4" />
+                <span className="hidden sm:inline">Ver Orçamento</span>
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/orcamentos/novo?fromOS=${report.id}`)}
+                className="gap-1.5 rounded-xl"
+              >
+                <Receipt className="h-4 w-4" />
+                <span className="hidden sm:inline">Orçamento</span>
+              </Button>
+            )
+          )}
+
+          {/* PDF — apenas para OS aprovadas */}
+          {report.status === 'approved' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportPdf}
+              disabled={isPdfLoading}
+              data-onboarding="detail-pdf"
+              className="gap-1.5 rounded-xl border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700/60 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
+            >
+              {isPdfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+              <span className="hidden sm:inline">PDF</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Painel de aprovação — visível apenas para gestores */}
@@ -217,15 +348,150 @@ export default function ReportDetail() {
         </div>
       )}
 
-      {/* Alerta de devolução */}
-      {report.status === 'returned' && report.reviewer_comment && (
-        <div className="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-100/70 dark:bg-amber-500/15 p-4 flex gap-3">
-          <AlertTriangle className="h-5 w-5 text-amber-700 dark:text-amber-300 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">OS devolvida para ajuste</p>
-            <p className="text-sm text-amber-800 dark:text-amber-300 mt-0.5">{report.reviewer_comment}</p>
-          </div>
-        </div>
+      {/* Alerta de devolução + form de correção inline */}
+      {report.status === 'returned' && (
+        <>
+          {report.reviewer_comment && (
+            <div className="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-100/70 dark:bg-amber-500/15 p-4 flex gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-700 dark:text-amber-300 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">OS devolvida para ajuste</p>
+                <p className="text-sm text-amber-800 dark:text-amber-300 mt-0.5">{report.reviewer_comment}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Form de correção — visível apenas para o técnico responsável */}
+          {user?.id === report.technician_id && (
+            <Card className="shadow-sm border-orange-200 dark:border-orange-700/40">
+              <CardHeader className="pb-3 border-b border-orange-200 dark:border-orange-700/40 bg-orange-50/60 dark:bg-orange-900/20 rounded-t-xl">
+                <CardTitle className="text-base flex items-center gap-2 text-orange-800 dark:text-orange-300">
+                  <SquarePen className="h-4 w-4" />
+                  Corrigir e Reenviar OS
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {!isEditing ? (
+                  <Button
+                    onClick={() => setIsEditing(true)}
+                    className="w-full h-11 rounded-xl font-semibold bg-orange-600 hover:bg-orange-700 text-white gap-2"
+                  >
+                    <SquarePen className="h-4 w-4" />
+                    Abrir para correção
+                  </Button>
+                ) : (
+                  <div className="space-y-4">
+                    {(
+                      [
+                        { key: 'reported_problem',         label: 'Problema relatado' },
+                        { key: 'preliminary_diagnosis',    label: 'Diagnóstico preliminar' },
+                        { key: 'final_diagnosis',          label: 'Diagnóstico final' },
+                        { key: 'services_performed',       label: 'Serviços executados' },
+                        { key: 'parts_used',               label: 'Peças / Materiais' },
+                        { key: 'pending_issues',           label: 'Pendências' },
+                        { key: 'technical_recommendation', label: 'Recomendação técnica' },
+                        { key: 'internal_notes',           label: 'Notas internas' },
+                      ] as const
+                    ).map(({ key, label }) => (
+                      <div key={key} className="space-y-1.5">
+                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{label}</p>
+                        <Textarea
+                          value={editData[key]}
+                          onChange={e => setEditData(prev => ({ ...prev, [key]: e.target.value }))}
+                          placeholder={label}
+                          className="resize-none rounded-xl bg-background border-input text-sm focus-visible:ring-ring min-h-[72px]"
+                        />
+                      </div>
+                    ))}
+
+                    <div className="flex gap-3 pt-2">
+                      <Button
+                        onClick={handleSubmitCorrection}
+                        disabled={isSendingCorrection}
+                        className="flex-1 h-11 rounded-xl font-semibold bg-orange-600 hover:bg-orange-700 text-white gap-2"
+                      >
+                        {isSendingCorrection
+                          ? <><Loader2 className="h-4 w-4 animate-spin" /> Reenviando...</>
+                          : <><Send className="h-4 w-4" /> Reenviar para revisão</>
+                        }
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setIsEditing(false)}
+                        disabled={isSendingCorrection}
+                        className="h-11 px-4 rounded-xl text-sm"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* OS reprovada — alerta + opção de reabrir para o técnico */}
+      {report.status === 'rejected' && (
+        <>
+          {report.reviewer_comment && (
+            <div className="rounded-xl border border-rose-300 dark:border-rose-500/40 bg-rose-100/70 dark:bg-rose-500/15 p-4 flex gap-3">
+              <XCircle className="h-5 w-5 text-rose-700 dark:text-rose-300 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-rose-800 dark:text-rose-300">OS reprovada</p>
+                <p className="text-sm text-rose-800 dark:text-rose-300 mt-0.5">{report.reviewer_comment}</p>
+              </div>
+            </div>
+          )}
+
+          {user?.id === report.technician_id && (
+            <Card className="shadow-sm border-rose-200 dark:border-rose-700/40">
+              <CardHeader className="pb-3 border-b border-rose-200 dark:border-rose-700/40 bg-rose-50/60 dark:bg-rose-900/20 rounded-t-xl">
+                <CardTitle className="text-base flex items-center gap-2 text-rose-800 dark:text-rose-300">
+                  <RotateCcw className="h-4 w-4" />
+                  Contestar reprovação
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {!isReopening ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      Reabra a OS para corrigi-la e reenviá-la para revisão. O histórico de reprovação é preservado.
+                    </p>
+                    <Button
+                      onClick={() => setIsReopening(true)}
+                      className="w-full h-11 rounded-xl font-semibold gap-2 bg-rose-600 hover:bg-rose-700 text-white"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Reabrir OS para correção
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium text-foreground">Confirma a reabertura desta OS?</p>
+                    <p className="text-xs text-muted-foreground">A OS voltará ao status "Devolvida" e você poderá corrigi-la e reenviar.</p>
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={handleReopen}
+                        disabled={isSubmittingReopen}
+                        className="flex-1 h-11 rounded-xl font-semibold gap-2 bg-rose-600 hover:bg-rose-700 text-white"
+                      >
+                        {isSubmittingReopen
+                          ? <><Loader2 className="h-4 w-4 animate-spin" /> Reabrindo...</>
+                          : <><RotateCcw className="h-4 w-4" /> Confirmar reabertura</>
+                        }
+                      </Button>
+                      <Button variant="ghost" onClick={() => setIsReopening(false)} disabled={isSubmittingReopen} className="h-11 px-4 rounded-xl">
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
 
       {/* Identificação */}

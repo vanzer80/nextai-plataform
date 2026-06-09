@@ -1,4 +1,37 @@
-const CACHE_NAME = 'nextai-v4';
+const CACHE_NAME = 'nextai-v7';
+
+// ── Push Notifications ────────────────────────────────────────────────────────
+
+self.addEventListener('push', (event) => {
+  let data = { title: 'NextAI', body: '', data: {} };
+  try { data = event.data?.json() ?? data; } catch {}
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body:     data.body,
+      icon:     '/icons/icon-192.png',
+      badge:    '/icons/badge-72.png',
+      data:     data.data,
+      tag:      'nextai-notification',
+      renotify: true,
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const reportId = event.notification.data?.report_id;
+  const url = reportId
+    ? `${self.location.origin}/reports/${reportId}`
+    : `${self.location.origin}/dashboard`;
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+      for (const w of wins) {
+        if ('focus' in w) { w.navigate(url); return w.focus(); }
+      }
+      if (clients.openWindow) return clients.openWindow(url);
+    })
+  );
+});
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -40,7 +73,20 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => caches.match('/index.html'))
+        .catch(async () => {
+          // caches.match can return undefined if cache was cleared (e.g. after SW version bump).
+          // Never pass undefined to respondWith — it causes a 503 network error in the browser.
+          const cached = await caches.match('/index.html');
+          if (cached) return cached;
+          // Last resort: a minimal shell that auto-retries — avoids a blank/error page.
+          return new Response(
+            '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Carregando…</title></head>' +
+            '<body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">' +
+            '<div style="text-align:center"><p style="color:#6b7280">Sem conexão. Tentando novamente…</p>' +
+            '<script>setTimeout(()=>location.reload(),4000)</script></div></body></html>',
+            { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+          );
+        })
     );
     return;
   }
@@ -64,16 +110,18 @@ self.addEventListener('fetch', (event) => {
   // ── 3. Hashed JS/CSS/images (Vite content hashes → immutable) ────────────
   // Cache-first: these never change between deploys at the same URL.
   event.respondWith(
-    caches.match(request).then(
-      (cached) =>
-        cached ||
-        fetch(request).then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        })
-    )
+    caches.match(request).then(async (cached) => {
+      if (cached) return cached;
+      try {
+        const response = await fetch(request);
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return response;
+      } catch {
+        return new Response('', { status: 503, statusText: 'Offline' });
+      }
+    })
   );
 });

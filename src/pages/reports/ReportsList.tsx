@@ -1,23 +1,121 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
-import { Link, useOutletContext } from 'react-router-dom';
-import { Plus, ClipboardList, AlertCircle, Loader2, Wifi, WifiOff } from 'lucide-react';
+import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
+import { Plus, ClipboardList, AlertCircle, Loader2, Wifi, WifiOff, FileSpreadsheet, UploadCloud } from 'lucide-react';
+import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
 import { Button } from '@/components/ui/button';
+import { exportarOsExcel } from '@/src/utils/exportarOsExcel';
+import type { ServiceReport } from '@/src/types/reports';
 import { useReports } from '@/src/hooks/useReports';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { useClients } from '@/src/hooks/useClients';
+import { useTechnicians } from '@/src/hooks/useTechnicians';
 import type { AppLayoutOutletContext } from '@/src/components/layout/AppLayout';
 import ReportCard from './components/ReportCard';
 import ReportFilters from './components/ReportFilters';
+import ImportOsDialog from '@/src/components/reports/ImportOsDialog';
 import type { ReportsFilter } from '@/src/hooks/useReports';
-import type { ServiceReport } from '@/src/types/reports';
 
-const EMPTY_FILTER: ReportsFilter = { status: '', dateFrom: undefined, dateTo: undefined };
+const EMPTY_FILTER: ReportsFilter = {
+  status: '', priority: '', dateFrom: undefined, dateTo: undefined,
+  query: undefined, technicianId: undefined,
+  sortBy: 'created_at', sortDir: 'desc',
+};
 
 export default function ReportsList() {
   const { user } = useAuth();
-  const [filter, setFilter] = useState<ReportsFilter>(EMPTY_FILTER);
-  const { reports, loading, error, hasMore, loadMore, refresh, updateItem } = useReports(filter);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Lazy init: lê URL na montagem para suportar deep links (ex: ?status=approved&sort=sla_due_at)
+  const [filter, setFilter] = useState<ReportsFilter>(() => ({
+    status:       (searchParams.get('status') as ReportsFilter['status'])   ?? '',
+    priority:     (searchParams.get('priority') as ReportsFilter['priority']) ?? '',
+    dateFrom:     searchParams.get('dateFrom') ?? undefined,
+    dateTo:       searchParams.get('dateTo')   ?? undefined,
+    query:        searchParams.get('q')        ?? undefined,
+    technicianId: searchParams.get('tid')      ?? undefined,
+    sortBy:       (searchParams.get('sort') as ReportsFilter['sortBy'])   ?? 'created_at',
+    sortDir:      (searchParams.get('dir')  as ReportsFilter['sortDir'])  ?? 'desc',
+  }));
+
+  // Sincroniza filter → URL (replace: não polui o histórico de navegação)
+  // Defaults são omitidos para manter links limpos
+  useEffect(() => {
+    const p = new URLSearchParams();
+    if (filter.status)                             p.set('status',   filter.status);
+    if (filter.priority)                           p.set('priority', filter.priority);
+    if (filter.dateFrom)                           p.set('dateFrom', filter.dateFrom);
+    if (filter.dateTo)                             p.set('dateTo',   filter.dateTo);
+    if (filter.query)                              p.set('q',        filter.query);
+    if (filter.technicianId)                       p.set('tid',      filter.technicianId);
+    if (filter.sortBy  && filter.sortBy  !== 'created_at') p.set('sort', filter.sortBy);
+    if (filter.sortDir && filter.sortDir !== 'desc')       p.set('dir',  filter.sortDir);
+    setSearchParams(p, { replace: true });
+  }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
+  const clients = useClients();
+  const technicians = useTechnicians();
+  const isManager = user?.role && ['Gestor', 'Supervisor', 'Admin', 'Master'].includes(user.role);
+
+  // Resolve clientIds a partir do nome digitado (cache em memória, zero latência).
+  // Quando o texto bate com um cliente, passa clientIds ao invés de textSearch,
+  // pois GENERATED COLUMN não inclui client_name (cross-table não suportado).
+  const matchingClientIds = useMemo(() => {
+    if (!filter.query?.trim()) return undefined;
+    const q = filter.query.trim().toLowerCase();
+    const ids = clients
+      .filter(c => c.name.toLowerCase().includes(q))
+      .map(c => c.id);
+    return ids.length > 0 ? ids : undefined;
+  }, [filter.query, clients]);
+
+  const resolvedFilter = useMemo(
+    () => ({ ...filter, clientIds: matchingClientIds }),
+    [filter, matchingClientIds],
+  );
+
+  const { reports, loading, error, hasMore, loadMore, refresh, updateItem } = useReports(resolvedFilter);
+  const [isExporting, setIsExporting]     = useState(false);
+  const [importOpen, setImportOpen]       = useState(false);
+
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      // Faz fetch completo sem paginação, aplicando os mesmos filtros ativos
+      let query = supabase
+        .from('service_reports')
+        .select(`
+          id, created_at, status, service_type, os_number, service_date,
+          site_location, reported_problem, final_diagnosis, services_performed,
+          parts_used, priority, asset_name_manual,
+          clients(name), users:technician_id(full_name), equipments:asset_id(name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (resolvedFilter.status)       query = query.eq('status', resolvedFilter.status);
+      if (resolvedFilter.priority)     query = query.eq('priority', resolvedFilter.priority);
+      if (resolvedFilter.dateFrom)     query = query.gte('service_date', resolvedFilter.dateFrom);
+      if (resolvedFilter.dateTo)       query = query.lte('service_date', resolvedFilter.dateTo);
+      if (resolvedFilter.technicianId) query = query.eq('technician_id', resolvedFilter.technicianId);
+      if (resolvedFilter.clientIds?.length) query = query.in('client_id', resolvedFilter.clientIds);
+      else if (resolvedFilter.query?.trim()) {
+        query = query.textSearch('search_vector', resolvedFilter.query.trim(), { type: 'websearch', config: 'simple' });
+      }
+
+      const { data, error: fetchErr } = await query;
+      if (fetchErr) throw fetchErr;
+      if (!data?.length) {
+        toast.warning('Nenhuma OS encontrada com os filtros atuais.');
+        return;
+      }
+      exportarOsExcel(data as ServiceReport[]);
+      toast.success(`${data.length} OS exportadas com sucesso.`);
+    } catch {
+      toast.error('Erro ao exportar. Tente novamente.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
   const [listRef] = useAutoAnimate({ duration: 200 });
   const outletCtx = useOutletContext<AppLayoutOutletContext | undefined>();
   const isOnline    = outletCtx?.isOnline    ?? true;
@@ -44,8 +142,6 @@ export default function ReportsList() {
     return () => { supabase.removeChannel(channel); };
   }, [refresh, updateItem]);
 
-  const isManager = user?.role && ['Gestor', 'Supervisor', 'Admin', 'Master'].includes(user.role);
-
   return (
     <div className="flex flex-col gap-4 w-full pb-8 animate-in fade-in duration-300">
       {/* Cabeçalho */}
@@ -54,13 +150,41 @@ export default function ReportsList() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Ordens de Serviço</h1>
           <p className="text-sm text-muted-foreground">Histórico de serviços de campo</p>
         </div>
-        <Link
-          to="/reports/new"
-          data-onboarding="os-nova"
-          className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold h-10 px-4 rounded-xl shadow-sm transition-colors"
-        >
-          <Plus className="h-4 w-4" /> Nova OS
-        </Link>
+        <div className="flex items-center gap-2">
+          {isManager && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportExcel}
+                disabled={isExporting}
+                className="h-10 rounded-xl gap-1.5 text-sm font-semibold border-border"
+              >
+                {isExporting
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <FileSpreadsheet className="h-4 w-4" />}
+                <span className="hidden sm:inline">Exportar</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setImportOpen(true)}
+                className="h-10 rounded-xl gap-1.5 text-sm font-semibold border-border"
+                data-onboarding="os-importar"
+              >
+                <UploadCloud className="h-4 w-4" />
+                <span className="hidden sm:inline">Importar OS</span>
+              </Button>
+            </>
+          )}
+          <Link
+            to="/reports/new"
+            data-onboarding="os-nova"
+            className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold h-10 px-4 rounded-xl shadow-sm transition-colors"
+          >
+            <Plus className="h-4 w-4" /> Nova OS
+          </Link>
+        </div>
       </div>
 
       {/* Indicadores de conectividade e sync */}
@@ -87,6 +211,7 @@ export default function ReportsList() {
         filter={filter}
         onChange={setFilter}
         onClear={() => setFilter(EMPTY_FILTER)}
+        technicians={isManager ? technicians : undefined}
       />
       </div>
 
@@ -142,6 +267,12 @@ export default function ReportsList() {
           </div>
         )}
       </div>
+
+      <ImportOsDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={refresh}
+      />
     </div>
   );
 }

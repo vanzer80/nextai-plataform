@@ -60,6 +60,33 @@ async function uploadAttachment(teamId: string, reportId: string, evidence: Evid
 
 export type ReportAction = 'approve' | 'reject' | 'return';
 
+export interface ResubmitPayload {
+  reportId: string;
+  reported_problem?: string;
+  preliminary_diagnosis?: string;
+  final_diagnosis?: string;
+  services_performed?: string;
+  parts_used?: string;
+  pending_issues?: string;
+  technical_recommendation?: string;
+  internal_notes?: string;
+}
+
+export async function resubmitReport({ reportId, ...patch }: ResubmitPayload): Promise<void> {
+  const { data, error } = await supabase.rpc('resubmit_report', {
+    p_report_id: reportId,
+    p_patch: patch,
+  });
+  if (error) throw error;
+  if (!data?.success) throw new Error(data?.error ?? 'Erro ao reenviar OS');
+}
+
+export async function reopenReport(reportId: string): Promise<void> {
+  const { data, error } = await supabase.rpc('reopen_report', { p_report_id: reportId });
+  if (error) throw error;
+  if (!data?.success) throw new Error(data?.error ?? 'Erro ao reabrir OS');
+}
+
 export async function processReportAction(
   reportId: string,
   action: ReportAction,

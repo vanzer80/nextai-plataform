@@ -162,7 +162,7 @@ export default function SupplierManagement() {
             onChange={e => setSearch(e.target.value)}
             className="h-10 w-56 rounded-xl bg-muted border-border"
           />
-          <Button onClick={openCreate} className="h-10 rounded-xl gap-2">
+          <Button data-onboarding="forn-novo" onClick={openCreate} className="h-10 rounded-xl gap-2">
             <Plus className="h-4 w-4" /> Novo Fornecedor
           </Button>
         </div>
@@ -180,7 +180,7 @@ export default function SupplierManagement() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div data-onboarding="forn-grid" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map(s => (
             <Card key={s.id} className={`shadow-sm border-border hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 ${s.status === 'inativo' ? 'opacity-60' : ''}`}>
               <CardHeader className="pb-2">

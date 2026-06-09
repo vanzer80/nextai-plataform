@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/src/contexts/AuthContext';
-import { Loader2, AlertTriangle, ArrowRight } from 'lucide-react';
+import { AlertTriangle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { NextAILogo } from '@/src/components/brand/NextAILogo';
 import { supabaseUrl, supabaseAnonKey } from '@/src/lib/supabase';
 
 export function ProtectedRoute() {
@@ -46,7 +47,7 @@ export function ProtectedRoute() {
           </div>
         ) : (
           <>
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <NextAILogo variant="symbol" height={48} animated />
             <p className="text-muted-foreground font-medium">Autenticando sessão...</p>
           </>
         )}

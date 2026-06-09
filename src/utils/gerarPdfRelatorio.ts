@@ -3,7 +3,7 @@ import autoTable from 'jspdf-autotable';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { ServiceReport, ReportChecklistItem, ReportSignature, ReportAttachment } from '@/src/types/reports';
-import { urlToDataUrl, detectImageFormat } from '@/src/utils/imageUtils';
+import { urlToDataUrl, detectImageFormat, fitInBox, measureImage } from '@/src/utils/imageUtils';
 
 export interface PdfReportData {
   report: ServiceReport;
@@ -98,7 +98,7 @@ export async function gerarPdfRelatorio({
 
   let logoDataUrl: string | null = null;
   await Promise.all([
-    (async () => { logoDataUrl = tenantLogoUrl ? await urlToDataUrl(tenantLogoUrl) : null; })(),
+    (async () => { logoDataUrl = tenantLogoUrl ? await urlToDataUrl(tenantLogoUrl).catch(() => null) : null; })(),
     ...signatures.map(async sig => {
       sigImageMap.set(sig.id, await urlToDataUrl(sig.image_url));
     }),
@@ -106,6 +106,13 @@ export async function gerarPdfRelatorio({
       attImageMap.set(att.id, await urlToDataUrl(att.url));
     }),
   ]);
+
+  // Mede dimensões reais via browser Image API (confiável para qualquer formato)
+  const logoDims = logoDataUrl ? await measureImage(logoDataUrl) : null;
+  const logoFmtRelatorio = logoDataUrl ? detectImageFormat(null, logoDataUrl) : null;
+  const { w: logoRelW, h: logoRelH } = logoDims
+    ? fitInBox(logoDims.width, logoDims.height, 44, 16)
+    : { w: 0, h: 0 };
 
   // Apenas fotos que carregaram com sucesso
   const photosToShow = photoAttachments.filter(att => attImageMap.get(att.id) !== null);
@@ -132,23 +139,21 @@ export async function gerarPdfRelatorio({
   const assetName  = report.equipments?.name ?? report.asset_name_manual ?? null;
 
   // ── Cabeçalho ─────────────────────────────────────────────────────────────────
-  const LOGO_H = 16;
-  const LOGO_OFFSET = 36;
-  if (logoDataUrl) {
-    const logoFmt = detectImageFormat(null, logoDataUrl);
-    doc.addImage(logoDataUrl, logoFmt, marginL, 10, 0, LOGO_H);
+  const headerTextXRel = (logoDataUrl && logoRelW > 0) ? marginL + logoRelW + 4 : marginL;
+
+  if (logoDataUrl && logoFmtRelatorio && logoRelW > 0) {
+    doc.addImage(logoDataUrl, logoFmtRelatorio, marginL, 10, logoRelW, logoRelH);
   }
-  const textX = logoDataUrl ? marginL + LOGO_OFFSET : marginL;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(30, 58, 95);
-  doc.text(tenantName.toUpperCase(), textX, 22);
+  doc.text(tenantName.toUpperCase(), headerTextXRel, 22);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(100, 116, 139);
-  doc.text('Relatório de Serviço Técnico', textX, 29);
+  doc.text('Relatório de Serviço Técnico', headerTextXRel, 29);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);

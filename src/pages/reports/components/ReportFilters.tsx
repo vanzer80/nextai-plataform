@@ -1,17 +1,21 @@
+import { useState, useEffect, useRef } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { Search, X } from 'lucide-react';
 import { REPORT_STATUS_LABEL } from '@/src/types/reports';
 import type { ReportStatus } from '@/src/types/reports';
 import type { ReportsFilter } from '@/src/hooks/useReports';
+import type { Technician } from '@/src/hooks/useTechnicians';
 
 interface ReportFiltersProps {
   filter: ReportsFilter;
   onChange: (filter: ReportsFilter) => void;
   onClear: () => void;
+  technicians?: Technician[];
 }
 
 const STATUS_OPTIONS: { value: ReportStatus | ''; label: string }[] = [
@@ -23,12 +27,81 @@ const STATUS_OPTIONS: { value: ReportStatus | ''; label: string }[] = [
   { value: 'rejected', label: REPORT_STATUS_LABEL.rejected },
 ];
 
-export default function ReportFilters({ filter, onChange, onClear }: ReportFiltersProps) {
-  const hasActiveFilter = filter.status || filter.dateFrom || filter.dateTo;
+const PRIORITY_OPTIONS = [
+  { value: '',        label: 'Todas as prioridades' },
+  { value: 'critica', label: 'Crítica' },
+  { value: 'alta',    label: 'Alta' },
+  { value: 'normal',  label: 'Normal' },
+  { value: 'baixa',   label: 'Baixa' },
+];
+
+export default function ReportFilters({ filter, onChange, onClear, technicians }: ReportFiltersProps) {
+  const hasActiveFilter = filter.status || filter.priority || filter.dateFrom || filter.dateTo || filter.query || filter.technicianId;
+  const [inputValue, setInputValue] = useState(filter.query ?? '');
+  const isMounted = useRef(false);
+
+  // Sincroniza inputValue quando o filtro é limpo externamente (onClear)
+  useEffect(() => {
+    setInputValue(filter.query ?? '');
+  }, [filter.query]);
+
+  // Debounce 350ms — pula o disparo do primeiro render para não emitir onChange em vão
+  useEffect(() => {
+    if (!isMounted.current) { isMounted.current = true; return; }
+    const timer = setTimeout(() => {
+      onChange({ ...filter, query: inputValue.trim() || undefined });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [inputValue]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="bg-card rounded-xl border border-border p-4 shadow-sm space-y-3">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* Busca + ordenação — mesma linha */}
+      <div className="flex items-center gap-2">
+      <div className="relative flex-1">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <Input
+          value={inputValue}
+          onChange={e => setInputValue(e.target.value)}
+          placeholder="Buscar por nº OS, tipo, problema, local, equipamento..."
+          className="h-11 rounded-xl bg-background border-input text-sm pl-9 pr-9"
+        />
+        {inputValue && (
+          <button
+            type="button"
+            onClick={() => setInputValue('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Ordenação — compacta, alinhada à direita da busca */}
+      <Select
+        value={`${filter.sortBy ?? 'created_at'}-${filter.sortDir ?? 'desc'}`}
+        onValueChange={(val: string) => {
+          const sep = val.lastIndexOf('-');
+          const col = val.substring(0, sep) as ReportsFilter['sortBy'];
+          const dir = val.substring(sep + 1) as ReportsFilter['sortDir'];
+          onChange({ ...filter, sortBy: col, sortDir: dir });
+        }}
+      >
+        <SelectTrigger className="h-11 w-[170px] shrink-0 rounded-xl bg-background border-input text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="created_at-desc">Mais recente</SelectItem>
+          <SelectItem value="service_date-desc">Data serviço (↓)</SelectItem>
+          <SelectItem value="service_date-asc">Data serviço (↑)</SelectItem>
+          <SelectItem value="sla_due_at-asc">SLA urgente</SelectItem>
+          <SelectItem value="os_number-asc">Nº OS (A→Z)</SelectItem>
+        </SelectContent>
+      </Select>
+      </div>
+
+      {/* Filtros principais — 4 colunas em telas grandes */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Status */}
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</Label>
@@ -42,6 +115,26 @@ export default function ReportFilters({ filter, onChange, onClear }: ReportFilte
             <SelectContent>
               {STATUS_OPTIONS.map(opt => (
                 <SelectItem key={opt.value} value={opt.value || '__all__'}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Prioridade */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Prioridade</Label>
+          <Select
+            value={filter.priority ?? ''}
+            onValueChange={(val: string) => onChange({ ...filter, priority: (val === '__all_p__' ? '' : val) as ReportsFilter['priority'] })}
+          >
+            <SelectTrigger className="h-10 rounded-lg bg-background border-input text-sm">
+              <SelectValue placeholder="Todas as prioridades" />
+            </SelectTrigger>
+            <SelectContent>
+              {PRIORITY_OPTIONS.map(opt => (
+                <SelectItem key={opt.value} value={opt.value || '__all_p__'}>
                   {opt.label}
                 </SelectItem>
               ))}
@@ -71,6 +164,27 @@ export default function ReportFilters({ filter, onChange, onClear }: ReportFilte
           />
         </div>
       </div>
+
+      {/* Filtro por técnico — visível apenas para gestores */}
+      {technicians && technicians.length > 0 && (
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Técnico</Label>
+          <Select
+            value={filter.technicianId ?? ''}
+            onValueChange={val => onChange({ ...filter, technicianId: val === '__all_t__' ? undefined : val })}
+          >
+            <SelectTrigger className="h-10 rounded-lg bg-background border-input text-sm">
+              <SelectValue placeholder="Todos os técnicos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all_t__">Todos os técnicos</SelectItem>
+              {technicians.map(t => (
+                <SelectItem key={t.id} value={t.id}>{t.full_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {hasActiveFilter && (
         <div className="flex justify-end">

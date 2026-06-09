@@ -57,5 +57,26 @@ export const adminTour: TourModule = {
       },
       roles: ['Gestor', 'Admin', 'Master'],
     },
+    // ── Editor de Template (TemplateEditor) ───────────────────────────────────
+    {
+      element: '[data-onboarding="admin-template-header"]',
+      route: '/admin/checklist-templates/new',
+      popover: {
+        title: 'Informações do Template',
+        description: 'Dê um nome claro ao template e vincule-o a um Tipo de Serviço para que ele apareça automaticamente nas OS daquele tipo. A Categoria de Ativo filtra ainda mais — útil quando há vários templates para o mesmo tipo de serviço.',
+        side: 'bottom',
+      },
+      roles: ['Gestor', 'Admin', 'Master'],
+    },
+    {
+      element: '[data-onboarding="admin-template-itens"]',
+      route: '/admin/checklist-templates/new',
+      popover: {
+        title: 'Itens do Checklist',
+        description: 'Adicione campos de texto, número, data, seleção múltipla ou assinatura. Marque os obrigatórios com o asterisco vermelho. Use as setas para reordenar e o ícone de lápis para editar cada item antes de salvar.',
+        side: 'top',
+      },
+      roles: ['Gestor', 'Admin', 'Master'],
+    },
   ],
 };

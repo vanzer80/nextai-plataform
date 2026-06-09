@@ -263,14 +263,14 @@ export default function KnowledgeBase() {
           <p className="text-sm text-muted-foreground">Artigos técnicos e procedimentos da equipe</p>
         </div>
         {canManage && (
-          <Button onClick={openNew} className="gap-2 shrink-0">
+          <Button data-onboarding="kb-novo" onClick={openNew} className="gap-2 shrink-0">
             <Plus className="h-4 w-4" /> Novo artigo
           </Button>
         )}
       </div>
 
       {/* Filtros */}
-      <div className="flex flex-wrap gap-2">
+      <div data-onboarding="kb-busca" className="flex flex-wrap gap-2">
         <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -345,7 +345,7 @@ export default function KnowledgeBase() {
           </CardContent>
         </Card>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div data-onboarding="kb-grid" className="flex flex-col gap-3">
           {articles.map(a => (
             <Card
               key={a.id}

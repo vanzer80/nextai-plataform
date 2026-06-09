@@ -1,40 +1,51 @@
-# PRD — Portal Mopar · MVP
+# PRD — NextAI · Plataforma SaaS
 
-> **Documento:** Product Requirements Document — estado real do MVP  
-> **Gerado em:** 2026-04-22 · **Atualizado em:** 2026-05-13  
-> **Versão do código:** Sprints 1–10 + Sessões 31–39 (Multi-Tenancy / NextAI)  
+> **Documento:** Product Requirements Document — estado real da plataforma  
+> **Produto:** NextAI — plataforma SaaS B2B multi-tenant para gestão de field service  
+> **Gerado em:** 2026-04-22 · **Atualizado em:** 2026-06-04 (Sessão 69)  
+> **Versão do código:** Sprints A–F + Sessões 31–69 · **Commits totais:** 135  
 > **TypeScript:** `npx tsc --noEmit` → EXIT:0
 
 ---
 
 ## 1. Visão Geral
 
-O **Portal Mopar** é um sistema operacional web para equipes de manutenção, campo e backoffice da Mopar Engenharia. Centraliza processos que antes eram executados por WhatsApp, PDF manual, planilhas e comunicação informal.
+O **NextAI** é uma plataforma SaaS B2B multi-tenant **white-label** para gestão de field service — ordens de serviço, manutenção, reembolsos, compras, RH e financeiro. Empresas (tenants) operam isoladas na mesma instância Supabase com branding próprio, dados completamente separados por RLS e provisionamento self-service pelo SuperMaster.
+
+A **Mopar Engenharia** é o primeiro tenant ativo. O produto é vendido como **NextAI** — o nome "portal-mopar" refere-se apenas ao repositório legado.
 
 ### O que o app faz hoje
 
-- Técnicos de campo **criam relatórios técnicos** em 7 etapas guiadas (checklist dinâmico, fotos, geolocalização, assinatura digital do técnico e do cliente) e os submetem para aprovação.
-- Gestores **aprovam, devolvem ou rejeitam** relatórios e reembolsos com trilha de auditoria persistida no banco.
-- Técnicos **solicitam reembolso de despesas** com extração automática via IA (foto do comprovante ou voz), e o financeiro processa o pagamento.
-- Técnicos e administrativos **solicitam compra de materiais**; compradores gerenciam o ciclo (análise → compra → entrega).
-- Técnicos **criam orçamentos técnicos** por itens, os enviam para aprovação e exportam PDF profissional para o cliente.
-- O **Dashboard** exibe KPIs em tempo real distintos por perfil: relatórios pendentes, reembolsos, produtividade semanal, ticket médio e taxa de aprovação.
-- **Notificações em tempo real** chegam via Supabase Realtime com sino e badge de não lidas.
-- O app é **instalável como PWA** (manifest + Service Worker) e possui base de operação offline parcial via IndexedDB.
-- O app funciona como **plataforma SaaS white-label** (NextAI): o SuperMaster provisiona novas empresas com branding dinâmico por cor primária (OKLCH), logo próprio e isolamento completo de dados por tenant.
+- Técnicos de campo **criam Ordens de Serviço (OS)** em wizard de 7 steps (checklist dinâmico, GPS, IA de diagnóstico, assinatura digital canvas, drafts offline) e as submetem para aprovação.
+- Gestores **aprovam, devolvem ou rejeitam** OS com trilha de auditoria completa.
+- Técnicos **solicitam reembolso de despesas** com extração automática via IA (foto/voz), SHA-256 para detecção de duplicatas, validação de CNPJ via API pública (cnpj.ws) e alerta de anomalia de valor.
+- Financeiro confirma o **pagamento efetivo** (status "Pago", colunas `paid_at`/`paid_by`) encerrando o ciclo financeiro real.
+- Técnicos e administrativos **solicitam materiais**; compradores gerenciam Ordens de Compra (PO) com upload de NF.
+- Técnicos **criam orçamentos técnicos (CPQ)** com itens, aprovação, versionamento e **assinatura eletrônica** do cliente. Vinculação direta OS↔Orçamento com auto-fill de itens (fluxo SAP SD/PM).
+- **Dashboard** personalizável com 15 widgets configuráveis por usuário (filtros de período, preferências persistidas no banco via `dashboard_preferences`).
+- **Onboarding** interativo com 25 tours e 85+ steps (driver.js), cobertura 100% dos módulos, role-aware.
+- **SLA** com escalonamento automático, **agenda de dispatch** com calendário, **portal do cliente** (read-only de OS), **CSAT pós-OS** público.
+- Módulos enterprise: **RH** (CLT), **DP** (folha de pagamento INSS/IRRF/FGTS/VT, holerite PDF, ponto, férias), **CP** (contas a pagar com workflow multinível).
+- **Banco de inteligência** cross-tenant para o SuperMaster (15 abas, 13 tabelas, 7 RPCs SECURITY DEFINER anonimizados).
+- **Plataforma SuperMaster:** 5 páginas dedicadas + Cadastro Comercial de Tenants (CNPJ, endereço, dados fiscais).
+- **Notificações** in-app em tempo real (Supabase Realtime), push nativas (Web Push API) e sino com badge.
+- **PWA** instalável (manifest, Service Worker `nextai-v7`, IndexedDB offline).
+- Cada tenant tem **branding dinâmico** (cor primária em OKLCH, logo próprio) e provisionamento via Edge Function.
 
 ### Público-alvo
 
 | Perfil | Função principal no app |
 |--------|------------------------|
-| **Tecnico** | Criar relatórios, reembolsos, compras, orçamentos |
-| **Supervisor** | Acompanhar equipe, aprovar relatórios |
-| **Gestor** | Visão gerencial completa, aprovações, orçamentos |
-| **Comprador** | Processar solicitações de materiais |
-| **Financeiro** | Visualizar e aprovar reembolsos |
-| **Admin** | Gestão de usuários, checklists, clientes |
-| **Master** | Acesso total, sem restrições |
-| **Administrativo** | Acesso a compras e operações internas |
+| **Tecnico** | Criar OS, reembolsos, compras, visualizar KB |
+| **Supervisor** | Acompanhar equipe, aprovar OS |
+| **Gestor** | Visão gerencial completa, aprovações, orçamentos, agenda |
+| **Comprador** | Processar Ordens de Compra |
+| **Financeiro** | Aprovar reembolsos, confirmar pagamentos, contas a pagar |
+| **Admin** | Gestão de usuários, checklists, SLA, budget, tipos de serviço |
+| **Master** | Acesso total ao tenant |
+| **Administrativo** | Compras e operações internas |
+| **Cliente** | Portal de leitura das próprias OS |
+| **SuperMaster** | `is_platform=true` — gerencia todos os tenants (NextAI) |
 
 ---
 
@@ -43,250 +54,292 @@ O **Portal Mopar** é um sistema operacional web para equipes de manutenção, c
 ### 2.1 Autenticação e RBAC
 
 - **Login** com email/senha via Supabase Auth (JWT).
-- **Perfil carregado** da tabela `public.users` após autenticação (`role`, `full_name`, `team_id`).
+- **Perfil** carregado da tabela `public.users` após autenticação (`role`, `full_name`, `team_id`), com cache `localStorage` `nextai-profile-v1-{uid}` TTL 7 dias.
 - **ProtectedRoute** redireciona não autenticados para `/login`.
 - **RoleGuard** bloqueia rotas por array de roles permitidos.
-- **Fallback de timeout:** se o banco não responder em 30 s, mantém role em memória ou usa `'Tecnico'` como padrão seguro.
-- **Race condition resolvida:** role é carregado apenas via `initializeAuth()`, não duplicado no listener `INITIAL_SESSION`.
-- **Logout** agressivo: limpa `localStorage` e `sessionStorage` antes de invocar o SDK.
-- **setup_pending:** flag ativada quando usuário existe no Auth mas não na tabela `users` (trigger pendente).
+- **PlatformGuard** bloqueia acesso ao layout `/platform/*` para não-SuperMaster.
+- **SmartRedirect** em `/`: SuperMaster → `/platform/tenants`, Cliente → `/portal`, demais → `/dashboard`.
+- **Race condition resolvida:** role carregado apenas via `initializeAuth()`, não duplicado no listener `INITIAL_SESSION`.
+- **Logout agressivo:** limpa `localStorage` + `sessionStorage` + restaura tema padrão antes de invocar o SDK.
+- Safety net de 10 s no `AuthContext` desbloqueando loading compulsoriamente (proteção contra cold-start Supabase free tier).
 
 ### 2.2 AppLayout e Navegação
 
-- **Sidebar desktop** fixa com logo, links de navegação filtrados por role e dropdown de perfil.
-- **Header mobile** com hamburger que abre Sheet lateral.
-- **Bottom nav mobile** com atalhos para Dashboard, Relatórios e Compras.
-- **Notificações realtime** no sino: badge animado, dropdown com histórico de 10, marcação como lida ao clicar.
-- Links visíveis por role:
-
-| Link | Roles |
-|------|-------|
-| Dashboard | Todos |
-| Relatórios | Tecnico, Supervisor, Gestor, Admin, Master |
-| Orçamentos | Tecnico, Supervisor, Gestor, Admin, Master |
-| Reembolsos | Tecnico, Supervisor, Gestor, Financeiro, Admin, Master |
-| Compras | Tecnico, Administrativo, Supervisor, Gestor, Comprador, Admin, Master |
-| Clientes | Supervisor, Gestor, Admin, Master |
-| Checklists | Gestor, Admin, Master |
-| Administrador | Gestor, Admin, Master |
-| Tenants | Master (is_platform = true) |
+- **Sidebar desktop** fixa com logo, links filtrados por role e dropdown de perfil.
+- **Header mobile** com hamburger → Sheet lateral.
+- **Bottom nav mobile** personalizável (8 atalhos configuráveis por usuário via localStorage).
+- **Notificações realtime** no sino: badge animado, dropdown com histórico de 10, marcação como lida ao clicar; clique navega para a OS/item relacionado.
+- **Animações:** tw-animate-css + @formkit/auto-animate (hover lift em cards, fade-in em páginas, pulse em badges).
 
 ### 2.3 Dashboard
 
-**KPIs disponíveis (dados reais do banco):**
+**15 widgets configuráveis** (customizer; preferências por usuário persistidas em `dashboard_preferences`):
 
-| Widget | Técnico vê | Gestor/Admin vê |
-|--------|-----------|----------------|
-| Relatórios | Meus pendentes (pending_review) | Total de abertos (geral) |
-| Reembolsos | Meus aprovados (valor R$) | Total pendente de aprovação (R$) |
-| Produtividade | % da semana vs meta 10 relatórios | % da equipe vs mesma meta |
-| Ticket médio | — | R$ médio por reembolso aprovado (30d) |
-| Taxa de aprovação | % aprovados/processados (30d) | % aprovados/processados (30d) |
+| Widget | Função |
+|--------|--------|
+| ReportsKpi | OS pendentes de review (técnico) / total abertas (gestor) |
+| ReimbursementsKpi | Reembolsos do usuário / total pendentes financeiro |
+| Productivity | % produtividade da semana vs meta |
+| TicketMedio | R$ médio por reembolso aprovado (30d) |
+| ApprovalRate | % aprovadas/processadas (30d) |
+| ReturnRate | Taxa de OS devolvidas |
+| ReportsBar | Bar chart: OS criadas vs concluídas (últimos 7d) |
+| ReimbursementsPie | Pie chart: despesas por categoria (30d) |
+| SLA | Status de SLAs (vencidos, em risco, ok) |
+| BudgetBurn | Burn rate por categoria (orçamento vs realizado) |
+| CpqKpi | Orçamentos por status |
+| EstoqueCritico | Peças abaixo do estoque mínimo |
+| HrSummary | KPIs RH (colaboradores ativos, folha estimada, horas registradas) |
+| Agenda | Próximas OS agendadas |
+| Csat | Score de satisfação recente |
 
-**Gráficos:**
-- **Bar chart** (Recharts): relatórios criados vs concluídos por dia nos últimos 7 dias.
-- **Pie chart** (Recharts): despesas por categoria (Transporte, Alimentação, Hospedagem, Outros) nos últimos 30 dias.
+**Filtros:** Período configurável (7d, 30d, 90d) com preferência salva no banco. Realtime via `postgres_changes`.
 
-**Realtime:** canal `dashboard_realtime` ouve INSERT/UPDATE em `reimbursements` e refaz o fetch.
+### 2.4 Ordens de Serviço (OS)
 
-**Ações rápidas** (apenas técnicos): botões diretos para "Novo Relatório" e "Nova Nota de Reembolso".
-
-### 2.4 Relatórios Técnicos
-
-**Wizard de criação — 7 steps (todos com lazy loading):**
+**Wizard de criação — 7 steps (lazy loading):**
 
 | Step | Conteúdo | Validação obrigatória |
 |------|---------|----------------------|
-| 1 — Identificação | Tipo de serviço, data, nº OS | `service_type`, `service_date` |
+| 1 — Identificação | Tipo de serviço, data, nº OS (automático), prioridade | `service_type`, `service_date` |
 | 2 — Ativo e Contexto | Cliente, local, equipamento, geolocalização GPS | — |
 | 3 — Checklist | Perguntas dinâmicas do template ativo | — |
-| 4 — Diagnóstico | Problema relatado, diagnóstico preliminar e final | `reported_problem` |
-| 5 — Execução | Serviços executados, peças, pendências, recomendação | `services_performed` |
-| 6 — Evidências | Upload de fotos (Storage privado, signed URLs) | — |
-| 7 — Assinatura e Envio | Canvas nativo HTML5 para técnico e cliente | — |
+| 4 — Diagnóstico | Problema relatado, diagnóstico IA enriquecido + botão copiar | `reported_problem` |
+| 5 — Execução | Serviços, peças (baixa automática de estoque na aprovação), pendências | `services_performed` |
+| 6 — Evidências | Upload de fotos (Storage privado, signed URLs renovadas a cada 50 min) | — |
+| 7 — Assinatura e Envio | Canvas HTML5 — técnico e cliente | — |
 
-**Tipos de serviço:** `Preventiva`, `Corretiva`, `Instalação`, `Vistoria`, `Emergência`.
-
-**Draft autosave:** `useReportDraft` persiste o rascunho no IndexedDB (`report-drafts-db`) a cada alteração, incluindo checklist.
-
-**Submissão:** RPC atômica `submit_report` — uploads de Storage em paralelo antes da transação DB. 5 tabelas em 1 transaction com rollback automático.
-
-**Assistente IA:** `AiDiagnosticAssistant` no Step 4 — envia texto para Edge Function `ai-proxy` e recebe diagnóstico técnico enriquecido (causas prováveis, recomendações).
+**Features adicionais:**
+- Numeração automática sequencial por tenant (`OS-YYYY-NNNN`, RPC `reserve_os_number`)
+- Busca full-text com índice GIN (`search_vector` GENERATED STORED)
+- Filtros por prioridade, técnico, ordenação — sincronizados na URL (deep link)
+- Edição de OS devolvida inline (sem refazer wizard)
+- Reabrir OS rejeitada (`reopen_report` RPC)
+- Duplicar OS (`?duplicateFrom=<id>`)
+- Exportação Excel com filtros ativos
+- Baixa automática de estoque na aprovação (trigger)
+- Push notifications nativas (Web Push API + Edge Function, requer setup VAPID)
+- Manutenção preventiva (CRUD + Edge Function `maintenance-scheduler`)
+- QR Code de equipamento → abrir OS pré-vinculada (`@zxing/browser`)
+- SLA tracking com escalonamento e alertas
+- Vinculação OS↔Orçamento com auto-fill de itens (SAP SD/PM)
+- Draft autosave no IndexedDB a cada alteração
 
 **Fluxo de aprovação:**
 ```
 draft → pending_review → approved
-                       → returned   (técnico deve revisar)
-                       → rejected
+                       → returned   (técnico edita e resubmete)
+                       → rejected   (pode ser reaberta)
 ```
 
-**Painel de aprovação** (Gestor/Admin/Supervisor): inline no `ReportDetail`, com campo de comentário e RPC `process_report_action` (SECURITY DEFINER).
-
-**Fotos:** bucket privado `service_reports_media`. `useReportDetail` regenera signed URLs a cada 50 min via `setInterval`.
-
-**Lista:** paginação de 20 por página, filtros por status, data e técnico (gestor), Realtime via canal `reports_list_realtime`.
-
-**Checklist Templates (admin):**
-- CRUD completo: criar, editar, ativar/desativar, excluir templates.
-- Editor de itens: texto livre, booleano, número, opção múltipla, upload.
-- Reordenação ↑↓ de itens.
-- Vinculação por tipo de serviço e categoria de ativo.
-- Roles: Gestor, Admin, Master.
+**PDF:** cabeçalho azul com logo do tenant (async + `urlToDataUrl` + `fitInBox`).
 
 ### 2.5 Reembolsos
 
-**Criação em 2 etapas:**
-1. **Captura:** foto do comprovante via câmera ou upload → IA extrai automaticamente: valor, favorecido, chave Pix, categoria, data.
-2. **Formulário:** revisão e complemento dos dados extraídos.
-
-**Campos:** categoria, valor, data da despesa, favorecido, chave Pix, descrição, tipo de manutenção, cliente, filial, budget.
-
-**Categorias:** Transporte, Alimentação, Hospedagem, Outros (+ Combustível e Estacionamento via IA).
-
-**Modo edição:** técnico pode editar reembolsos em status `Revisão` (devolvidos pelo gestor).
-
-**Fluxo de status:**
-```
-Pendente → Aprovado
-         → Rejeitado (com razão)
-         → Revisão   (devolvido, técnico corrige e resubmete)
-```
-
-**Aprovação em lote** (Gestor/Financeiro): checkboxes + ação em massa.
-
-**Histórico de auditoria:** tabela `reimbursement_history` registra todas as transições com autor, status anterior/posterior e razão.
-
-**Exportações disponíveis:**
-- **PDF individual** (jsPDF) com dados do reembolso.
-- **Excel** (XLSX) da lista filtrada.
-
-**Extração por voz:** `extractReceiptFromVoice` — usuário dita o valor e dados, a IA preenche o formulário.
+- Fluxo: captura (foto/voz) → IA extrai dados → formulário pré-preenchido → revisão.
+- **Antifraude:** SHA-256 da imagem detecta duplicata; validação de CNPJ via API pública (cnpj.ws); alerta de anomalia de valor acima da média histórica do usuário.
+- **Status "Pago":** Financeiro confirma depósito (`paid_at`, `paid_by`), encerrando o ciclo financeiro.
+- **Expense Reports:** relatório agregado por período e técnico (`/reimbursements/expense-reports`).
+- **Aprovação em lote** (Gestor/Financeiro): checkboxes + ação em massa.
+- **Exportação:** PDF individual (jsPDF com logo do tenant) + Excel da lista filtrada.
+- Histórico de auditoria (`reimbursement_history`): todas as transições com autor, status anterior/posterior, razão.
+- Fluxo: `Pendente → Aprovado → Pago / Revisão / Rejeitado`.
 
 ### 2.6 Compras (Materiais)
 
-**Criação:** formulário com item, quantidade, urgência, razão, cidade, cliente, loja, tipo de manutenção, prazo, especificação técnica, foto do produto, link de referência, observações.
+- Criação com IA (foto → extração de especificação + quantidade).
+- Ciclo: `Pendente → Em Análise → Comprado → Entregue / Cancelado`.
+- **Purchase Orders (PO):** Comprador cria PO formal com upload de Nota Fiscal.
+- Realtime, exportação Excel, filtros por status e busca por texto.
+- Edição pelo técnico em status `Pendente`.
 
-**Extração IA:** foto do material → `extractMaterialFromImages` preenche especificação e quantidade.
+### 2.7 Orçamentos (CPQ)
 
-**Ciclo de status:**
-```
-Pendente → Em Análise → Comprado → Entregue
-                      → Cancelado
-```
+- Criação com seleção de cliente (obrigatório), itens dinâmicos (`useFieldArray`), desconto (%), preview de totais em tempo real.
+- Fluxo: `rascunho → enviado → aprovado / rejeitado`.
+- **Assinatura eletrônica** do cliente (canvas + token único gerado no servidor).
+- **Versionamento:** histórico de versões do orçamento.
+- **Vinculação OS↔Orçamento:** auto-fill de itens/observações, chips "• OS" bidirecionais.
+- PDF com logo do tenant, seção "OS Vinculada", tabela de itens, campo de assinatura do cliente.
+- Realtime via Postgres Changes.
 
-**Processamento (Comprador/Gestor):** resposta com preço de compra, link, observações. Modal de detalhe com histórico de processamento.
+### 2.8 RH — Recursos Humanos
 
-**Realtime:** INSERT/UPDATE em `material_requests` atualiza a lista.
+- CRUD colaboradores CLT: dados pessoais, cargo, departamento, salário, tipo de contrato.
+- CRUD departamentos com hierarquia.
+- Gerenciamento de certificações e documentos.
+- Timeline de eventos (admissão, promoção, afastamento, desligamento).
+- Roles: Gestor, Admin, Master.
 
-**Exportação:** XLSX da lista com filtros ativos.
+### 2.9 DP — Departamento Pessoal
 
-**Filtragem:** tabs por status + busca por texto.
+- **Folha de pagamento:** cálculo INSS 2024 progressivo + IRRF + FGTS (8%) + Vale-Transporte.
+- **Holerite PDF** com logo do tenant (async + `urlToDataUrl`).
+- **Ponto eletrônico:** registro de entradas e saídas (`/dp/timerecords`).
+- **Férias:** agendamento e controle de períodos (`/dp/vacation`).
+- Roles: Gestor, Admin, Master.
 
-**Edição:** técnico pode editar solicitação em status `Pendente`.
+### 2.10 CP — Contas a Pagar
 
-### 2.7 Orçamentos
+- CRUD de contas a pagar com parcelas e comentários.
+- **Workflow de aprovação multinível:** submit → approve → pay / reject.
+- Integração com widget `HrSummary` no Dashboard.
+- Roles: Financeiro, Gestor, Admin, Master.
 
-**Entidade própria** com fluxo completo de ciclo de vida:
+### 2.11 SLA
 
-**Criação (Formulário):**
-- Seleção de cliente (obrigatório).
-- Título, observações, validade, desconto (%).
-- Itens dinâmicos: descrição, quantidade, unidade, valor unitário.
-- Preview de totais em tempo real: subtotal, desconto, total.
-- Gestão de itens via `useFieldArray` (adicionar/remover linhas).
-- Modo edição: recarrega orçamento existente e permite alterações em `rascunho`.
+- Definição de SLAs por tipo de serviço e prioridade (CRUD admin em `/admin/sla`).
+- Tracking de tempo de resposta e resolução por OS.
+- Escalonamento automático via Edge Function `maintenance-scheduler`.
+- Widget `SLA` no Dashboard.
 
-**Fluxo de status:**
-```
-rascunho → [técnico envia] → enviado → [gestor aprova] → aprovado
-                                      → [gestor rejeita + motivo] → rejeitado
-```
+### 2.12 Fornecedores
 
-**Geração de PDF (client-side, jsPDF):**
-- Cabeçalho com número `ORC-XXXXXXXX`, data de emissão, validade.
-- Dados do cliente e técnico responsável.
-- Tabela de itens (jspdf-autotable): qtd, unidade, valor unitário, total por linha.
-- Totais: subtotal, desconto, total em destaque.
-- Observações e campo de assinatura do cliente.
+- CRUD de fornecedores com dados completos.
+- Vinculação a POs e solicitações de compra.
 
-**RLS:** técnico vê e edita apenas os seus; Gestor/Admin/Master veem tudo; Supervisor tem leitura total.
+### 2.13 Peças / Inventário
 
-**Realtime:** lista e detalhe atualizam via canais Postgres Changes.
+- CRUD de peças com estoque atual e mínimo.
+- Alerta de estoque crítico (widget `EstoqueCritico` no Dashboard).
+- Baixa automática de estoque na aprovação de OS (trigger).
+- Entrada manual de estoque.
 
-### 2.8 Clientes
+### 2.14 Agenda / Dispatch
 
-- CRUD completo: criar, editar, excluir clientes.
-- Campo obrigatório: `name` (razão social, mín. 3 caracteres).
-- Acesso restrito: Supervisor, Gestor, Admin, Master.
-- Cache em memória (módulo `useClients`) — evita N+1 queries nos selects de cliente em outros módulos.
+- Calendário de despacho de OS por técnico (biblioteca: ver ADR-006).
+- Visualização por dia/semana/mês.
+- Widget `Agenda` no Dashboard.
 
-### 2.9 Administração de Usuários
+### 2.15 Clientes
 
-- Listagem de todos os usuários com avatar, nome, email e role.
-- **Criação de usuário:** `full_name`, `email`, `role` — cria conta no Supabase Auth com convite.
-- **Edição de role:** troca de perfil via dropdown.
-- **Exclusão:** remove do Auth e da tabela `users`.
-- Acesso: Gestor, Admin, Master.
+- CRUD completo com CNPJ, endereço (auto-fill via ViaCEP), telefone, contato.
+- Múltiplas unidades/locais por cliente (`client_locations` com CASCADE).
+- Cache em memória (`useClients`) para evitar N+1 queries.
 
-**Nota:** Gerenciamento de tenants (criar/editar empresas na plataforma) é um módulo separado — ver §2.13. UserManagement gerencia usuários dentro de um tenant; TenantManagement gerencia os próprios tenants.
+### 2.16 Equipamentos
 
-### 2.10 Assistente de IA
+- CRUD: modelo, nº de série, cliente, data de instalação.
+- Histórico de OS por equipamento.
+- Ciclo de vida financeiro com depreciação linear.
+- QR Code → abrir OS pré-vinculada (scanner `@zxing/browser`).
+- Alertas de manutenção preventiva.
 
-**Edge Function `ai-proxy`** (Supabase) — nenhuma chave no bundle JS:
+### 2.17 Base de Conhecimento (KB)
 
-| Tipo de extração | Input | Output |
-|-----------------|-------|--------|
-| `receipt_images` | Base64 de fotos de comprovante | Valor, favorecido, Pix, categoria, data |
+- CRUD de artigos com busca full-text em português (índice GIN `tsvector` FTS).
+- Acessível a todos os roles operacionais.
+
+### 2.18 Portal do Cliente
+
+- Layout dedicado `ClientPortalLayout` (role `Cliente`).
+- Visualização read-only das próprias OS.
+- Rota: `/portal`.
+
+### 2.19 CSAT
+
+- Página pública `/csat/:token` (sem autenticação, sem login necessário).
+- Disparada automaticamente pós-OS aprovada.
+- Widget de score CSAT no Dashboard.
+
+### 2.20 Administração
+
+- **Usuários** (`/admin/usuarios`): criar, atribuir role, excluir — via Edge Function `admin-create-user` (nunca service role key no cliente).
+- **Checklist Templates**: CRUD completo com editor de itens, reordenação ↑↓, vinculação por tipo de serviço.
+- **Service Types** (`/admin/service-types`): tipos de serviço configuráveis por tenant (tabela `service_types` com `team_id`).
+- **SLA** (`/admin/sla`): políticas de SLA por tipo e prioridade.
+- **Budget** (`/admin/budget`): controle de orçamento por categoria com burn rate.
+- **Maintenance Plans** (`/admin/maintenance-plans`): planos de manutenção preventiva.
+- **Company Profile** (`/admin/company-profile`): perfil da empresa (dados do tenant visível a Admin/Master do próprio tenant).
+- **Tenants** (`/admin/tenants`): visível apenas para Master — gerencia apenas seus próprios dados.
+
+### 2.21 Platform (SuperMaster)
+
+- **Layout dedicado** `PlatformLayout` com `PlatformGuard` (bloqueia não-SuperMaster).
+- **Empresas** (`/platform/tenants`): CRUD de tenants, branding, status.
+- **Perfil Comercial** (`/platform/company-profile`): SuperMaster edita CNPJ, endereço, dados fiscais de qualquer tenant.
+- **Usuários** (`/platform/users`): visão cross-tenant de todos os usuários.
+- **Intelligence** (`/platform/intelligence`): banco de dados cross-tenant anonimizado (15 abas, 13 tabelas brutas + 2 corpus de IA) — 7 RPCs SECURITY DEFINER.
+- **Configurações** (`/platform/settings`).
+
+### 2.22 Onboarding
+
+- **25 tours** com **85+ steps** cobrindo 100% dos módulos (driver.js v1.4.0).
+- Tours role-aware: cada role vê apenas o subconjunto aplicável.
+- Navegação automática entre rotas durante o tour.
+- `WelcomeModal` ao primeiro login.
+- Convenção `data-onboarding="<identificador>"` em todos os elementos-alvo.
+- Regra: roles do tour ⊆ `allowedRoles` do RoleGuard em `App.tsx` (verificar sempre ao criar novo tour).
+
+### 2.23 Assistente de IA
+
+**Edge Function `ai-proxy` v8** — nenhuma chave de API no bundle JS:
+
+| Tipo | Input | Output |
+|------|-------|--------|
+| `receipt_images` | Base64 de comprovantes | Valor, favorecido, Pix, categoria, data |
 | `receipt_voice` | Transcrição de voz | Idem |
-| `material_images` | Fotos de produto/embalagem | Especificação técnica, quantidade, obs |
+| `material_images` | Fotos de produto | Especificação técnica, quantidade, obs |
 | `material_voice` | Transcrição de voz | Idem |
-| `diagnostic` | Texto de diagnóstico + contexto | Diagnóstico enriquecido, causas, recomendação |
+| `diagnostic` | Texto + contexto de OS | Diagnóstico enriquecido, causas, recomendação |
 
-**Cascade de fallback server-side:** Gemini 1 → Gemini 2 → OpenAI (todos via secrets, não .env).
+**Cascade de fallback server-side:** Gemini Flash key 1 → Gemini Flash key 2 → OpenAI (todos via secrets, nunca `.env` exposto no bundle).
 
-### 2.11 PWA
+> ⚠️ **Dívida técnica:** o fallback é silencioso para o operador — se a chave Gemini for revogada, o tráfego migra para OpenAI (custo ~10× maior) sem nenhum alerta. Não há telemetria de roteamento no painel do SuperMaster. Ver item 4.8.
 
-- `manifest.json`: nome "Portal Mopar", tema `#2563eb`, fundo `#020617`, ícone SVG base.
-- `sw.js`: cache-first para assets estáticos; network-first para chamadas Supabase.
-- Registrado no `main.tsx` após `window.load`.
-- **Pendente:** `icon-192.png` e `icon-512.png` (necessários para instalação em produção).
+### 2.24 PWA
 
-### 2.12 Testes E2E (Playwright)
+- Manifest: nome "NextAI", tema + ícone SVG. Cache `nextai-v7`.
+- Service Worker (`public/sw.js`): cache-first para assets; network-first para Supabase.
+- IndexedDB via `idb`: drafts de OS, fila offline.
+- **Pendente:** ícones PNG 192×512 para instalação no Android/Chrome.
+- **Pendente:** Background Sync (sincronização automática ao reconectar).
 
-4 smoke tests em `tests/smoke.spec.ts`:
+### 2.25 Multi-Tenancy
 
-| Teste | Cobertura |
-|-------|-----------|
-| S1 | Técnico cria relatório (7 steps) → aparece na lista |
-| S2 | Gestor aprova relatório → status muda para Aprovado |
-| S3 | Reembolso criado tem status correto (enum sem duplicação) |
-| S4 | RLS isolation: Técnico B não acessa relatório do Técnico A via URL direta |
+- Modelo: **shared database + RLS por `team_id`** (RESTRICTIVE, `USING (team_id = get_caller_team_id())`).
+- Tabela `tenants`: `id`, `slug` (imutável), `name`, `logo_url`, `primary_color`, `is_platform` + dados comerciais.
+- `get_caller_team_id()`: RPC STABLE SECURITY DEFINER usada em todas as policies RLS.
+- Branding dinâmico: `hexToOklch()` + `applyTenantBrand()` injeta CSS vars OKLCH preservando luminância.
+- Provisionamento: Edge Function `admin-provision-tenant` cria tenant + Master em transação única.
+- **Tenants ativos:** NextAI (`nextai@gmail.com`, SuperMaster, `is_platform=true`), Mopar Engenharia (`master@gmail.com`), Zambrano Engenharia.
+- **Regra crítica de INSERTs:** injetar `team_id` manualmente — RLS filtra leituras mas não injeta em writes.
 
-**Status:** instalado, aguardando credenciais reais em `tests/.env.test`.
+### 2.26 Testes
 
-### 2.13 Multi-Tenancy / NextAI Platform
+**Vitest (unitários):** 117 testes passando em 8 arquivos:
 
-Infraestrutura SaaS white-label implementada nas Sessões 31–39. Permite que uma única instância Supabase sirva múltiplas empresas com isolamento completo de dados, branding dinâmico e provisionamento self-service.
+| Arquivo | Cobertura |
+|---------|-----------|
+| `Login.test.tsx` | Autenticação e fluxo de login |
+| `PlatformIntelligence.test.tsx` | Componente Intelligence SuperMaster |
+| `Step4Diagnosis.integration.test.tsx` | Integração IA diagnóstico |
+| `Step4Diagnosis.test.tsx` | Componente diagnóstico OS |
+| `payrollCalculations.test.ts` | Cálculos INSS/IRRF/FGTS |
+| `platformIntelligenceService.test.ts` | Serviço de inteligência |
+| `equipment.test.ts` | Tipos de equipamento |
+| `imageUtils.test.ts` | Utilitários de imagem/PDF |
 
-**Tabela `tenants`:** `id`, `slug` (imutável, unique), `name`, `logo_url`, `primary_color`, `is_platform`.
+**Playwright (E2E):** 23 arquivos spec, ~166 testes:
 
-**Flag `is_platform`:** distingue SuperMaster de plataforma (NextAI, `is_platform = true`) de Master de cliente (`is_platform = false`). Guard em `Dashboard.tsx` redireciona `is_platform = true` para `/admin/tenants` imediatamente — SuperMaster nunca vê o dashboard operacional vazio.
+| Grupo | Testes |
+|-------|--------|
+| `tests/ux/01–05` (UX/UI SAP-level) | 37 |
+| `tests/os-orcamento-vinculacao.spec.ts` | 33 |
+| `tests/reports-audit.spec.ts` | 10 |
+| `tests/reports-pdf.spec.ts` | 7 |
+| `tests/reports-sync.spec.ts` | 6 |
+| `tests/admin/user-management.spec.ts` | 7 |
+| `tests/cp-module.spec.ts` | 8 |
+| `tests/dp-module.spec.ts` | 7 |
+| `tests/rh-module.spec.ts` | 7 |
+| `tests/platform-company-profile.spec.ts` | 6 |
+| `tests/platform/` (6 specs) | ~14 |
+| `tests/dashboard-verify.spec.ts` | 5 |
+| `tests/orcamentos-sprint-d.spec.ts` | 5 |
+| `tests/smoke.spec.ts` | 4 |
 
-**`TenantContext` + `useTenant()`:** carrega o tenant do usuário logado via `team_id`; chama `applyTenantBrand()` após hydratação; chama `applyTenantBrand(null)` no logout para restaurar o tema padrão.
-
-**`src/lib/color.ts`:** `hexToOklch()` (matrizes OKLab oficiais de Björn Ottosson) + `applyTenantBrand()` injeta `<style id="tenant-brand">` no `<head>` com variáveis CSS `--primary`, `--ring`, `--sidebar-primary`, `--sidebar-ring` para light e dark. Preserva luminância do design system (0.52 light / 0.72 dark); chroma dark = 86% do light.
-
-**Bucket `tenant-assets`:** público, limite 2 MB, tipos PNG/JPEG/WebP. 3 policies em `storage.objects`: SELECT aberto (qualquer usuário lê logos), INSERT e UPDATE restritos a `role = Master AND is_platform = true`.
-
-**`TenantManagement.tsx`:** tabela de tenants com thumbnail 24×24 do logo; dialog de criação com campos slug, name, primary_color, logo (upload + preview 40×40); dialog de edição com name, primary_color, logo — slug desabilitado e imutável após criação; coluna Ações com botão Pencil por linha.
-
-**Edge Function `admin-provision-tenant`:** recebe `tenant{slug, name, primary_color, logo_url?}` + `master{email, password, full_name}`; cria tenant e usuário Master em transação única server-side. Upload do logo (se fornecido) ocorre antes da chamada à Edge Function — URL pública passada no body.
-
-**`get_caller_team_id()`:** RPC `STABLE SECURITY DEFINER` — helper usado pelas políticas RLS de isolamento; retorna `team_id` do usuário autenticado via `auth.uid()`.
-
-**`notify_compradores` (R-02):** corrigida em Sessão 31 para filtrar por `team_id` do caller — antes notificava Compradores de **todos** os tenants indiscriminadamente.
-
-**Acesso:** `TenantManagement` visível e acessível apenas para usuários com `role = Master` e `is_platform = true`.
+Credenciais em `tests/.env.test` (gitignored). Timeout 90 s (cold-start Supabase free tier).
 
 ---
 
@@ -304,68 +357,76 @@ Infraestrutura SaaS white-label implementada nas Sessões 31–39. Permite que u
 | UI Base | shadcn/ui + @base-ui/react | 4.2 / 1.4 |
 | Ícones | lucide-react | 0.546 |
 | Formulários | react-hook-form + Zod | 7.72 / 4.3 |
-| Animações | motion (Framer Motion v12) | 12.23 |
+| Animações | tw-animate-css + @formkit/auto-animate | — |
 | Gráficos | Recharts | 3.8 |
 | Notificações | Sonner | 2.0 |
-| Fonte | Geist Variable (@fontsource-variable) | 5.2 |
 | Temas | next-themes | 0.4 |
+| Fonte | Geist Variable | 5.2 |
+| Onboarding | driver.js | 1.4 |
+| QR Code | qr-code-styling + @zxing/browser | 1.9 / 0.2 |
+| Datas | date-fns (ptBR) | 4.1 |
 
 ### 3.2 Backend (Supabase)
 
 | Serviço | Uso |
 |---------|-----|
-| **PostgreSQL** | Banco principal (17 tabelas, enums, índices, triggers) |
+| **PostgreSQL** | Banco principal (25+ tabelas, enums, índices GIN, triggers) |
 | **Supabase Auth** | JWT, sessão, refresh token |
-| **Row Level Security** | Isolamento por `auth.uid()` + `role` |
-| **Realtime** | `postgres_changes` em 6+ tabelas |
+| **Row Level Security** | Isolamento por `team_id` via `get_caller_team_id()` |
+| **Realtime** | `postgres_changes` em 8+ tabelas |
 | **Storage** | Bucket privado `service_reports_media` (fotos, assinaturas) |
-| **Storage** | Bucket público `tenant-assets` (logos de tenants) |
-| **Edge Functions** | `ai-proxy` — chamadas IA server-side |
-| **Edge Functions** | `admin-provision-tenant` — provisioning de tenant + usuário Master |
-| **RPCs** | `get_caller_team_id()` — helper RLS, retorna `team_id` do caller |
+| **Storage** | Bucket público `tenant-assets` (logos) |
 
-### 3.3 IA e Integrações
+### 3.3 Edge Functions (10)
+
+| Função | Versão | Propósito |
+|--------|--------|-----------|
+| `ai-proxy` | v8 | Proxy de IA com fallback Gemini key1 → key2 → OpenAI |
+| `admin-create-user` | v4 | Criar usuário no Auth + `public.users` com `team_id` |
+| `admin-delete-user` | v3 | Excluir usuário com guard cross-tenant |
+| `admin-provision-tenant` | v1 | Criar tenant + Master em transação única |
+| `admin-reset-password` | v1 | Reset de senha pelo Admin |
+| `maintenance-scheduler` | v1 | SLA escalonamento + manutenção preventiva |
+| `platform-update-user` | v1 | SuperMaster atualiza usuário de qualquer tenant |
+| `push-notification` | v1 | Web Push API (VAPID) — notificações nativas |
+| `sla-checker` | v1 | Verificação periódica de SLA em relatórios abertos |
+| `send-csat-email` | v1 | Envio de pesquisa CSAT após aprovação de OS |
+| `storage-backfill-mopar` | v1 | Script único de migração de storage (legado) |
+
+> ⚠️ **Dívida técnica:** `ai-proxy` está deployada diretamente no Supabase mas **não está versionada no repositório local** (`supabase/functions/`). Um disaster recovery usando apenas as migrations e o código do repo não restauraria a função. Ver item 4.9.
+
+### 3.4 IA e Integrações
 
 | Provedor | Uso | Fallback |
 |---------|-----|---------|
-| Google Gemini (key 1) | Extração primária de imagens/voz | → Gemini key 2 |
-| Google Gemini (key 2) | Fallback de quota | → OpenAI |
+| Google Gemini Flash (key 1) | Extração primária + diagnóstico | → Gemini key 2 |
+| Google Gemini Flash (key 2) | Fallback de quota | → OpenAI |
 | OpenAI GPT | Fallback final | — |
 
-SDK no cliente: `@google/genai` 1.50 instalado mas **não usado diretamente** — todas as chamadas vão para a Edge Function.
+**Nenhum SDK de IA no bundle cliente** — todas as chamadas passam pela Edge Function.
 
-### 3.4 PDF e Exportação
-
-| Biblioteca | Uso |
-|-----------|-----|
-| jsPDF 4.2 + jspdf-autotable 5.0 | PDF de reembolsos e orçamentos (client-side) |
-| XLSX 0.18 | Exportação Excel de reembolsos e materiais |
-
-### 3.5 Offline e Persistência Local
+### 3.5 PDF e Exportação
 
 | Biblioteca | Uso |
 |-----------|-----|
-| idb 8.0 | IndexedDB — drafts de relatórios (`report-drafts-db`) |
-| Service Worker (`sw.js`) | Cache estático + network-first Supabase |
+| jsPDF 4.2 + jspdf-autotable 5.0 | PDF de OS, reembolsos, orçamentos, holerites (client-side) |
+| xlsx 0.18 | Excel de reembolsos, materiais |
 
-### 3.6 Utilitários
+### 3.6 Offline e Persistência Local
 
-| Arquivo | Função |
-|---------|--------|
-| `src/lib/withTimeout.ts` | Race condition helper: rejeita Promise após N ms |
-| `src/lib/supabase.ts` | Cliente Supabase singleton |
-| `src/lib/color.ts` | `hexToOklch()` + `applyTenantBrand()` — branding dinâmico por OKLCH |
-| `date-fns` 4.1 | Formatação de datas (locale pt-BR) |
-| `clsx` + `tailwind-merge` | Composição segura de classes CSS |
-| `class-variance-authority` | Variantes de componentes UI |
-
-### 3.7 Qualidade e Testes
-
-| Ferramenta | Uso |
+| Biblioteca | Uso |
 |-----------|-----|
-| TypeScript strict | `tsc --noEmit` como único linter (sem ESLint) |
-| Playwright 1.59 | 4 smoke tests E2E (instalado, não configurado) |
-| `dotenv` 17.2 | Carregamento de `.env.test` nos testes |
+| idb 8.0 | IndexedDB — drafts de OS e fila offline |
+| Service Worker (`public/sw.js`) | Cache estático + network-first Supabase — `nextai-v7` |
+
+### 3.7 Testes
+
+| Ferramenta | Versão | Uso |
+|-----------|--------|-----|
+| Vitest | 3.2 | 117 testes unitários em 8 arquivos |
+| @testing-library/react | 16.3 | Render de componentes |
+| @playwright/test | 1.59 | 23 specs E2E, ~166 testes |
+| TypeScript strict | 5.8 | `tsc --noEmit` como verificação pós-feature |
 
 ### 3.8 Deploy e Infra
 
@@ -373,222 +434,109 @@ SDK no cliente: `@google/genai` 1.50 instalado mas **não usado diretamente** �
 |---------|-------------|
 | Dev server | `npm run dev` — porta 3001, host 0.0.0.0 |
 | Build | `vite build` → `/dist` |
-| Preview | `vite preview` |
+| Deploy | Vercel auto-deploy ao push no `master` |
+| Produção | https://nextai-plataform.vercel.app |
 | Supabase project ref | `sksursvmgvxqbbdsztcd` |
+| Migrations | 24 arquivos em `supabase/migrations/` |
 
 ---
 
-## 4. Dívidas Técnicas e Gargalos
+## 4. Dívidas Técnicas
 
 Classificação: 🔴 Crítico · 🟡 Importante · 🟢 Melhoria
 
----
+### 4.1 🔴 `package.json` name incorreto
 
-### 4.1 🔴 Inconsistência de enums de status entre módulos
+**Problema:** `name` no `package.json` ainda é `react-example`.  
+**Impacto:** Cosmético mas inconsistente com a identidade do produto em ferramentas e npm scripts.  
+**Recomendação:** Alterar para `nextai-plataform`.
 
-**Problema:** `service_reports` usa enums em inglês (`draft`, `pending_review`, `approved`, `returned`, `rejected`). `reimbursements` e `material_requests` usam strings em português (`'Pendente'`, `'Aprovado'`, `'Rejeitado'`, `'Revisão'`, `'Comprado'`, `'Entregue'`). Essa inconsistência já causou o bug H-01 (`'Revisao'` vs `'Revisão'`) e aumenta risco de regressão futura.
+### 4.2 🟡 Background Sync não implementado
 
-**Onde:** `Dashboard.tsx` linhas 71 e 77 (queries com `'Pendente'`/`'Aprovado'`), `MaterialsList.tsx` (todos os status em PT), `reimbursements/*`.
+**Problema:** PWA base funciona (manifest, SW, IndexedDB), mas OS criadas offline ficam no IndexedDB sem sincronização automática ao reconectar.  
+**Onde:** `public/sw.js`.  
+**Recomendação:** Implementar `Background Sync API` com evento `sync` no service worker.
 
-**Impacto:** Queries com string errada retornam 0 linhas silenciosamente (sem erro HTTP). Diagnóstico difícil em produção.
+### 4.3 🟡 Ícones PWA ausentes
 
-**Recomendação:** Migrar `reimbursements.status` e `material_requests.status` para enums PostgreSQL em inglês (migration + busca/substituição no frontend).
+**Problema:** `public/manifest.json` referencia `icon-192.png` e `icon-512.png`, mas apenas `icon.svg` existe. Instalação como PWA no Android/Chrome falha silenciosamente.  
+**Recomendação:** Gerar a partir de `public/icons/icon.svg` com conversor SVG→PNG.
 
----
+### 4.4 🟢 ~~Criação de orçamento não atômica~~ — RESOLVIDO (P-12, 2026-04-25)
 
-### 4.2 🔴 Dashboard Realtime incompleto
+**Resolução:** `criarOrcamento` foi migrado para a RPC `create_orcamento(p_orcamento JSONB, p_itens JSONB)` (SECURITY DEFINER), que cria cabeçalho + itens em transação única no Postgres. Não existe mais risco de orçamento órfão na criação.
 
-**Problema:** O canal `dashboard_realtime` ouve apenas mudanças em `reimbursements`. O Bar Chart de relatórios (últimos 7 dias) **não é atualizado em tempo real** quando um relatório é criado ou aprovado — requer refresh manual da página.
+### 4.4-B 🔴 Atualização de orçamento ainda não atômica
 
-**Onde:** `Dashboard.tsx` linhas 212–222.
+**Problema:** `atualizarOrcamento` em `src/services/orcamentoService.ts` executa **5 operações sequenciais sem transação**:
+1. SELECT snapshot da versão atual
+2. INSERT em `orcamento_versions` (versionamento)
+3. UPDATE cabeçalho em `orcamentos`
+4. DELETE todos os itens em `orcamento_itens`
+5. INSERT dos novos itens em `orcamento_itens`
 
-**Recomendação:** Adicionar listener para INSERT/UPDATE em `service_reports` no mesmo canal ou criar canal dedicado.
+Se a rede cair entre os passos 4 e 5, o orçamento fica com valor R$ 0 e sem itens — dado corrompido silenciosamente. Em campo (3G/4G instável) isso é um risco real, especialmente antes de integração com ERP.  
+**Impacto:** Um orçamento aprovado sem itens geraria um `payable` com `valor_total = 0` no módulo CP, e eventualmente enviaria documento financeiro em branco para o SAP/TOTVS.  
+**Recomendação:** Criar RPC `update_orcamento(p_id UUID, p_orcamento JSONB, p_itens JSONB, p_changed_by UUID)` com atomicidade real, similar à `create_orcamento` já existente.
 
----
+### 4.5 🔴 Sem observabilidade de custos de IA
 
-### 4.3 🔴 `UserManagement.tsx` instancia segundo cliente Supabase
+**Problema:** A Edge Function `ai-proxy` faz fallback silencioso Gemini → OpenAI sem expor nenhuma métrica ao operador. O custo de análise de imagens no GPT-4o é ~10× maior que no Gemini Flash. Se a chave Gemini primária for revogada acidentalmente, **100% do tráfego multimodal migra para OpenAI sem nenhum alerta**, podendo drenar o orçamento de API em horas.
 
-**Problema:** `UserManagement.tsx` importa `createClient` de `@supabase/supabase-js` além do cliente singleton. Se estiver usando `SUPABASE_SERVICE_ROLE_KEY` via variável de ambiente Vite, essa chave fica exposta no bundle JavaScript do cliente.
+O painel `/platform/intelligence` exibe apenas métricas de corpus (volume de OS, diagnósticos IA, artigos KB) — **zero métricas de roteamento ou custo por provedor**.
 
-**Onde:** `src/pages/admin/UserManagement.tsx` linha 8.
+**Recomendação:**
+1. Logar cada chamada da `ai-proxy` em tabela `ai_routing_log` (provider, is_fallback, latency_ms, request_type)
+2. Expor RPC `get_ai_routing_stats(p_hours INT)` retornando `fallback_pct`, `total_requests`, `by_provider`
+3. Adicionar widget de "Roteamento IA (24h)" no `/platform/intelligence` com alerta visual quando `fallback_pct > 15%`
+4. Configurar alertas via webhook/email quando o fallback ultrapassa o limiar por mais de 60 minutos
 
-**Recomendação:** Operações de criação/exclusão de usuários devem ser feitas via Supabase Edge Function com service role key nos secrets — nunca no frontend.
+### 4.6 🟡 Sem ESLint
 
----
-
-### 4.4 🟡 Meta de produtividade hardcoded
-
-**Problema:** `targetWeekly = 10` em `Dashboard.tsx` linha 192 — a métrica de produtividade é calculada dividindo relatórios criados por um valor fixo sem configuração. Diferentes equipes têm metas distintas.
-
-**Recomendação:** Mover para tabela de configuração por `team_id` ou `role`, com CRUD admin.
-
----
-
-### 4.5 🟡 Criação de orçamento não é atômica
-
-**Problema:** `criarOrcamento` em `orcamentoService.ts` faz 2 roundtrips separados (insert orçamento + insert itens). Se o segundo falhar, há tentativa de compensação manual (delete do orçamento), mas essa compensação também pode falhar, deixando orçamento órfão sem itens.
-
-**Onde:** `src/services/orcamentoService.ts` linhas 35–72.
-
-**Recomendação:** Criar RPC `criar_orcamento(p_orcamento JSONB, p_itens JSONB[])` como feito com `submit_report` — garantia de atomicidade real.
-
----
-
-### 4.6 🟡 Service Worker muito básico para PWA de produção
-
-**Problema:** O `sw.js` cacheia apenas 3 arquivos estáticos e não implementa:
-- Sincronização de fila offline para requests POST (relatórios enviados offline ficam apenas no IndexedDB, sem reprocessamento pelo SW).
-- Estratégia de atualização de cache (versioning manual).
-- `notificationclick` para push notifications futuras.
-
-**Onde:** `public/sw.js`.
-
-**Recomendação:** Substituir por Workbox ou implementar `Background Sync` para a fila de relatórios offline.
-
----
-
-### 4.7 🟡 `@google/genai` instalado mas não usado no cliente
-
-**Problema:** `@google/genai` (versão 1.50, 6+ MB) está nas dependências do projeto, mas toda a lógica de IA foi corretamente movida para a Edge Function. O pacote infla o bundle desnecessariamente.
-
-**Onde:** `package.json` linha 16.
-
-**Recomendação:** `npm remove @google/genai`.
-
----
-
-### 4.8 🟡 Sem ESLint — apenas `tsc --noEmit`
-
-**Problema:** O projeto usa TypeScript como único mecanismo de lint (`"lint": "tsc --noEmit"` no `package.json`). Erros de estilo, unused imports, hooks dependencies e acessibilidade não são capturados.
-
+**Problema:** Apenas `tsc --noEmit` como lint. Erros de estilo, unused imports, hooks dependencies e acessibilidade não são capturados.  
 **Recomendação:** Adicionar ESLint com `@typescript-eslint`, `eslint-plugin-react-hooks` e `eslint-plugin-jsx-a11y`.
 
----
+### 4.7 🟢 Sem Error Boundary global
 
-### 4.9 🟡 Tipagem fraca em módulos legados
+**Problema:** Um erro não capturado em qualquer módulo desmonta toda a aplicação com tela branca, sem fallback.  
+**Recomendação:** Adicionar `React.ErrorBoundary` no `App.tsx` wrappando o `<Outlet>`.
 
-**Problema:** Vários componentes antigos (antes do hardening da Sprint 9) ainda usam `any`:
-- `MaterialsList.tsx`: `useState<PurchaseRequest[]>` existe mas vários campos aninhados são `any`.
-- `ReimbursementsList.tsx`: `useState<any[]>([])`.
-- `AppLayout.tsx`: `useState<any[]>([])` para notificações.
-- `Dashboard.tsx`: `useState<any[]>([])` para `barData` e `pieData`.
+### 4.8 🟢 Dark mode não acessível pela UI principal
 
-**Recomendação:** Criar interfaces para `Notification`, `ReimbursementListItem`, `MaterialRequest` nos arquivos de `src/types/`.
+**Problema:** `next-themes` está instalado e funcional, mas o toggle de tema fica apenas no Sheet "Minha Conta" — não exposto no header ou sidebar.  
+**Recomendação:** Expor toggle de tema no header para acesso rápido.
 
----
+### 4.9 🟡 `ai-proxy` não versionada no repositório
 
-### 4.10 🟡 Sem Error Boundary global
+**Problema:** A Edge Function `ai-proxy` v8 está deployada diretamente no Supabase mas **não existe como arquivo local** em `supabase/functions/`. Um disaster recovery usando apenas o repositório não restauraria a função, deixando todo o módulo de IA inoperante.  
+**Recomendação:** Criar `supabase/functions/ai-proxy/index.ts` com o código atual e incluir no fluxo de CI/CD.
 
-**Problema:** Não há `React.ErrorBoundary` em nenhum ponto da árvore de componentes. Um erro não capturado em qualquer módulo desmonta toda a aplicação com tela branca, sem fallback.
+### 4.10 🟡 Migration CP com FK incorreta (risco de disaster recovery)
 
-**Recomendação:** Adicionar `ErrorBoundary` no `App.tsx` wrappando o `<Outlet>`.
-
----
-
-### 4.11 🟡 `motion` instalado mas subutilizado
-
-**Problema:** `motion` (Framer Motion v12, ~50 kB gzip) está nas dependências mas aparentemente não é usado ou é usado em poucos lugares, inflando o bundle.
-
-**Recomendação:** Auditar uso real com `grep -r "from 'motion'"`. Se não utilizado, remover.
+**Problema:** O arquivo `supabase/migrations/20260526_cp_module.sql` contém `REFERENCES public.teams(id)` nas tabelas `payables`, `payable_installments` e `payable_comments`. A tabela `public.teams` **não existe** — o projeto usa `public.tenants`. No banco de produção a FK está correta (`→ tenants`) porque a tabela já existia quando a migration foi aplicada (`CREATE TABLE IF NOT EXISTS` pulou o bloco). Porém, em um **deploy limpo ou disaster recovery** a migration falharia com erro de FK.  
+**Recomendação:** Criar migration `20260604_fix_cp_fk_teams_to_tenants.sql` corrigindo os 3 `REFERENCES public.teams` para `REFERENCES public.tenants`.
 
 ---
 
-### 4.12 🟡 Playwright sem credenciais — CI impossível
+## 5. Roadmap de Próximos Passos
 
-**Problema:** Os 4 smoke tests existem mas `tests/.env.test` não está configurado, o que significa que nenhum teste roda em CI/CD. A cobertura funcional é zero em ambientes automatizados.
+> **Pré-requisito para integrações enterprise:** os itens 4.4-B (atomicidade do update de orçamento) e 4.5 (observabilidade de custos IA) devem ser resolvidos **antes** de iniciar integrações ERP — dado corrompido enviado ao SAP/TOTVS causa retrabalho de auditoria financeira impossível de reverter.
 
-**Recomendação:** Criar usuários de teste no banco de staging, adicionar secrets no CI (GitHub Actions/etc.) e incluir `npx playwright test` na pipeline.
-
----
-
-### 4.13 🟢 `next-themes` instalado mas dark mode não implementado
-
-**Problema:** `next-themes` está nas dependências mas não há `ThemeProvider` no `App.tsx` nem toggle de tema na UI.
-
-**Recomendação:** Implementar ou remover a dependência.
-
----
-
-### 4.14 🟢 Clientes sem dados estruturados (apenas nome)
-
-**Problema:** A tabela `clients` tem apenas `id`, `name`, `created_at`. Campos como CNPJ, endereço, telefone, contato e segmento são necessários para orçamentos e relatórios profissionais, mas não existem.
-
-**Recomendação:** Migration adicionando colunas opcionais: `cnpj`, `address`, `phone`, `contact_name`, `segment`.
+| Feature | Prioridade | Esforço estimado |
+|---------|-----------|-----------------|
+| Fix migration FK `teams → tenants` (item 4.10) | 🔴 Urgente | 30 min |
+| RPC `update_orcamento` atômica (item 4.4-B) | 🔴 Alta | 2–3 h |
+| Observabilidade de custos IA — telemetria + alertas (item 4.5) | 🔴 Alta | 1 dia |
+| Versionar `ai-proxy` no repositório (item 4.9) | 🟡 Média | 1–2 h |
+| Notificações email (Resend) + WhatsApp (Evolution API) | 🔴 Alta | 1–2 dias |
+| IA de Escrita de Relatórios (texto livre → linguagem técnica profissional) | 🔴 Alta | 1–2 dias |
+| Background Sync offline (Service Worker) | 🟡 Média | 1 dia |
+| Ícones PNG 192×512 para instalação PWA | 🟢 Baixa | horas |
+| RAG Analytics — busca em linguagem natural nos relatórios | 🟡 Estratégico | 5–8 dias |
+| Dispatching com mapa GPS em tempo real (localização de técnicos) | 🟡 Estratégico | 5–8 dias |
+| Integração ERP (TOTVS / SAP / Omie) via webhook | 🟡 Estratégico | 3–5 dias/ERP |
+| Fase 6 SaaS: subdomain routing por tenant + billing (Stripe) | 🟡 Estratégico | 2–3 semanas |
 
 ---
 
-### 4.15 🟢 Sem fluxo de recuperação de senha / perfil do usuário
-
-**Problema:** Não há tela de "Esqueci minha senha" (redirecionamento para email de reset do Supabase) nem página de edição do próprio perfil (nome, foto, telefone).
-
-**Recomendação:** Sprints menores de UX — `supabase.auth.resetPasswordForEmail()` + tela `/perfil`.
-
----
-
-### 4.16 🟢 PWA ícones de produção ausentes
-
-**Problema:** `public/manifest.json` referencia `icon-192.png` e `icon-512.png`, mas apenas `icon.svg` existe. A instalação como PWA no Android/Chrome falha silenciosamente sem os PNGs.
-
-**Pendência:** Gerar a partir de `public/icons/icon.svg` com qualquer conversor SVG→PNG.
-
----
-
-### 4.17 🟢 Produtividade e ticket médio sem drill-down
-
-**Problema:** Os KPIs do Dashboard exibem números sem possibilidade de ver quais relatórios ou reembolsos compõem o número. O usuário não consegue investigar picos ou quedas.
-
-**Recomendação:** Tornar os KPI cards clicáveis, filtrando a lista correspondente com os mesmos parâmetros da query do dashboard.
-
----
-
-## 5. Resumo executivo das dívidas
-
-| Prioridade | Quantidade | Ação principal |
-|-----------|-----------|----------------|
-| 🔴 Crítico | 3 | Padronizar enums de status; corrigir Dashboard Realtime; isolar criação de usuário em Edge Function |
-| 🟡 Importante | 9 | Atomicidade de orçamentos; ESLint; tipagem; Error Boundary; SW offline; remover pacotes mortos; CI Playwright |
-| 🟢 Melhoria | 5 | Dark mode; campos de cliente; recuperação de senha; ícones PWA; drill-down KPIs |
-
----
-
-## 6. Roadmap de sprints futuras
-
-| Fase / Sprint | Foco | Status |
-|---------------|------|--------|
-| **Fase 10 — Fundação multi-tenant** | Tabela `tenants`, `team_id`, provisioning, branding OKLCH | ✅ Concluída (Sessões 31–32 + 37–39) |
-| **Fase 10.1 — Isolamento de dados** | `team_id` em 8 tabelas + RLS RESTRICTIVE + RPCs | ✅ Concluída (Sessão 33) |
-| **Fase 10.2 — Branding dinâmico** | `TenantContext` + IndexedDB slug + OKLCH vars | ✅ Concluída (Sessão 34) |
-| **Fase 10.3 — Onboarding + storage** | `admin-provision-tenant` EF + storage isolation | ✅ Concluída (Sessão 35) |
-| **Fase 10.4 — Storage backfill** | Backfill 43 objetos legados + drop policies legacy | ✅ Concluída (Sessão 36) |
-| **Sprint 11** | Offline-first — Background Sync + indicador de conectividade | ⏳ Pendente |
-| **Sprint 12** | Notificações email/WhatsApp (Resend + Evolution API) | ⏳ Pendente |
-| **Sprint 13** | PDF server-side (Edge Function) para orçamentos e relatórios | ⏳ Pendente |
-| **Sprint 14** | Auditoria / LGPD | ⏳ Pendente |
-
-### Fase 10 — Estado atual (Sessões 31–39)
-
-- [x] Tabela `tenants` criada + Mopar inserido como primeiro tenant (s31)
-- [x] `users.team_id` backfillado + FK adicionada (s31)
-- [x] `get_caller_team_id()` criada (s31)
-- [x] `notify_compradores` corrigida (R-02 — vazamento cross-tenant) (s31)
-- [x] `handle_new_user` trigger corrigido — propaga `team_id` para novos usuários (s32)
-- [x] `admin-create-user` Edge Function v4 aceita e persiste `team_id` (s32)
-- [x] `team_id` em `notifications` + backfill (s32)
-- [x] ADD COLUMN `team_id` em 8 tabelas de domínio + backfill (s33)
-- [x] Políticas RLS RESTRICTIVE com `team_id = get_caller_team_id()` em todas as tabelas (s33)
-- [x] 5 RPCs SECURITY DEFINER atualizadas com `get_caller_team_id()` check (s33)
-- [x] `TenantContext` + `useTenant()` wiring em AppLayout/Login/PDFs (s34)
-- [x] IndexedDB `${tenant.slug}-reports` — namespacing por tenant (s34)
-- [x] `is_platform` flag + tenant NextAI provisionado (slug: `nextai`, cor: `#6366F1`) (s37)
-- [x] SuperMaster `nextai@gmail.com` criado (s37)
-- [x] Redirect plataforma → `/admin/tenants` (guard em `Dashboard.tsx`) (s38)
-- [x] Branding dinâmico OKLCH (`src/lib/color.ts` + `applyTenantBrand`) (s38)
-- [x] Bucket `tenant-assets` + 3 policies RLS (s39)
-- [x] Upload de logo no form de criação de tenant (s39)
-- [x] Dialog de edição de tenant (name, cor, logo — slug imutável) (s39)
-- [x] Edge Function `admin-provision-tenant` com suporte a `logo_url` (s39)
-- [x] Storage `service_reports_media`: paths `{teamId}/` + backfill 43 objetos legados (s35–s36)
-
----
-
-*Documento gerado por varredura automatizada do repositório em 2026-04-22. Atualizado em 2026-05-13 para refletir Sessões 31–39 (Multi-Tenancy / NextAI).*
+*Atualizado em 2026-06-04 (Sessão 69) — 135 commits · Sprints A–F concluídas · 117 testes unitários · 24 migrations · 10 Edge Functions.*

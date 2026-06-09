@@ -9,7 +9,7 @@ export const platformTour: TourModule = {
       route: '/platform/tenants',
       popover: {
         title: 'Gerenciamento de Tenants',
-        description: 'Visão completa de todas as empresas na plataforma: status, data de criação, usuários ativos. Você é o SuperMaster — acesso cross-tenant para suporte e operação da NextAI.',
+        description: 'Visão completa de todas as empresas na plataforma: status, data de criação, usuários ativos. O menu ⋯ de cada empresa oferece Editar, Ver Usuários, Suspender/Ativar e Deletar empresa (ação SuperMaster — irreversível no modo hard delete).',
         side: 'bottom',
       },
       roles: ['SuperMaster'],
@@ -41,6 +41,26 @@ export const platformTour: TourModule = {
       popover: {
         title: 'Logo e Branding',
         description: 'Faça upload do logo e configure a cor primária da plataforma NextAI. Cada tenant pode ter seu próprio branding sobreposto — este é o padrão base para novos tenants provisionados.',
+        side: 'bottom',
+      },
+      roles: ['SuperMaster'],
+    },
+    {
+      element: '[data-onboarding="platform-intelligence-header"]',
+      route: '/platform/intelligence',
+      popover: {
+        title: 'Banco de Inteligência',
+        description: 'Corpus de dados cross-tenant anonimizado: OS, diagnósticos, KB e tabelas operacionais de todos os tenants. Os KPIs mostram o volume total que alimenta o modelo de IA. Todos os acessos são registrados na trilha de auditoria.',
+        side: 'bottom',
+      },
+      roles: ['SuperMaster'],
+    },
+    {
+      element: '[data-onboarding="platform-intelligence-tabs"]',
+      route: '/platform/intelligence',
+      popover: {
+        title: '15 Abas + Monitor de Roteamento IA',
+        description: 'Corpus IA (Diagnósticos + KB) e 13 tabelas brutas exportáveis em JSON/CSV. O widget "Roteamento IA" aparece quando há chamadas registradas — mostra se o fallback para OpenAI foi ativado (custo ~10× maior que Gemini). Fica vermelho quando o fallback ultrapassa 15%.',
         side: 'bottom',
       },
       roles: ['SuperMaster'],

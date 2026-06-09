@@ -15,7 +15,7 @@ const ORCAMENTO_SELECT = `
   client_location_id, site_location,
   clients(name, cnpj, cidade, estado, logradouro, numero, bairro, contato_nome, contato_telefone, contato_email),
   users:technician_id(full_name),
-  service_reports:report_id(os_number)
+  service_reports:report_id(os_number, service_type, service_date, status)
 `;
 
 const PAGE_SIZE = 20;
@@ -89,29 +89,9 @@ export async function atualizarOrcamento(
   payload: UpdateOrcamentoPayload,
   changedBy?: string,
 ): Promise<void> {
-  // Snapshot da versão atual antes de sobrescrever
-  const { data: current } = await supabase
-    .from('orcamentos')
-    .select('version, titulo, observacoes, validade, desconto_pct, orcamento_itens(descricao, quantidade, unidade, valor_unitario)')
-    .eq('id', id)
-    .single() as { data: { version: number; titulo: string | null; observacoes: string | null; validade: string | null; desconto_pct: number; orcamento_itens: unknown[] } | null };
-
-  const currentVersion = current?.version ?? 1;
-
-  await supabase.from('orcamento_versions').insert({
-    orcamento_id: id,
-    version:      currentVersion,
-    titulo:       current?.titulo ?? null,
-    observacoes:  current?.observacoes ?? null,
-    validade:     current?.validade ?? null,
-    desconto_pct: current?.desconto_pct ?? 0,
-    itens:        current?.orcamento_itens ?? [],
-    changed_by:   changedBy ?? null,
-  });
-
-  const { error: errOrc } = await supabase
-    .from('orcamentos')
-    .update({
+  const { data, error } = await supabase.rpc('update_orcamento', {
+    p_id: id,
+    p_orcamento: {
       report_id:          payload.report_id ?? null,
       client_id:          payload.client_id,
       titulo:             payload.titulo || null,
@@ -120,35 +100,18 @@ export async function atualizarOrcamento(
       desconto_pct:       payload.desconto_pct ?? 0,
       client_location_id: payload.client_location_id ?? null,
       site_location:      payload.site_location || null,
-      version:            currentVersion + 1,
-    })
-    .eq('id', id) as { data: unknown; error: { message: string } | null };
-
-  if (errOrc) throw new Error(errOrc.message);
-
-  // Delete-all + insert-all para itens (padrão do projeto)
-  const { error: errDel } = await supabase
-    .from('orcamento_itens')
-    .delete()
-    .eq('orcamento_id', id) as { data: unknown; error: { message: string } | null };
-
-  if (errDel) throw new Error(errDel.message);
-
-  if (payload.itens.length > 0) {
-    const itensPayload = payload.itens.map(item => ({
-      orcamento_id:   id,
+    },
+    p_itens: payload.itens.map(item => ({
       descricao:      item.descricao,
       quantidade:     item.quantidade,
       unidade:        item.unidade || 'un',
       valor_unitario: item.valor_unitario,
-    }));
+    })),
+    p_changed_by: changedBy ?? null,
+  }) as { data: { success: boolean; version?: number; error?: string } | null; error: { message: string } | null };
 
-    const { error: errItens } = await supabase
-      .from('orcamento_itens')
-      .insert(itensPayload) as { data: unknown; error: { message: string } | null };
-
-    if (errItens) throw new Error(errItens.message);
-  }
+  if (error) throw new Error(error.message);
+  if (!data?.success) throw new Error(data?.error ?? 'Falha ao atualizar orçamento.');
 }
 
 export async function assinarOrcamento(

@@ -1,19 +1,37 @@
-import { layoutTour }       from './layout.tour';
-import { dashboardTour }    from './dashboard.tour';
-import { osListTour }       from './os-list.tour';
-import { osWizardTour }     from './os-wizard.tour';
-import { osDetailTour }     from './os-detail.tour';
-import { equipamentosTour } from './equipamentos.tour';
-import { clientesTour }     from './clientes.tour';
-import { orcamentosTour }   from './orcamentos.tour';
-import { reembolsosTour }   from './reembolsos.tour';
-import { materiaisTour }    from './materiais.tour';
-import { adminTour }        from './admin.tour';
-import { platformTour }     from './platform.tour';
+import { layoutTour }               from './layout.tour';
+import { dashboardTour }            from './dashboard.tour';
+import { dashboardCustomizerTour }  from './dashboard-customizer.tour';
+import { osListTour }               from './os-list.tour';
+import { osWizardTour }             from './os-wizard.tour';
+import { osDetailTour }             from './os-detail.tour';
+import { agendaTour }               from './agenda.tour';
+import { equipamentosTour }         from './equipamentos.tour';
+import { clientesTour }             from './clientes.tour';
+import { orcamentosTour }           from './orcamentos.tour';
+import { reembolsosTour }           from './reembolsos.tour';
+import { expenseReportsTour }      from './expense-reports.tour';
+import { materiaisTour }            from './materiais.tour';
+import { fornecedoresTour }         from './fornecedores.tour';
+import { pecasTour }                from './pecas.tour';
+import { conhecimentoTour }         from './conhecimento.tour';
+import { rhTour }                   from './rh.tour';
+import { dpTour }                   from './dp.tour';
+import { cpTour }                   from './cp.tour';
+import { adminTour }                from './admin.tour';
+import { companyProfileTour, platformCompanyProfileTour } from './company-profile.tour';
+import { adminSlaTour }             from './admin-sla.tour';
+import { adminBudgetTour }          from './admin-budget.tour';
+import { adminManutencaoTour }      from './admin-manutencao.tour';
+import { adminTenantsMgmtTour }     from './admin-tenants-mgmt.tour';
+import { platformTour }             from './platform.tour';
+import { apiKeysTour, webhooksTour } from './integrations.tour';
+import { osImportTour }              from './os-import.tour';
+import { clientPortalTour }         from './client-portal.tour';
 
 export type Role =
   | 'Tecnico' | 'Administrativo' | 'Supervisor' | 'Gestor'
-  | 'Financeiro' | 'Comprador' | 'Admin' | 'Master' | 'SuperMaster';
+  | 'Financeiro' | 'Comprador' | 'Admin' | 'Master' | 'SuperMaster'
+  | 'Cliente';
 
 export interface TourStep {
   /** CSS selector using data-onboarding attribute. Ex: [data-onboarding="nav-os"] */
@@ -51,18 +69,60 @@ export interface TourModule {
  * Examples: "os-nova", "eq-preventiva", "cli-cnpj", "admin-templates"
  */
 export const TOUR_MODULES: TourModule[] = [
+  // ── Navigation & Dashboard ────────────────────────────────────────────────
   layoutTour,
   dashboardTour,
+  dashboardCustomizerTour,
+
+  // ── Field Service (OS) ────────────────────────────────────────────────────
   osListTour,
   osWizardTour,
   osDetailTour,
+  agendaTour,
+
+  // ── Asset & Client Management ─────────────────────────────────────────────
   equipamentosTour,
   clientesTour,
+
+  // ── Commercial ────────────────────────────────────────────────────────────
   orcamentosTour,
+
+  // ── Finance & Procurement ─────────────────────────────────────────────────
   reembolsosTour,
+  expenseReportsTour,
   materiaisTour,
+  cpTour,
+
+  // ── Inventory & Suppliers ─────────────────────────────────────────────────
+  fornecedoresTour,
+  pecasTour,
+
+  // ── Knowledge ─────────────────────────────────────────────────────────────
+  conhecimentoTour,
+
+  // ── HR & Payroll ──────────────────────────────────────────────────────────
+  rhTour,
+  dpTour,
+
+  // ── Admin ─────────────────────────────────────────────────────────────────
+  companyProfileTour,
   adminTour,
+  adminSlaTour,
+  adminBudgetTour,
+  adminManutencaoTour,
+  adminTenantsMgmtTour,
+
+  // ── Integrações (Sprint G + OS Import Bridge) ────────────────────────────
+  apiKeysTour,
+  webhooksTour,
+  osImportTour,
+
+  // ── Platform (SuperMaster) ────────────────────────────────────────────────
   platformTour,
+  platformCompanyProfileTour,
+
+  // ── Client Portal ─────────────────────────────────────────────────────────
+  clientPortalTour,
 ];
 
 export function getTourSteps(role: Role): TourStep[] {

@@ -68,7 +68,7 @@ export default function ClientPortal() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div data-onboarding="portal-header" className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <ClipboardList className="h-6 w-6 text-primary" /> Minhas Ordens de Serviço
@@ -104,7 +104,7 @@ export default function ClientPortal() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div data-onboarding="portal-lista" className="space-y-3">
           {filtered.map(r => (
             <Card
               key={r.id}

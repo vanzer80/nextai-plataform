@@ -14,9 +14,10 @@ interface Props {
   watch: UseFormWatch<OrcamentoFormValues>;
   onRemove: () => void;
   isOnly: boolean;
+  showOSHint?: boolean;
 }
 
-export function ItemRow({ index, register, errors, watch, onRemove, isOnly }: Props) {
+export function ItemRow({ index, register, errors, watch, onRemove, isOnly, showOSHint }: Props) {
   const qtd = Number(watch(`itens.${index}.quantidade`)) || 0;
   const valor = Number(watch(`itens.${index}.valor_unitario`)) || 0;
   const subtotal = qtd * valor;
@@ -58,9 +59,11 @@ export function ItemRow({ index, register, errors, watch, onRemove, isOnly }: Pr
           placeholder="Valor unit."
           {...register(`itens.${index}.valor_unitario`, { valueAsNumber: true })}
         />
-        {subtotal > 0 && (
+        {showOSHint && valor === 0 ? (
+          <p className="text-[10px] text-amber-600 mt-0.5 font-medium">⚠ Preencha o preço</p>
+        ) : subtotal > 0 ? (
           <p className="text-[11px] text-slate-500 mt-0.5 text-right">{BRL.format(subtotal)}</p>
-        )}
+        ) : null}
       </div>
 
       <Button

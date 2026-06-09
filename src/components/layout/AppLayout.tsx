@@ -1,5 +1,5 @@
 import React, { useState, Suspense } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   ClipboardList,
@@ -27,11 +27,21 @@ import {
   CalendarDays,
   BookOpen,
   DollarSign,
+  Users,
+  Network,
+  Banknote,
+  Umbrella,
+  Landmark,
+  Clock,
+  KeyRound,
+  Webhook,
+  UploadCloud,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 import { supabase } from '@/src/lib/supabase';
 import { useAuth, type AuthUser } from '@/src/contexts/AuthContext';
+import { usePushNotification } from '@/src/hooks/usePushNotification';
 import { invalidateClientsCache } from '@/src/hooks/useClients';
 import { useTenant } from '@/src/contexts/TenantContext';
 import { OnboardingButton } from '@/src/onboarding/OnboardingButton';
@@ -43,6 +53,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import ThemeToggle from '@/src/components/theme/ThemeToggle';
 import clsx from 'clsx';
+import { toast } from 'sonner';
 import { NextAILogo } from '@/src/components/brand/NextAILogo';
 
 // Mapeamento path → chave data-onboarding para o tour
@@ -60,27 +71,94 @@ const NAV_ONBOARDING: Record<string, string> = {
   '/admin/service-types':         'nav-service-types',
   '/admin/usuarios':              'nav-admin-usuarios',
   '/admin/tenants':               'nav-tenants',
+  '/admin/api-keys':              'nav-api-keys',
+  '/admin/webhooks':              'nav-webhooks',
+  '/admin/os-imports':            'nav-os-imports',
 };
 
-// Configuration of navigation links
-const NAV_LINKS = [
-  { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Financeiro', 'Comprador', 'Admin', 'Master'] },
-  { name: 'Ordens de Serviço', path: '/reports', icon: ClipboardList, roles: ['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master'] },
-  { name: 'Orçamentos', path: '/orcamentos', icon: FileText, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
-  { name: 'Reembolsos', path: '/reimbursements', icon: Receipt, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Financeiro', 'Admin', 'Master'] },
-  { name: 'Compras', path: '/materials', icon: ShoppingCart, roles: ['Tecnico', 'Administrativo', 'Financeiro', 'Supervisor', 'Gestor', 'Comprador', 'Admin', 'Master'] },
-  { name: 'Clientes', path: '/clients', icon: Building2, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
-  { name: 'Equipamentos', path: '/equipments', icon: Wrench, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
-  { name: 'Fornecedores', path: '/suppliers', icon: Store, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
-  { name: 'Peças / Estoque', path: '/parts', icon: Package, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
-  { name: 'Agenda / Dispatch', path: '/agenda', icon: CalendarDays, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
-  { name: 'Base de Conhecimento', path: '/knowledge', icon: BookOpen, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Financeiro', 'Comprador', 'Admin', 'Master'] },
-  { name: 'Checklists', path: '/admin/checklist-templates', icon: ListChecks, roles: ['Gestor', 'Admin', 'Master'] },
-  { name: 'Tipos de Serviço', path: '/admin/service-types', icon: Settings2, roles: ['Gestor', 'Admin', 'Master'] },
-  { name: 'SLA', path: '/admin/sla', icon: ShieldCheck, roles: ['Gestor', 'Admin', 'Master'] },
-  { name: 'Controle de Budget', path: '/admin/budget', icon: DollarSign, roles: ['Gestor', 'Admin', 'Master'] },
-  { name: 'Administrador', path: '/admin/usuarios', icon: ShieldAlert, roles: ['Gestor', 'Admin', 'Master'] },
-  { name: 'Tenants', path: '/admin/tenants', icon: Globe, roles: ['Master'] },
+// Navigation module structure — SAP-style functional groups
+type NavItem = { name: string; path: string; icon: React.ComponentType<{ className?: string }>; roles: string[] };
+type NavGroup = { label: string; items: NavItem[] };
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: '',
+    items: [
+      { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Financeiro', 'Comprador', 'Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Operações de Campo',
+    items: [
+      { name: 'Ordens de Serviço', path: '/reports', icon: ClipboardList, roles: ['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master'] },
+      { name: 'Agenda / Dispatch', path: '/agenda', icon: CalendarDays, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
+      { name: 'Manutenção Preventiva', path: '/admin/maintenance-plans', icon: CalendarDays, roles: ['Gestor', 'Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Comercial',
+    items: [
+      { name: 'Clientes', path: '/clients', icon: Building2, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
+      { name: 'Orçamentos', path: '/orcamentos', icon: FileText, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Suprimentos',
+    items: [
+      { name: 'Compras', path: '/materials', icon: ShoppingCart, roles: ['Tecnico', 'Administrativo', 'Financeiro', 'Supervisor', 'Gestor', 'Comprador', 'Admin', 'Master'] },
+      { name: 'Fornecedores', path: '/suppliers', icon: Store, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
+      { name: 'Peças / Estoque', path: '/parts', icon: Package, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
+      { name: 'Equipamentos', path: '/equipments', icon: Wrench, roles: ['Supervisor', 'Gestor', 'Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Financeiro',
+    items: [
+      { name: 'Reembolsos', path: '/reimbursements', icon: Receipt, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Financeiro', 'Admin', 'Master'] },
+      { name: 'Contas a Pagar', path: '/cp/payables', icon: Banknote, roles: ['Financeiro', 'Gestor', 'Admin', 'Master'] },
+      { name: 'Controle de Budget', path: '/admin/budget', icon: DollarSign, roles: ['Gestor', 'Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Recursos Humanos',
+    items: [
+      { name: 'Colaboradores', path: '/rh/employees', icon: Users, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'Departamentos', path: '/rh/departments', icon: Network, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'Folha de Pagamento', path: '/dp/payroll', icon: Landmark, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'Férias', path: '/dp/vacation', icon: Umbrella, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'Registro de Ponto', path: '/dp/timerecords', icon: Clock, roles: ['Gestor', 'Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Conhecimento',
+    items: [
+      { name: 'Base de Conhecimento', path: '/knowledge', icon: BookOpen, roles: ['Tecnico', 'Administrativo', 'Supervisor', 'Gestor', 'Financeiro', 'Comprador', 'Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Configurações',
+    items: [
+      { name: 'Tipos de Serviço', path: '/admin/service-types', icon: Settings2, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'SLA', path: '/admin/sla', icon: ShieldCheck, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'Checklists', path: '/admin/checklist-templates', icon: ListChecks, roles: ['Gestor', 'Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Integrações',
+    items: [
+      { name: 'API Keys',       path: '/admin/api-keys',   icon: KeyRound,   roles: ['Admin', 'Master'] },
+      { name: 'Webhooks',       path: '/admin/webhooks',   icon: Webhook,    roles: ['Admin', 'Master'] },
+      { name: 'Importação OS',  path: '/admin/os-imports', icon: UploadCloud, roles: ['Admin', 'Master'] },
+    ],
+  },
+  {
+    label: 'Administração',
+    items: [
+      { name: 'Perfil da Empresa', path: '/admin/company-profile', icon: Building2, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'Administrador', path: '/admin/usuarios', icon: ShieldAlert, roles: ['Gestor', 'Admin', 'Master'] },
+      { name: 'Tenants', path: '/admin/tenants', icon: Globe, roles: ['Master'] },
+    ],
+  },
 ];
 
 // All possible bottom nav options (mobile quick-access bar)
@@ -142,20 +220,22 @@ function UserProfileDropdown({ user, userRole, onSignOut, authorizedLinks, activ
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <button data-onboarding="nav-perfil" className="flex items-center gap-3 text-left w-full p-2 rounded-xl transition-colors hover:bg-sidebar-accent outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer">
-          <Avatar className="h-10 w-10 border-2 border-sidebar-border shrink-0">
-            <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-sm font-bold">
-              {getInitials(user?.full_name)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 overflow-hidden hidden lg:block">
-            <p className="text-sm font-semibold text-sidebar-foreground truncate">
-              {user?.full_name || user?.email?.split('@')[0] || 'Usuário'}
-            </p>
-            <p className="text-xs text-sidebar-foreground/70 truncate">{userRole}</p>
-          </div>
-        </button>
+      <SheetTrigger
+        data-onboarding="nav-perfil"
+        aria-label={user?.full_name ? `Perfil de ${user.full_name}` : 'Minha conta'}
+        className="flex items-center gap-3 text-left w-full p-2 rounded-xl transition-colors hover:bg-sidebar-accent outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+      >
+        <Avatar className="h-10 w-10 border-2 border-sidebar-border shrink-0">
+          <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-sm font-bold">
+            {getInitials(user?.full_name)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1 overflow-hidden hidden lg:block">
+          <p className="text-sm font-semibold text-sidebar-foreground truncate">
+            {user?.full_name || user?.email?.split('@')[0] || 'Usuário'}
+          </p>
+          <p className="text-xs text-sidebar-foreground/70 truncate">{userRole}</p>
+        </div>
       </SheetTrigger>
 
       <SheetContent side="right" className="w-[300px] sm:w-[340px] p-0 flex flex-col">
@@ -276,12 +356,17 @@ interface NotificationsDropdownProps {
 }
 
 function NotificationsDropdown({ notifications, unreadCount, onMarkAsRead }: NotificationsDropdownProps) {
+  const navigate = useNavigate();
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger data-onboarding="nav-notificacoes" className="relative p-2 rounded-full hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <Bell className="h-5 w-5 text-sidebar-foreground/80 hover:text-sidebar-foreground transition-colors" />
+      <DropdownMenuTrigger
+        data-onboarding="nav-notificacoes"
+        aria-label={unreadCount > 0 ? `Notificações, ${unreadCount} não lidas` : 'Notificações'}
+        className="relative flex items-center justify-center h-11 w-11 rounded-full hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Bell className="h-5 w-5 text-sidebar-foreground/80 hover:text-sidebar-foreground transition-colors" aria-hidden="true" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 h-2.5 w-2.5 bg-destructive rounded-full border-2 border-sidebar animate-pulse" />
+          <span aria-hidden="true" className="absolute top-1 right-1 h-2.5 w-2.5 bg-destructive rounded-full border-2 border-sidebar animate-pulse" />
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 p-0" sideOffset={8}>
@@ -297,7 +382,10 @@ function NotificationsDropdown({ notifications, unreadCount, onMarkAsRead }: Not
               <div
                 key={notif.id}
                 className={clsx('p-4 border-b border-border text-sm hover:bg-muted/50 cursor-pointer transition-colors', !notif.is_read && 'bg-accent/40')}
-                onClick={() => onMarkAsRead(notif.id, notif.is_read)}
+                onClick={() => {
+                  onMarkAsRead(notif.id, notif.is_read);
+                  if (notif.report_id) navigate(`/reports/${notif.report_id as string}`);
+                }}
               >
                 <div className="flex justify-between items-start mb-1 gap-2">
                   <p className={clsx('font-semibold', !notif.is_read ? 'text-foreground' : 'text-muted-foreground')}>{notif.title}</p>
@@ -326,16 +414,30 @@ export default function AppLayout() {
   const { isOnline, isSyncing, pendingCount } = useOfflineSync();
 
   const userRole = user?.role || 'Tecnico';
-  const authorizedLinks = NAV_LINKS.filter(link => {
-    if (!link.roles.some(r => r.toLowerCase() === userRole.toLowerCase())) return false;
-    if (link.path === '/admin/tenants' && !tenant?.isPlatform) return false;
-    return true;
-  });
+  const authorizedLinks = NAV_GROUPS
+    .flatMap(g => g.items)
+    .filter(link => {
+      if (!link.roles.some(r => r.toLowerCase() === userRole.toLowerCase())) return false;
+      if (link.path === '/admin/tenants' && !tenant?.isPlatform) return false;
+      return true;
+    });
 
   const handleSignOut = async () => {
     invalidateClientsCache();
     await signOut();
   };
+
+  // Push notifications: pede permissão automaticamente para técnicos após login
+  const { permission: pushPermission, requestAndSubscribe } = usePushNotification();
+  React.useEffect(() => {
+    if (!user?.id) return;
+    if (pushPermission !== 'default') return;
+    // Aguarda 8s para não competir com a carga inicial da página
+    const timer = setTimeout(() => {
+      if (user.role === 'Tecnico' || user.role === 'Supervisor') requestAndSubscribe();
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [user?.id, user?.role, pushPermission, requestAndSubscribe]);
 
   const [notifications, setNotifications] = useState<any[]>([]);
 
@@ -348,6 +450,11 @@ export default function AppLayout() {
         setNotifications(prev => {
           if (prev.some(n => n.id === payload.new.id)) return prev;
           return [payload.new, ...prev].slice(0, 10);
+        });
+        // Toast em tempo real: aparece mesmo com o app em background na aba
+        toast.info(payload.new.title as string, {
+          description: payload.new.message as string,
+          duration: 6000,
         });
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
@@ -397,32 +504,48 @@ export default function AppLayout() {
   };
 
   const renderNavLinks = (isMobile = false) => {
-    return authorizedLinks.map((link) => {
-      const Icon = link.icon;
-      const isActive = location.pathname === link.path;
-      const showPendingBadge = link.path === '/reports' && pendingCount > 0;
+    return NAV_GROUPS.map((group) => {
+      const visibleItems = group.items.filter(item =>
+        authorizedLinks.some(a => a.path === item.path)
+      );
+      if (visibleItems.length === 0) return null;
 
       return (
-        <NavLink
-          key={link.path}
-          to={link.path}
-          onClick={() => isMobile && setIsMobileMenuOpen(false)}
-          data-onboarding={NAV_ONBOARDING[link.path]}
-          className={clsx(
-            'flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all rounded-lg',
-            isActive
-              ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm'
-              : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+        <React.Fragment key={`group-${group.label || 'home'}`}>
+          {group.label !== '' && (
+            <p className="px-4 pt-5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 select-none">
+              {group.label}
+            </p>
           )}
-        >
-          <Icon className="h-5 w-5 shrink-0" />
-          <span className="flex-1">{link.name}</span>
-          {showPendingBadge && (
-            <span className="ml-auto h-5 min-w-5 px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
-              {pendingCount}
-            </span>
-          )}
-        </NavLink>
+          {visibleItems.map((link) => {
+            const Icon = link.icon;
+            const isActive = location.pathname === link.path;
+            const showPendingBadge = link.path === '/reports' && pendingCount > 0;
+
+            return (
+              <NavLink
+                key={link.path}
+                to={link.path}
+                onClick={() => isMobile && setIsMobileMenuOpen(false)}
+                data-onboarding={NAV_ONBOARDING[link.path]}
+                className={clsx(
+                  'flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all rounded-lg',
+                  isActive
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm'
+                    : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                )}
+              >
+                <Icon className="h-5 w-5 shrink-0" />
+                <span className="flex-1">{link.name}</span>
+                {showPendingBadge && (
+                  <span className="ml-auto h-5 min-w-5 px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    {pendingCount}
+                  </span>
+                )}
+              </NavLink>
+            );
+          })}
+        </React.Fragment>
       );
     });
   };
@@ -477,8 +600,11 @@ export default function AppLayout() {
           </div>
 
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-            <SheetTrigger className="inline-flex items-center justify-center shrink-0 h-10 w-10 rounded-md text-sidebar-foreground hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <Menu className="h-6 w-6" />
+            <SheetTrigger
+              aria-label="Menu principal"
+              className="inline-flex items-center justify-center shrink-0 h-11 w-11 rounded-md text-sidebar-foreground hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Menu className="h-6 w-6" aria-hidden="true" />
             </SheetTrigger>
             <SheetContent side="right" className="w-[80vw] sm:w-[350px] bg-sidebar text-sidebar-foreground border-l border-sidebar-border p-0 flex flex-col">
               <SheetHeader className="p-6 text-left border-b border-sidebar-border shrink-0">

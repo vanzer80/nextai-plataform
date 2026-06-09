@@ -1,3 +1,5 @@
+// ── Corpus IA (anonimizado) ───────────────────────────────────────────────────
+
 export interface PlatformIntelligenceStats {
   total_reports: number;
   reports_with_diag: number;
@@ -39,31 +41,21 @@ export interface CorpusFilters {
   offset?: number;
 }
 
-// ── Raw data — tabelas principais ─────────────────────────────────────────────
+// ── Acesso bruto: 13 tabelas operacionais ─────────────────────────────────────
 
 export interface PlatformReportRow {
   id: string;
   team_id: string;
   os_number: string | null;
-  status: string;
   service_type: string | null;
-  priority: string | null;
+  status: string;
+  technician_id: string;
+  client_id: string | null;
   service_date: string | null;
-  technician_name: string | null;
-  client_name: string | null;
-  site_location: string | null;
   reported_problem: string | null;
-  preliminary_diagnosis: string | null;
   final_diagnosis: string | null;
-  technical_recommendation: string | null;
   services_performed: string | null;
-  parts_used: string | null;
-  internal_notes: string | null;
-  pending_issues: string | null;
-  geo_lat: number | null;
-  geo_lng: number | null;
-  started_at: string | null;
-  finished_at: string | null;
+  priority: string;
   created_at: string;
   updated_at: string;
 }
@@ -71,18 +63,14 @@ export interface PlatformReportRow {
 export interface PlatformReimbursementRow {
   id: string;
   team_id: string;
-  status: string;
-  category: string | null;
+  category: string;
   amount: number;
+  status: string;
   description: string | null;
-  favorecido: string | null;
-  pix_key: string | null;
-  submitter_name: string | null;
-  client_name: string | null;
-  expense_date: string | null;
+  client_id: string | null;
+  maintenance_type: string | null;
   branch: string | null;
-  rejection_reason: string | null;
-  paid_at: string | null;
+  favorecido: string | null;
   created_at: string;
 }
 
@@ -96,87 +84,74 @@ export interface PlatformClientRow {
   contato_nome: string | null;
   contato_telefone: string | null;
   contato_email: string | null;
-  observacoes: string | null;
   created_at: string;
 }
 
 export interface PlatformOrcamentoRow {
   id: string;
   team_id: string;
+  client_id: string;
   status: string;
-  titulo: string;
-  client_name: string | null;
-  technician_name: string | null;
-  total_value: number;
+  titulo: string | null;
+  desconto_pct: number;
   validade: string | null;
-  observacoes: string | null;
-  signer_name: string | null;
-  signer_email: string | null;
+  version: number;
   signed_at: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface PlatformEquipmentRow {
   id: string;
   team_id: string;
+  client_id: string | null;
   name: string;
   type: string | null;
-  serial_number: string | null;
+  status: string;
   manufacturer: string | null;
   model: string | null;
-  status: string | null;
-  client_name: string | null;
+  serial_number: string | null;
   installation_date: string | null;
   warranty_until: string | null;
   maintenance_interval_days: number | null;
   last_maintenance_at: string | null;
+  acquisition_cost: number | null;
+  acquisition_date: string | null;
+  useful_life_years: number | null;
   created_at: string;
 }
 
 export interface PlatformMaterialRow {
   id: string;
   team_id: string;
-  request_number: string | null;
+  request_number: string;
+  maintenance_type: string;
   status: string;
+  especificacao_tecnica: string;
+  quantity: string | null;
+  prazo: string;
   urgency: string | null;
-  item: string;
-  quantity: number;
-  requester_name: string | null;
-  client_name: string | null;
-  reason: string | null;
-  especificacao_tecnica: string | null;
-  maintenance_type: string | null;
-  prazo: string | null;
-  purchase_price: number | null;
-  supplier_name: string | null;
+  client_id: string | null;
   created_at: string;
+  updated_at: string;
 }
-
-// ── Raw data — tabelas secundárias/históricas ─────────────────────────────────
 
 export interface PlatformChecklistItemRow {
   id: string;
-  team_id: string;
   report_id: string;
-  os_number: string | null;
   label: string;
   item_type: string;
   value_boolean: boolean | null;
   value_text: string | null;
   value_number: number | null;
   value_option: string | null;
-  attachment_url: string | null;
   is_conformant: boolean | null;
   created_at: string;
 }
 
 export interface PlatformAttachmentRow {
   id: string;
-  team_id: string;
   report_id: string;
-  os_number: string | null;
-  uploader_name: string | null;
-  url: string;
   filename: string | null;
   mime_type: string | null;
   size_bytes: number | null;
@@ -184,38 +159,27 @@ export interface PlatformAttachmentRow {
   created_at: string;
 }
 
-export interface PlatformReportStatusHistoryRow {
+export interface PlatformStatusHistoryRow {
   id: string;
-  team_id: string;
   report_id: string;
-  os_number: string | null;
   from_status: string | null;
   to_status: string;
-  changed_by_name: string | null;
   comment: string | null;
   created_at: string;
 }
 
 export interface PlatformSignatureRow {
   id: string;
-  team_id: string;
   report_id: string;
-  os_number: string | null;
   signature_type: string;
   signer_name: string | null;
   signer_role: string | null;
-  image_url: string;
-  geo_lat: number | null;
-  geo_lng: number | null;
-  signed_at: string | null;
+  signed_at: string;
 }
 
 export interface PlatformReimbursementHistoryRow {
   id: string;
-  team_id: string;
   reimbursement_id: string;
-  reimbursement_desc: string | null;
-  changed_by_name: string | null;
   old_status: string | null;
   new_status: string;
   reason: string | null;
@@ -224,45 +188,53 @@ export interface PlatformReimbursementHistoryRow {
 
 export interface PlatformClientLocationRow {
   id: string;
-  team_id: string;
   client_id: string;
-  client_name: string;
   nome: string;
   logradouro: string | null;
-  numero: string | null;
-  complemento: string | null;
-  bairro: string | null;
-  cep: string | null;
   cidade: string | null;
   estado: string | null;
-  contato_nome: string | null;
-  contato_telefone: string | null;
-  is_principal: boolean | null;
-  created_at: string | null;
+  created_at: string;
 }
 
 export interface PlatformNotificationRow {
   id: string;
   team_id: string;
-  user_name: string | null;
+  user_id: string;
   title: string;
   message: string;
-  is_read: boolean | null;
-  created_at: string | null;
+  is_read: boolean;
+  created_at: string;
 }
 
-// ── Filtros ───────────────────────────────────────────────────────────────────
-
-export interface RawFilters {
-  tenantId?: string | null;
-  limit?: number;
-  offset?: number;
-}
+// ── ExportResource union (15 recursos) ────────────────────────────────────────
 
 export type ExportResource =
-  | 'diagnostics' | 'kb'
-  | 'reports' | 'reimbursements' | 'clients'
-  | 'orcamentos' | 'equipments' | 'materials'
-  | 'checklist_items' | 'attachments' | 'report_status_history'
-  | 'signatures' | 'reimbursement_history' | 'client_locations'
+  | 'diagnostics'
+  | 'kb'
+  | 'reports'
+  | 'reimbursements'
+  | 'clients'
+  | 'orcamentos'
+  | 'equipments'
+  | 'materials'
+  | 'checklist_items'
+  | 'attachments'
+  | 'status_history'
+  | 'signatures'
+  | 'reimbursement_history'
+  | 'client_locations'
   | 'notifications';
+
+// ── Roteamento IA ─────────────────────────────────────────────────────────────
+
+export interface AiRoutingStats {
+  total_requests: number;
+  fallback_count: number;
+  fallback_pct:   number;
+  openai_count:   number;
+  gemini_count:   number;
+  avg_latency_ms: number;
+  error_count:    number;
+  by_provider:    Record<string, number>;
+  window_hours:   number;
+}

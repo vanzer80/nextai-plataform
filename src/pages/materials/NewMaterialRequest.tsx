@@ -380,7 +380,7 @@ export default function NewMaterialRequest() {
         </Card>
 
         {/* Material */}
-        <Card className="shadow-sm border-border">
+        <Card data-onboarding="mat-form-material" className="shadow-sm border-border">
           <CardHeader className="pb-3 border-b border-border bg-muted/40 rounded-t-xl">
             <CardTitle className="text-base flex items-center gap-2">
               <Package className="h-4 w-4 text-primary" />
@@ -475,7 +475,7 @@ export default function NewMaterialRequest() {
           </CardContent>
         </Card>
 
-        <div className="pt-2 pb-8 flex gap-3">
+        <div data-onboarding="mat-form-acoes" className="pt-2 pb-8 flex gap-3">
           <Button
             type="button" variant="outline"
             className="flex-1 h-14 rounded-xl text-base font-semibold border-border text-foreground"

@@ -7,5 +7,9 @@ coverage/
 .env*
 !.env.example
 
+# Playwright artifacts
+test-results/
+playwright-report/
+
 # Vault sync marker — local only, managed by /fechar-sessao
 .claude/last-vault-sync

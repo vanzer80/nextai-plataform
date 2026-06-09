@@ -3,7 +3,7 @@ import autoTable from 'jspdf-autotable';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { PurchaseOrder } from '@/src/types/purchaseOrder';
-import { urlToDataUrl, detectImageFormat } from '@/src/utils/imageUtils';
+import { urlToDataUrl, detectImageFormat, fitInBox, measureImage } from '@/src/utils/imageUtils';
 
 export interface PdfPOData {
   po: PurchaseOrder;
@@ -28,27 +28,32 @@ export async function gerarPdfPO({ po, tenantName, tenantLogoUrl }: PdfPOData): 
   const marginR = 14;
   const contentW = pageW - marginL - marginR;
 
-  // Pre-fetch logo
+  // Pre-fetch logo e mede dimensões reais via browser Image API
   const logoDataUrl = tenantLogoUrl ? await urlToDataUrl(tenantLogoUrl).catch(() => null) : null;
+  const logoDims = logoDataUrl ? await measureImage(logoDataUrl) : null;
+  const logoFmt  = logoDataUrl ? detectImageFormat(null, logoDataUrl) : null;
+  const { w: logoW, h: logoH } = logoDims
+    ? fitInBox(logoDims.width, logoDims.height, 40, 16)
+    : { w: 0, h: 0 };
+  const HEADER_H_PO = 30;
+  const logoY      = logoH > 0 ? (HEADER_H_PO - logoH) / 2 : 7;
+  const headerTextX = (logoDataUrl && logoW > 0) ? marginL + logoW + 4 : marginL;
 
   // ── Header ────────────────────────────────────────────────────
   doc.setFillColor(30, 58, 95);
-  doc.rect(0, 0, pageW, 30, 'F');
+  doc.rect(0, 0, pageW, HEADER_H_PO, 'F');
 
-  let textX = marginL;
-  if (logoDataUrl) {
-    const fmt = detectImageFormat(null, logoDataUrl);
-    doc.addImage(logoDataUrl, fmt, marginL, 7, 0, 16);
-    textX = marginL + 22;
+  if (logoDataUrl && logoFmt && logoW > 0) {
+    doc.addImage(logoDataUrl, logoFmt, marginL, logoY, logoW, logoH);
   }
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(255, 255, 255);
-  doc.text(tenantName, textX, 14);
+  doc.text(tenantName, headerTextX, 14);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text('Ordem de Compra', textX, 21);
+  doc.text('Ordem de Compra', headerTextX, 21);
 
   // PO number badge (top-right)
   doc.setFont('helvetica', 'bold');

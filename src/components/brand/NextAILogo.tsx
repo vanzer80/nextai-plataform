@@ -4,19 +4,23 @@ interface NextAILogoProps {
   variant?: 'horizontal' | 'symbol';
   height?: number;
   className?: string;
+  animated?: boolean;
 }
 
-export function NextAILogo({ variant = 'horizontal', height, className }: NextAILogoProps) {
+export function NextAILogo({ variant = 'horizontal', height, className, animated }: NextAILogoProps) {
   if (variant === 'symbol') {
     const h = height ?? 40;
     const w = Math.round(h * 152 / 162);
+    const svgClass = animated
+      ? ['nextai-symbol-animated', className].filter(Boolean).join(' ')
+      : className;
     return (
       <svg
         width={w}
         height={h}
         viewBox="0 0 152 162"
         xmlns="http://www.w3.org/2000/svg"
-        className={className}
+        className={svgClass}
         aria-label="NextAI"
         role="img"
       >
@@ -28,22 +32,22 @@ export function NextAILogo({ variant = 'horizontal', height, className }: NextAI
   }
 
   const h = height ?? 32;
-  const w = Math.round(h * 640 / 200);
+  const w = Math.round(h * 555 / 200);
   return (
     <svg
       width={w}
       height={h}
-      viewBox="0 0 640 200"
+      viewBox="0 0 555 200"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-label="NextAI"
       role="img"
     >
-      {/* N symbol */}
+      {/* N symbol — o símbolo geométrico JÁ É o N; tspan começa em "ext" */}
       <polygon points="39,55 53,55 45,145 31,145" fill="#2563EB" />
       <polygon points="113,55 127,55 119,145 105,145" fill="#2563EB" />
       <polygon points="46.9,58.5 59.1,51.5 111.1,141.5 98.9,148.5" fill="#2563EB" />
-      {/* Wordmark — "Next" inherits currentColor (adapts a light/dark sidebar) */}
+      {/* Wordmark — "ext" + "AI" lê-se N(símbolo)+ext+AI = "NextAI" */}
       <text
         y="136"
         fontFamily="'Helvetica Neue', Helvetica, Arial, sans-serif"
@@ -51,7 +55,7 @@ export function NextAILogo({ variant = 'horizontal', height, className }: NextAI
         fontSize="100"
         letterSpacing="-3"
       >
-        <tspan x="150" fill="currentColor">Next</tspan>
+        <tspan x="133" fill="currentColor">ext</tspan>
         <tspan fill="#2563EB">AI</tspan>
       </text>
     </svg>

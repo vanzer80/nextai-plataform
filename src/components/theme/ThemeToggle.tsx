@@ -52,7 +52,7 @@ export default function ThemeToggle({ compact = false, className }: ThemeToggleP
         className={cn(
           'inline-flex items-center justify-center border border-border bg-background text-foreground transition-colors hover:bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring',
           compact
-            ? 'h-9 w-9 rounded-full'
+            ? 'h-11 w-11 rounded-full'
             : 'h-9 rounded-lg gap-2 px-3 text-xs font-medium shadow-sm',
           className,
         )}

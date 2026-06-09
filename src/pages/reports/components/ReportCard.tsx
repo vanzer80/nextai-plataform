@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Clock, MapPin, Wrench, ChevronRight, Timer, AlertTriangle } from 'lucide-react';
+import { Clock, MapPin, Wrench, ChevronRight, Timer, AlertTriangle, Flame } from 'lucide-react';
 import { differenceInMinutes, parseISO as _parseISO } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -15,6 +15,12 @@ interface ReportCardProps {
   report: ServiceReport;
   localSyncStatus?: SyncStatus;
 }
+
+const PRIORITY_CHIP: Record<string, { cls: string; label: string; icon?: boolean }> = {
+  baixa:   { cls: 'bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-400', label: 'Baixa' },
+  alta:    { cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300', label: 'Alta' },
+  critica: { cls: 'bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300',   label: 'Crítica', icon: true },
+};
 
 function initials(name?: string | null) {
   if (!name) return 'T';
@@ -56,8 +62,24 @@ export default function ReportCard({ report, localSyncStatus }: ReportCardProps)
         <div className="flex items-start justify-between mb-3 gap-2">
           <div className="flex items-center gap-2 flex-wrap" data-onboarding="os-status-badge">
             <ReportStatusBadge status={report.status} />
+            {report.maintenance_plan_id && (
+              <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">
+                Preventiva
+              </span>
+            )}
+            {report.os_number && (
+              <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
+                {report.os_number}
+              </span>
+            )}
             {report.service_type && (
               <span className="text-xs text-muted-foreground font-medium">{report.service_type}</span>
+            )}
+            {report.priority && report.priority !== 'normal' && PRIORITY_CHIP[report.priority] && (
+              <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${PRIORITY_CHIP[report.priority].cls}`}>
+                {PRIORITY_CHIP[report.priority].icon && <Flame className="h-3 w-3" />}
+                {PRIORITY_CHIP[report.priority].label}
+              </span>
             )}
             {aging && (
               <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${AGING_CLASSES[aging.level]}`}>
@@ -91,14 +113,10 @@ export default function ReportCard({ report, localSyncStatus }: ReportCardProps)
             </span>
           </div>
 
-          {(assetName || report.os_number) && (
+          {assetName && (
             <div className="flex items-center gap-2 pl-6">
               <Wrench className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <span className="text-xs text-muted-foreground">
-                {assetName ?? ''}
-                {assetName && report.os_number ? ' · ' : ''}
-                {report.os_number ? `OS ${report.os_number}` : ''}
-              </span>
+              <span className="text-xs text-muted-foreground">{assetName}</span>
             </div>
           )}
 
@@ -125,7 +143,7 @@ export default function ReportCard({ report, localSyncStatus }: ReportCardProps)
 
           <Link
             to={`/reports/${report.id}`}
-            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors py-2 min-h-[32px]"
           >
             Detalhes <ChevronRight className="h-3.5 w-3.5" />
           </Link>

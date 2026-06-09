@@ -3,11 +3,33 @@ import { subDays, startOfDay, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/src/lib/supabase';
 import type { AuthUser, UserRole } from '@/src/contexts/AuthContext';
-import { WIDGET_QUERY_DEPS, TEAM_REPORTS_ROLES, TEAM_FINANCE_ROLES } from './widgetRegistry';
-import type { WidgetId, QueryKey } from './widgetRegistry';
+import { WIDGET_QUERY_DEPS, TEAM_REPORTS_ROLES, TEAM_FINANCE_ROLES, PERIOD_DAYS } from './widgetRegistry';
+import type { WidgetId, QueryKey, DashboardPeriod } from './widgetRegistry';
 
 export interface BarEntry { name: string; criados: number; concluidos: number; }
 export interface PieEntry { name: string; value: number; fill: string; }
+
+export interface CpqKpis {
+  total_periodo: number;
+  aprovados: number;
+  pendentes: number;
+  rejeitados: number;
+  expirados: number;
+  total_anterior: number;
+}
+
+export interface AgendaKpis {
+  os_hoje: number;
+  tecnicos_hoje: number;
+  criticas_abertas: number;
+  vencidas_sla: number;
+}
+
+export interface EstoqueKpis {
+  criticos: number;
+  total_itens: number;
+  valor_total: number;
+}
 
 export interface DashboardData {
   isLoading: boolean;
@@ -24,6 +46,9 @@ export interface DashboardData {
   pieData: PieEntry[];
   isTeamReports: boolean;
   isTeamFinance: boolean;
+  cpqKpis: CpqKpis | null;
+  agendaKpis: AgendaKpis | null;
+  estoqueKpis: EstoqueKpis | null;
 }
 
 const PIE_COLORS: Record<string, string> = {
@@ -37,8 +62,10 @@ function neededFor(widgetIds: WidgetId[]): Set<QueryKey> {
 export function useDashboardData(
   user: AuthUser | null | undefined,
   widgetIds: WidgetId[],
+  period: DashboardPeriod = '30d',
 ): DashboardData {
   const widgetKey = widgetIds.join(',');
+  const pDays = PERIOD_DAYS[period];
   const isTeamReports = TEAM_REPORTS_ROLES.includes(user?.role as UserRole);
   const isTeamFinance = TEAM_FINANCE_ROLES.includes(user?.role as UserRole);
 
@@ -54,6 +81,9 @@ export function useDashboardData(
   const [csatResponseCount, setCsatResponseCount] = useState(0);
   const [barData, setBarData] = useState<BarEntry[]>([]);
   const [pieData, setPieData] = useState<PieEntry[]>([]);
+  const [cpqKpis, setCpqKpis] = useState<CpqKpis | null>(null);
+  const [agendaKpis, setAgendaKpis] = useState<AgendaKpis | null>(null);
+  const [estoqueKpis, setEstoqueKpis] = useState<EstoqueKpis | null>(null);
 
   const fetchRef = useRef<() => void>(() => {});
 
@@ -65,7 +95,7 @@ export function useDashboardData(
     setIsLoading(true);
     try {
       const nq = neededFor(widgetIds);
-      const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
+      const periodAgo = subDays(new Date(), pDays).toISOString();
       const startDate = subDays(startOfDay(new Date()), 6).toISOString();
 
       const promises: Promise<any>[] = [];
@@ -83,7 +113,7 @@ export function useDashboardData(
         promises.push(q); keys.push('rembQuery');
       }
       if (nq.has('statsQuery')) {
-        let q = supabase.from('reimbursements').select('amount, status').gte('created_at', thirtyDaysAgo);
+        let q = supabase.from('reimbursements').select('amount, status').gte('created_at', periodAgo);
         if (!isTeamFinance) q = q.eq('user_id', user.id);
         promises.push(q); keys.push('statsQuery');
       }
@@ -93,16 +123,16 @@ export function useDashboardData(
         promises.push(q); keys.push('barQry');
       }
       if (nq.has('pieQry')) {
-        let q = supabase.from('reimbursements').select('category, amount').gte('created_at', thirtyDaysAgo).limit(500);
+        let q = supabase.from('reimbursements').select('category, amount').gte('created_at', periodAgo).limit(500);
         if (!isTeamFinance) q = q.eq('user_id', user.id);
         promises.push(q); keys.push('pieQry');
       }
       if (nq.has('returnQry')) {
-        promises.push(supabase.rpc('get_dashboard_return_rate', { p_days: 30 }));
+        promises.push(supabase.rpc('get_dashboard_return_rate', { p_days: pDays }));
         keys.push('returnQry');
       }
       if (nq.has('csatQry')) {
-        promises.push(supabase.rpc('get_csat_avg', { p_days: 30 }));
+        promises.push(supabase.rpc('get_csat_avg', { p_days: pDays }));
         keys.push('csatQry');
       }
       if (nq.has('slaQry')) {
@@ -111,10 +141,22 @@ export function useDashboardData(
             .from('service_reports')
             .select('id, sla_due_at, status, created_at')
             .not('sla_due_at', 'is', null)
-            .gte('created_at', thirtyDaysAgo)
+            .gte('created_at', periodAgo)
             .limit(500)
         );
         keys.push('slaQry');
+      }
+      if (nq.has('cpqQry')) {
+        promises.push(supabase.rpc('get_dashboard_cpq_kpis', { p_days: pDays }));
+        keys.push('cpqQry');
+      }
+      if (nq.has('agendaQry')) {
+        promises.push(supabase.rpc('get_dashboard_agenda_kpis'));
+        keys.push('agendaQry');
+      }
+      if (nq.has('estoqueQry')) {
+        promises.push(supabase.rpc('get_dashboard_estoque_kpis'));
+        keys.push('estoqueQry');
       }
 
       const results = await Promise.all(promises);
@@ -186,7 +228,6 @@ export function useDashboardData(
         if (res.slaQry.error) { console.warn('slaQry', res.slaQry.error); }
         else {
           const rows: { sla_due_at: string; status: string }[] = res.slaQry.data ?? [];
-          // SLA compliance = % of OPEN OS still within deadline (resolved OS have no meaningful current SLA state without a resolved_at timestamp)
           const openWithSla = rows.filter(r => !['approved', 'rejected'].includes(r.status));
           const onTime = openWithSla.filter(r => new Date(r.sla_due_at) > new Date()).length;
           setSlaRate(openWithSla.length > 0 ? (onTime / openWithSla.length) * 100 : null);
@@ -201,44 +242,73 @@ export function useDashboardData(
           setCsatResponseCount(Number(row?.response_count ?? 0));
         }
       }
+
+      if (res.cpqQry) {
+        if (res.cpqQry.error) { console.warn('cpqQry', res.cpqQry.error); }
+        else { setCpqKpis(res.cpqQry.data as CpqKpis ?? null); }
+      }
+
+      if (res.agendaQry) {
+        if (res.agendaQry.error) { console.warn('agendaQry', res.agendaQry.error); }
+        else { setAgendaKpis(res.agendaQry.data as AgendaKpis ?? null); }
+      }
+
+      if (res.estoqueQry) {
+        if (res.estoqueQry.error) { console.warn('estoqueQry', res.estoqueQry.error); }
+        else { setEstoqueKpis(res.estoqueQry.data as EstoqueKpis ?? null); }
+      }
+
     } catch (err) {
       console.error('Dashboard fetch error:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, isTeamReports, isTeamFinance, widgetKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id, isTeamReports, isTeamFinance, widgetKey, pDays]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { fetchRef.current = fetchData; }, [fetchData]);
   useEffect(() => { if (user?.id) fetchData(); }, [fetchData]);
 
-  // Realtime — only subscribe to tables needed for visible widgets
+  // Realtime — só subscreve tabelas das queries ativas
   useEffect(() => {
     if (!user?.id || widgetKey === '') return;
 
     const nq = neededFor(widgetIds);
-    const needsReports = nq.has('repQuery') || nq.has('barQry');
+    const needsReports = nq.has('repQuery') || nq.has('barQry') || nq.has('slaQry') || nq.has('agendaQry');
     const needsRemb = nq.has('rembQuery') || nq.has('statsQuery') || nq.has('pieQry');
 
     const ch = supabase.channel(`dash_rt_${user.id}`);
 
     if (needsRemb) {
-      const rembCfg: { schema: 'public'; table: 'reimbursements'; filter?: string } =
+      const cfg: { schema: 'public'; table: 'reimbursements'; filter?: string } =
         { schema: 'public', table: 'reimbursements' };
-      if (!isTeamFinance) rembCfg.filter = `user_id=eq.${user.id}`;
-      ch.on('postgres_changes', { event: 'INSERT', ...rembCfg }, () => fetchRef.current())
-        .on('postgres_changes', { event: 'UPDATE', ...rembCfg }, () => fetchRef.current());
+      if (!isTeamFinance) cfg.filter = `user_id=eq.${user.id}`;
+      ch.on('postgres_changes', { event: 'INSERT', ...cfg }, () => fetchRef.current())
+        .on('postgres_changes', { event: 'UPDATE', ...cfg }, () => fetchRef.current());
     }
 
     if (needsReports) {
-      const repCfg: { schema: 'public'; table: 'service_reports'; filter?: string } =
+      const cfg: { schema: 'public'; table: 'service_reports'; filter?: string } =
         { schema: 'public', table: 'service_reports' };
-      if (!isTeamReports) repCfg.filter = `technician_id=eq.${user.id}`;
-      ch.on('postgres_changes', { event: '*', ...repCfg }, () => fetchRef.current());
+      if (!isTeamReports) cfg.filter = `technician_id=eq.${user.id}`;
+      ch.on('postgres_changes', { event: '*', ...cfg }, () => fetchRef.current());
     }
 
     ch.subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user?.id, isTeamReports, isTeamFinance, widgetKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { isLoading, reportsCount, reimbursementSum, productivity, avgTicket, approvalRate, returnRate, slaRate, csatAvg, csatResponseCount, barData, pieData, isTeamReports, isTeamFinance };
+  // Refresh ao retornar à aba (cobre CPQ/Estoque/Agenda sem realtime)
+  useEffect(() => {
+    if (!user?.id) return;
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchRef.current(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [user?.id]);
+
+  return {
+    isLoading, reportsCount, reimbursementSum, productivity, avgTicket,
+    approvalRate, returnRate, slaRate, csatAvg, csatResponseCount,
+    barData, pieData, isTeamReports, isTeamFinance,
+    cpqKpis, agendaKpis, estoqueKpis,
+  };
 }
