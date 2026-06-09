@@ -20,7 +20,7 @@ import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useClients } from '@/src/hooks/useClients';
 import { criarOrcamento, atualizarOrcamento, buscarOrcamento } from '@/src/services/orcamentoService';
-import ClientLocationSelect from '@/src/components/ClientLocationSelect';
+import ClientLocationSelect, { formatLocationLabel } from '@/src/components/ClientLocationSelect';
 import { ItemRow } from './components/ItemRow';
 import type { ClientLocation } from '@/src/types/client';
 
@@ -772,8 +772,10 @@ export default function NovoOrcamento() {
               onLocationSelect={(loc: ClientLocation | null) => {
                 if (loc) {
                   setValue('client_location_id', loc.id);
+                  setValue('site_location', formatLocationLabel(loc));
                 } else {
                   setValue('client_location_id', undefined);
+                  setValue('site_location', '');
                 }
               }}
               onManualTextChange={(text: string) => {

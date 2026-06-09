@@ -9,7 +9,7 @@ import {
 import { Building2, PencilLine } from 'lucide-react';
 import { supabase } from '@/src/lib/supabase';
 import { useClients } from '@/src/hooks/useClients';
-import ClientLocationSelect from '@/src/components/ClientLocationSelect';
+import ClientLocationSelect, { formatLocationLabel } from '@/src/components/ClientLocationSelect';
 import GeolocationCapture from '../GeolocationCapture';
 import type { ReportFormValues } from '@/src/pages/reports/NewReport';
 import type { GeolocationData } from '@/src/hooks/useGeolocation';
@@ -141,8 +141,10 @@ export default function Step2AssetContext({ form }: Step2Props) {
           onLocationSelect={(loc: ClientLocation | null) => {
             if (loc) {
               setValue('client_location_id', loc.id);
+              setValue('site_location', formatLocationLabel(loc));
             } else {
               setValue('client_location_id', undefined);
+              setValue('site_location', '');
             }
           }}
           onManualTextChange={(text: string) => {
