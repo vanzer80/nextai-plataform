@@ -9,9 +9,11 @@ import {
 import { Building2, PencilLine } from 'lucide-react';
 import { supabase } from '@/src/lib/supabase';
 import { useClients } from '@/src/hooks/useClients';
+import ClientLocationSelect from '@/src/components/ClientLocationSelect';
 import GeolocationCapture from '../GeolocationCapture';
 import type { ReportFormValues } from '@/src/pages/reports/NewReport';
 import type { GeolocationData } from '@/src/hooks/useGeolocation';
+import type { ClientLocation } from '@/src/types/client';
 
 const MANUAL_SENTINEL = '__manual__';
 
@@ -30,9 +32,11 @@ export default function Step2AssetContext({ form }: Step2Props) {
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [loadingEquipments, setLoadingEquipments] = useState(true);
 
-  const selectedClientId   = watch('client_id');
-  const selectedAssetId    = watch('asset_id');
-  const assetNameManual    = watch('asset_name_manual');
+  const selectedClientId      = watch('client_id');
+  const selectedAssetId       = watch('asset_id');
+  const assetNameManual       = watch('asset_name_manual');
+  const selectedLocationId    = watch('client_location_id');
+  const siteLocationText      = watch('site_location') ?? '';
 
   // Manual mode: active when user explicitly chose "digitar manualmente"
   // OR when client is selected but has no registered equipments
@@ -112,6 +116,8 @@ export default function Step2AssetContext({ form }: Step2Props) {
             onValueChange={val => {
               setValue('client_id', val || undefined);
               setValue('asset_id', undefined);
+              setValue('client_location_id', undefined);
+              setValue('site_location', '');
             }}
           >
             <SelectTrigger className="h-12 text-base rounded-xl bg-muted border-border focus:ring-ring">
@@ -125,15 +131,23 @@ export default function Step2AssetContext({ form }: Step2Props) {
           </Select>
         </div>
 
-        {/* Unidade/Local */}
-        <div className="space-y-2">
-          <Label className="text-sm font-semibold text-foreground">Unidade / Local</Label>
-          <Input
-            {...register('site_location')}
-            placeholder="Ex: Planta 2 — Setor de Compressores"
-            className="h-12 text-base rounded-xl bg-muted border-border focus-visible:ring-ring"
-          />
-        </div>
+        {/* Unidade/Filial — seletor com fallback manual */}
+        <ClientLocationSelect
+          clientId={selectedClientId}
+          selectedLocationId={selectedLocationId}
+          manualText={siteLocationText}
+          onLocationSelect={(loc: ClientLocation | null) => {
+            if (loc) {
+              setValue('client_location_id', loc.id);
+            } else {
+              setValue('client_location_id', undefined);
+            }
+          }}
+          onManualTextChange={(text: string) => {
+            setValue('site_location', text);
+            setValue('client_location_id', undefined);
+          }}
+        />
 
         {/* Equipamento */}
         <div className="space-y-2" data-onboarding="wizard-step2-ativo">

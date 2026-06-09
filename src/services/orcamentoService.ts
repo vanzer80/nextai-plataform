@@ -12,6 +12,7 @@ const ORCAMENTO_SELECT = `
   id, report_id, client_id, technician_id, status, titulo, observacoes,
   rejection_reason, validade, desconto_pct, created_at, updated_at,
   version, signed_at, signer_name, signer_email,
+  client_location_id, site_location,
   clients(name, cnpj, cidade, estado, logradouro, numero, bairro, contato_nome, contato_telefone, contato_email),
   users:technician_id(full_name),
   service_reports:report_id(os_number)
@@ -60,13 +61,15 @@ export async function buscarOrcamento(id: string): Promise<OrcamentoComItens | n
 export async function criarOrcamento(payload: CreateOrcamentoPayload): Promise<string> {
   const { data, error } = await supabase.rpc('create_orcamento', {
     p_orcamento: {
-      report_id:     payload.report_id ?? null,
-      client_id:     payload.client_id,
-      technician_id: payload.technician_id,
-      titulo:        payload.titulo || null,
-      observacoes:   payload.observacoes || null,
-      validade:      payload.validade ?? null,
-      desconto_pct:  payload.desconto_pct ?? 0,
+      report_id:          payload.report_id ?? null,
+      client_id:          payload.client_id,
+      technician_id:      payload.technician_id,
+      titulo:             payload.titulo || null,
+      observacoes:        payload.observacoes || null,
+      validade:           payload.validade ?? null,
+      desconto_pct:       payload.desconto_pct ?? 0,
+      client_location_id: payload.client_location_id ?? null,
+      site_location:      payload.site_location || null,
     },
     p_itens: payload.itens.map(item => ({
       descricao:      item.descricao,
@@ -109,13 +112,15 @@ export async function atualizarOrcamento(
   const { error: errOrc } = await supabase
     .from('orcamentos')
     .update({
-      report_id:   payload.report_id ?? null,
-      client_id:   payload.client_id,
-      titulo:      payload.titulo || null,
-      observacoes: payload.observacoes || null,
-      validade:    payload.validade ?? null,
-      desconto_pct: payload.desconto_pct ?? 0,
-      version:     currentVersion + 1,
+      report_id:          payload.report_id ?? null,
+      client_id:          payload.client_id,
+      titulo:             payload.titulo || null,
+      observacoes:        payload.observacoes || null,
+      validade:           payload.validade ?? null,
+      desconto_pct:       payload.desconto_pct ?? 0,
+      client_location_id: payload.client_location_id ?? null,
+      site_location:      payload.site_location || null,
+      version:            currentVersion + 1,
     })
     .eq('id', id) as { data: unknown; error: { message: string } | null };
 

@@ -66,3 +66,14 @@ export async function deleteLocation(locationId: string): Promise<void> {
   const { error } = await supabase.from('client_locations').delete().eq('id', locationId);
   if (error) throw error;
 }
+
+export async function getLocationsByClient(clientId: string): Promise<ClientLocation[]> {
+  const { data, error } = await supabase
+    .from('client_locations')
+    .select('*')
+    .eq('client_id', clientId)
+    .order('is_principal', { ascending: false })
+    .order('nome');
+  if (error) throw error;
+  return (data ?? []) as ClientLocation[];
+}

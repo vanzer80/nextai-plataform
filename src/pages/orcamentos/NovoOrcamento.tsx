@@ -16,7 +16,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useClients } from '@/src/hooks/useClients';
 import { criarOrcamento, atualizarOrcamento, buscarOrcamento } from '@/src/services/orcamentoService';
+import ClientLocationSelect from '@/src/components/ClientLocationSelect';
 import { ItemRow } from './components/ItemRow';
+import type { ClientLocation } from '@/src/types/client';
 
 const itemSchema = z.object({
   descricao: z.string().min(1, 'Descrição obrigatória'),
@@ -27,6 +29,8 @@ const itemSchema = z.object({
 
 const orcamentoSchema = z.object({
   client_id: z.string().min(1, 'Selecione um cliente'),
+  client_location_id: z.string().optional(),
+  site_location: z.string().optional(),
   titulo: z.string().optional(),
   observacoes: z.string().optional(),
   validade: z.string().optional(),
@@ -62,6 +66,8 @@ export default function NovoOrcamento() {
     resolver: zodResolver(orcamentoSchema),
     defaultValues: {
       client_id: '',
+      client_location_id: undefined,
+      site_location: '',
       titulo: '',
       observacoes: '',
       validade: '',
@@ -81,6 +87,8 @@ export default function NovoOrcamento() {
         if (!orc) { navigate('/orcamentos'); return; }
         reset({
           client_id: orc.client_id,
+          client_location_id: orc.client_location_id ?? undefined,
+          site_location: orc.site_location ?? '',
           titulo: orc.titulo ?? '',
           observacoes: orc.observacoes ?? '',
           validade: orc.validade ?? '',
@@ -113,6 +121,8 @@ export default function NovoOrcamento() {
       if (isEdit && id) {
         await atualizarOrcamento(id, {
           client_id: values.client_id,
+          client_location_id: values.client_location_id || null,
+          site_location: values.site_location || null,
           titulo: values.titulo,
           observacoes: values.observacoes,
           validade: values.validade || null,
@@ -125,6 +135,8 @@ export default function NovoOrcamento() {
         const novoId = await criarOrcamento({
           client_id: values.client_id,
           technician_id: user.id,
+          client_location_id: values.client_location_id || null,
+          site_location: values.site_location || null,
           titulo: values.titulo,
           observacoes: values.observacoes,
           validade: values.validade || null,
@@ -172,7 +184,11 @@ export default function NovoOrcamento() {
               <Label>Cliente *</Label>
               <Select
                 value={watch('client_id')}
-                onValueChange={v => setValue('client_id', v, { shouldValidate: true })}
+                onValueChange={v => {
+                  setValue('client_id', v, { shouldValidate: true });
+                  setValue('client_location_id', undefined);
+                  setValue('site_location', '');
+                }}
               >
                 <SelectTrigger className={errors.client_id ? 'border-rose-400' : ''}>
                   <SelectValue placeholder="Selecione o cliente" />
@@ -187,6 +203,24 @@ export default function NovoOrcamento() {
                 <p className="text-[11px] text-rose-500">{errors.client_id.message}</p>
               )}
             </div>
+
+            <ClientLocationSelect
+              clientId={watch('client_id') || undefined}
+              selectedLocationId={watch('client_location_id')}
+              manualText={watch('site_location') ?? ''}
+              onLocationSelect={(loc: ClientLocation | null) => {
+                if (loc) {
+                  setValue('client_location_id', loc.id);
+                } else {
+                  setValue('client_location_id', undefined);
+                }
+              }}
+              onManualTextChange={(text: string) => {
+                setValue('site_location', text);
+                setValue('client_location_id', undefined);
+              }}
+              label="Filial / Unidade (opcional)"
+            />
 
             <div className="flex flex-col gap-1.5">
               <Label>Título (opcional)</Label>
