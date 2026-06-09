@@ -1,0 +1,980 @@
+================================================================================
+NEXTAI — PRODUCT REQUIREMENTS DOCUMENT (PRD)
+Versão 2.3 · Atualizado em 2026-06-09
+================================================================================
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. NOME E IDENTIDADE DO PRODUTO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Nome Comercial:  NextAI
+Tagline:         Inteligência operacional para equipes de campo e backoffice
+Posicionamento:  Plataforma SaaS B2B enterprise multi-tenant, verticalmente
+                 especializada em field service management, com módulos nativos
+                 de IA cognitiva, ERP financeiro e RH integrados.
+URL Produção:    https://nextai-plataform.vercel.app
+Landing Page:    https://nextai-landing-gilt.vercel.app
+GitHub App:      https://github.com/vanzer80/nextai-plataform
+GitHub Landing:  https://github.com/vanzer80/nextai-landing
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. RESUMO EXECUTIVO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+O NextAI é uma plataforma corporativa SaaS B2B multi-tenant, projetada para
+centralizar, digitalizar e orquestrar a operação completa de empresas que
+gerenciam equipes de campo (field service) e seu respectivo backoffice
+financeiro, de RH e de suprimentos.
+
+O produto unifica em um único ambiente:
+  • A execução operacional de campo — Ordens de Serviço, Agenda/Dispatch,
+    Orçamentos CPQ e Portal do Cliente
+  • O backoffice financeiro — Reembolsos com OCR, Contas a Pagar e controle
+    de compras
+  • A gestão de pessoas — RH (colaboradores, departamentos) e DP (folha de
+    pagamento, ponto, férias)
+  • A inteligência da plataforma — IA generativa para automação cognitiva,
+    API pública REST e sistema de webhooks para integração com ERPs externos
+
+Diferentemente de soluções legadas de mercado (planilhas, processos por
+WhatsApp, ERP monolíticos), o NextAI opera com módulos nativos de Inteligência
+Artificial powered by Google Gemini (com fallback OpenAI), transformando a
+plataforma de um simples banco de registros em um assistente cognitivo que
+elimina gargalos de preenchimento, reduz erros operacionais e eleva o nível
+de governança corporativa.
+
+A plataforma é comercializada em modelo white-label multi-tenant: cada empresa
+(tenant) opera em silo totalmente isolado — dados, usuários, identidade visual
+e configurações — pagando por assinatura mensal por usuário ativo.
+
+Tenants em produção (2026-06-09): NextAI (plataforma própria), Mopar
+Engenharia, Zambrano Engenharia.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. OBJETIVOS DE NEGÓCIO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+3.1 Digitalização e 100% Paperless
+    Eliminar processos baseados em papel, planilhas e mensagens de WhatsApp
+    na execução de serviços de campo. Implementado: wizard de OS digital com
+    assinatura eletrônica, checklist dinâmico e georeferenciamento.
+
+3.2 Automação Cognitiva
+    Reduzir o tempo de digitação de técnicos e gestores em até 70%, usando IA
+    para OCR de notas fiscais (reembolsos) e extração de OSs de PDFs de
+    sistemas legados (OS Import Bridge). Próximo: AI Report Writer para
+    transformar descrições informais em laudos técnicos profissionais.
+
+3.3 Visibilidade Operacional em Tempo Real
+    Dashboard personalizável por usuário com 15 widgets, período configurável
+    (7d/30d/90d/12m), KPIs reais de OS, CPQ, Agenda e Estoque, refresh
+    automático por visibilitychange.
+
+3.4 Auditoria e Compliance (Anti-fraude)
+    Workflow de aprovação multinível em Reembolsos e Contas a Pagar, audit
+    trail em tabelas financeiras (status_history), CSAT público, rastreabilidade
+    de assinaturas eletrônicas em Orçamentos.
+
+3.5 Operação Offline-First
+    PWA com Service Worker (cache nextai-v7) + IndexedDB queueing para
+    Ordens de Serviço. Dados nunca perdidos em áreas sem sinal.
+
+3.6 Integração Enterprise
+    API REST pública versionada (v1) com autenticação X-API-Key, scopes
+    granulares, cursor pagination, idempotency keys e sistema de webhooks com
+    HMAC-SHA256 signing. Permite integração com TOTVS, SAP, Omie e ERPs
+    customizados sem redigitação.
+
+3.7 Multi-tenancy White-Label
+    Cada tenant possui slug, identidade visual própria (logo, cor primária),
+    dados fiscais (CNPJ, IE, endereço completo), isolamento total por RLS
+    PostgreSQL. SuperMaster provisiona, edita, faz soft/hard delete e restaura
+    tenants sem downtime.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. PROBLEMAS RESOLVIDOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problema 1 — Gestão de custos manual e sujeita a fraude
+  Solução implementada: Módulo de Reembolsos com OCR inteligente (Gemini
+  Vision extrai CNPJ, valor, fornecedor e data de recibos fotografados),
+  workflow de aprovação multinível, anexos auditáveis e rastreamento de status
+  com histórico de transições imutável.
+
+Problema 2 — Laudos técnicos com qualidade irregular
+  Solução implementada: OS Wizard com 7 steps guiados, checklists dinâmicos
+  configuráveis por Admin, campos obrigatórios, assinatura digital em tela.
+  IA em produção: AiDiagnosticAssistant (step 4) converte relatos informais
+  em laudos técnicos estruturados com causas prováveis e recomendação.
+  Sprint H expande para steps 2 e 6 com modo "Melhorar com IA".
+
+Problema 3 — Ciclo de suprimentos fraturado
+  Solução implementada: Módulo de Compras/Materiais com especificação técnica,
+  centro de custo, prazo limite, workflow do backoffice (Comprador atualiza
+  status Pendente→A Caminho→Entregue) e controle de estoque mínimo com alertas
+  no Dashboard.
+
+Problema 4 — Gestão em retrovisor
+  Solução implementada: Dashboard Real com 15 widgets configuráveis, KPIs
+  em tempo real por período, sem valores hardcoded. Líderes visualizam SLA
+  vencido, contas vencendo, OS em aberto e estoque crítico no mesmo painel.
+
+Problema 5 — Sem integração com sistemas legados
+  Solução implementada: OS Import Bridge (pipeline v7) — endpoint REST que
+  aceita payload JSON estruturado ou PDF de OS de qualquer sistema externo
+  (TOTVS, SAP, Omie), extrai dados por template registry (zero custo) ou IA
+  híbrida (Gemini→OpenAI), resolve entidades (cliente, técnico, tipo de
+  serviço) automaticamente e cria a OS no NextAI sem redigitação.
+
+Problema 6 — Escalabilidade multi-empresa impossível (limitação do PRD v1)
+  Solução implementada: arquitetura multi-tenant completa com RLS PostgreSQL,
+  team_id indexado em todas as tabelas, 64 policies com (SELECT auth.uid())
+  para performance em escala, tenant provisioning via Edge Function,
+  SuperMaster com visão cross-tenant.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. PÚBLICO-ALVO E RBAC
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+O sistema implementa RBAC (Role-Based Access Control) com 10 perfis:
+
+┌─────────────────┬────────────────────────────────────────────────────────────┐
+│ Role            │ Acesso                                                     │
+├─────────────────┼────────────────────────────────────────────────────────────┤
+│ Técnico         │ OS (próprias), Reembolsos, Compras, Base KB               │
+│ Administrativo  │ Reembolsos, Compras, Base KB                              │
+│ Supervisor      │ OS (equipe), Agenda, Clientes, Equipamentos, Orçamentos,  │
+│                 │ Reembolsos, Compras, Fornecedores, Peças, Base KB         │
+│ Gestor          │ Tudo acima + Dashboard, RH, DP, CP, Admin (parcial)       │
+│ Financeiro      │ Reembolsos (auditoria+aprovação), CP, Dashboard           │
+│ Comprador       │ Compras (backoffice), Base KB                             │
+│ Admin           │ Tudo do Gestor + Gerenciar usuários, Tipos de serviço,    │
+│                 │ Checklists, SLA, Budget, API Keys, Webhooks, OS Imports   │
+│ Master          │ Tudo do Admin + Gerenciar Tenants (provisionar)           │
+│ Cliente         │ Portal do Cliente (read-only: OS do próprio CNPJ)         │
+│ SuperMaster     │ Acesso total cross-tenant: todos os tenants, usuários     │
+│ (Master +       │ da plataforma, inteligência IA, perfil comercial de cada  │
+│  isPlatform)    │ empresa, provisionar/deletar/restaurar tenants             │
+└─────────────────┴────────────────────────────────────────────────────────────┘
+
+Redirecionamento pós-login: SuperMaster → /platform/tenants |
+Cliente → /portal | demais roles → /dashboard
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. ESCOPO FUNCIONAL COMPLETO — MÓDULOS IMPLEMENTADOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+A navegação é organizada em 9 grupos funcionais estilo SAP no sidebar:
+
+──────────────────────────────────────────────────────────────────────
+GRUPO: DASHBOARD
+──────────────────────────────────────────────────────────────────────
+Módulo: Dashboard Real
+  • 15 widgets configuráveis por usuário (ordem e visibilidade)
+  • Período selecionável: 7 dias / 30 dias / 90 dias / 12 meses
+  • Personalização persistida por usuário no Supabase (não no localStorage)
+  • Refresh automático ao retornar para a aba (visibilitychange)
+  • Defaults diferentes por role; skeleton loading durante carregamento
+
+  Catálogo completo dos 15 widgets (widgetRegistry.ts):
+  ┌──────────────────────────────┬──────┬─────────────────────────────────────┐
+  │ Widget                       │ Span │ Roles                               │
+  ├──────────────────────────────┼──────┼─────────────────────────────────────┤
+  │ OS Pendentes                 │ 1    │ Tecnico, Supervisor, Gestor+        │
+  │ Cumprimento de SLA           │ 1    │ Supervisor, Gestor+                 │
+  │ Satisfação (CSAT)            │ 1    │ Supervisor, Gestor+                 │
+  │ Taxa de Retorno              │ 1    │ Supervisor, Gestor+                 │
+  │ Reembolsos                   │ 1    │ Todos os roles operacionais         │
+  │ Ticket Médio                 │ 1    │ Financeiro, Supervisor, Gestor+     │
+  │ Taxa de Aprovação            │ 1    │ Tecnico, Supervisor, Gestor+        │
+  │ Produtividade                │ 1    │ Tecnico, Supervisor, Gestor+        │
+  │ Orçamentos CPQ               │ 1    │ Supervisor, Gestor+                 │
+  │ Agenda & Dispatch            │ 1    │ Supervisor, Gestor+                 │
+  │ Estoque Crítico              │ 1    │ Comprador, Supervisor, Gestor+      │
+  │ Burn Rate de Budget          │ 1    │ Financeiro, Gestor+                 │
+  │ Gestão de Pessoas & Fin.     │ 4    │ Gestor, Admin, Master (full-width)  │
+  │ Gráfico de OS (bar)          │ 2    │ Tecnico, Supervisor, Gestor+        │
+  │ Gráfico de Reembolsos (pie)  │ 2    │ Administrativo, Financeiro, Gestor+ │
+  └──────────────────────────────┴──────┴─────────────────────────────────────┘
+
+──────────────────────────────────────────────────────────────────────
+GRUPO: OPERAÇÕES DE CAMPO
+──────────────────────────────────────────────────────────────────────
+Módulo: OS — Ordens de Serviço
+  • Wizard de 7 steps: dados da OS → diagnóstico → materiais → tempos →
+    evidências (fotos) → conclusão → envio com assinatura digital
+  • Numeração automática única por tenant: formato OS-YYYYMM-NNNNN
+    (ex: OS-202606-00042), gerada por RPC atômica reserve_os_number
+  • Checklists dinâmicos configuráveis por tipo de serviço
+  • Georeferenciamento (coordenadas GPS registradas)
+  • Assinatura digital nativa em canvas HTML5
+  • Modo offline-first: rascunhos salvos no IndexedDB, sincronizados ao
+    reconectar; badge "Online/Offline" e indicador "Sincronizando..." com
+    contador de OSs pendentes visível na lista de OS
+  • Exportação da lista de OS em Excel (XLSX): exportarOsExcel exporta
+    status, técnico, dados, problema, diagnóstico com filtros aplicados
+  • Duplicar OS: botão "Duplicar" na tela de detalhe cria nova OS pré-
+    preenchida com os dados da OS selecionada como base
+  • Status workflow completo:
+      draft → pending_review → returned → approved / rejected
+      rejected → returned (reopen_report: técnico contesta reprovação)
+      returned → pending_review (resubmit_report: técnico corrige e reenvia)
+  • Botão "Reabrir OS para correção" — técnico contesta reprovação (rejected)
+  • Botão "Corrigir e Reenviar" — técnico edita OS devolvida (returned) e
+    resubmete; reviewer_comment preservado para o técnico ver o motivo
+  • Admin pode devolver OS com feedback (admin_feedback) para correção
+  • Histórico de mudanças de status imutável (report_status_history)
+  • IA no wizard (step 4) — AiDiagnosticAssistant: técnico descreve o problema
+    em linguagem informal e a IA gera diagnóstico técnico estruturado com
+    causas prováveis, descrição técnica e recomendação (em produção)
+  • Dedução automática de estoque ao aprovar OS: trigger deduct_stock_on_approval
+    subtrai qty_used de parts.stock_qty; notifica gestores quando peça atinge
+    estoque mínimo (notificação in-app gerada automaticamente)
+  • Vinculação bidirecional OS ↔ Orçamento: botão "Criar Orçamento" na OS
+    gera CPQ pré-preenchido; botão "Ver Orçamento" aparece quando CPQ já
+    existe; ambos os lados se referenciam mutuamente
+  • Badge de confiança de IA quando OS foi importada via OS Import Bridge
+  • Campos: import_confidence e import_field_confidences (score por campo)
+  • Deep link via QR Code: /reports/new?asset_id=<id>&client_id=<id> pré-
+    preenche automaticamente o ativo e o cliente no wizard ao escanear a
+    etiqueta impressa do equipamento (gerarEtiquetaQR.ts)
+  • PDF da OS gerado com logo do tenant, cabeçalho azul (gerarPdfRelatorio.ts)
+
+Módulo: Agenda / Dispatch
+  • Calendário visual de despacho de técnicos
+  • Visão por técnico e por data
+  • Roles com acesso: Master, Admin, Gestor, Supervisor
+
+Módulo: Manutenção Preventiva
+  • Planos de manutenção preventiva recorrentes com frequência configurável:
+    diário / semanal / quinzenal / mensal / trimestral / personalizado (dias)
+  • Campo "Descrição/Procedimentos" por plano: texto livre para instrução
+    ao técnico sobre o que executar na OS gerada automaticamente
+  • Campos por plano: cliente, ativo, técnico responsável, tipo de serviço,
+    prioridade, site_location, lead_days (antecedência de criação da OS)
+  • Geração automática de OSs: Edge Function maintenance-scheduler roda
+    diariamente às 09:00 UTC (cron `0 9 * * *`) via RPC
+    create_due_maintenance_orders() — cria OSs para planos com next_due_at
+    dentro do lead_days, evita duplicatas e avança next_due_at
+  • Botão "Executar agora" na UI Admin para disparo manual imediato
+  • OS gerada mantém rastreabilidade: campo maintenance_plan_id vinculado
+  • Configurável por Admin/Master
+
+──────────────────────────────────────────────────────────────────────
+GRUPO: COMERCIAL
+──────────────────────────────────────────────────────────────────────
+Módulo: Orçamentos (CPQ — Configure, Price, Quote)
+  • Criação de proposta comercial vinculável a uma OS existente; ao vincular,
+    campos título, cliente, observações e itens são auto-preenchidos a partir
+    da OS (tipo de serviço, equipamento, problema, diagnóstico e serviços)
+  • Itens de linha: serviços + peças + mão de obra com preços e quantidades
+  • Desconto percentual (desconto_pct): campo no orçamento com resumo
+    visual subtotal → desconto → total final
+  • Versionamento imutável: cada edição gera nova versão (orcamento_versions)
+  • Atualização atômica via RPC SECURITY DEFINER (transação única)
+  • Workflow de estados: rascunho → enviado → aprovado → assinado
+    (ou rejeitado em qualquer etapa); rejeição exige motivo (rejectReason)
+    registrado com feedback visível ao criador do orçamento
+  • Assinatura eletrônica: link público sem login (cliente assina
+    remotamente) OU modal "Coletar Assinatura" na tela de detalhe para
+    coleta presencial via dispositivo do técnico/gestor
+  • Realtime: tela de detalhe recebe atualizações automáticas via
+    Supabase Realtime (útil quando cliente assina remotamente)
+  • PDF de orçamento com logo do tenant, itens detalhados, totais
+  • Evento webhook disparado: quote.signed
+  • Acesso: Master, Admin, Gestor, Supervisor (Técnico NÃO tem acesso)
+
+Módulo: Clientes
+  • CRUD completo de clientes: CNPJ, endereço, contato (nome, telefone, email)
+  • Múltiplos locais por cliente (client_locations) — cada cliente pode ter N
+    instalações/filiais com endereço e contato próprios; flag is_principal
+  • Vinculação de clientes a equipamentos/ativos físicos
+  • Busca por nome e CNPJ
+  • Base para resolução automática no OS Import Bridge
+
+──────────────────────────────────────────────────────────────────────
+GRUPO: SUPRIMENTOS
+──────────────────────────────────────────────────────────────────────
+Módulo: Compras / Materiais
+  • Solicitação de compra de peças/materiais com especificação técnica
+  • Campos: centro de custo, prazo limite, link de NF, quantidade
+  • Workflow backoffice: Pendente → A Caminho → Entregue
+  • Devolutiva estruturada do Comprador: campos supplier_name, tipo de
+    logística (retirada/entrega), pickup_address, purchase_price e
+    purchase_link; exibida como card destacado ao solicitante
+  • Técnicos e Compradores têm visões distintas do mesmo módulo
+  • IA — OCR de etiquetas/catálogos: ao fotografar peça ou etiqueta, Gemini
+    extrai automaticamente especificação técnica, marca, modelo, código de
+    referência, tensão, capacidade e quantidade (extractMaterialFromImages)
+  • IA — Ditado por voz: técnico descreve a peça verbalmente → IA preenche
+    o formulário de especificação automaticamente (extractMaterialFromVoice)
+  • PDF de Purchase Order (PO) com logo do tenant, cabeçalho azul e tabela
+    de itens formatada em BRL (gerarPdfPO.ts — 4º documento PDF da plataforma)
+
+Módulo: Fornecedores
+  • CRUD de fornecedores com dados de contato e documentação fiscal
+  • Vinculação a solicitações de compra
+
+Módulo: Peças / Estoque
+  • Cadastro de peças com quantidade atual e quantidade mínima
+  • Alerta de estoque crítico no Dashboard (widget EstoqueCríticoWidget)
+  • Valor total do estoque calculado em tempo real
+
+Módulo: Equipamentos
+  • Cadastro completo de ativos físicos: nome, tipo, fabricante, modelo,
+    número de série, status (ativo/inativo/manutenção), data de instalação,
+    validade da garantia, intervalo de manutenção, última manutenção
+  • Vinculação cliente ↔ equipamento
+  • Ciclo de Vida Financeiro (E4): custo de aquisição, data, vida útil em
+    anos, valor residual → calcula valor contábil atual, depreciação total
+    acumulada e anos restantes; alerta visual quando vida útil esgotada ou
+    < 1 ano restante; flag shouldConsiderReplacement quando custo total de
+    manutenção supera valor contábil atual
+  • Status de manutenção automático: vencida / próxima (≤15 dias) / ok /
+    sem-dados baseado em maintenance_interval_days + last_maintenance_at
+  • Etiqueta QR (PDF A7 74×105mm): gerarEtiquetaQR.ts gera etiqueta
+    imprimível com QR code estilizado que aponta para deep link
+    /reports/new?asset_id=...&client_id=... — ao escanear abre Nova OS
+    já pré-preenchida com ativo e cliente
+  • Base para OS, Manutenção Preventiva e OS Import Bridge
+
+──────────────────────────────────────────────────────────────────────
+GRUPO: FINANCEIRO
+──────────────────────────────────────────────────────────────────────
+Módulo: Reembolsos
+  • Registro de despesas com campos contextuais: categoria, valor, data,
+    cliente associado (client_id), filial (branch), tipo de manutenção
+    (preventiva/corretiva), orçamento vinculado
+  • Edição pós-submissão: reembolso pode ser editado via rota
+    /reimbursements/:id/edit enquanto não aprovado
+  • Devolução para revisão: gestor devolve com revision_reason; técnico
+    recebe alerta "Devolvido para Ajuste" e pode corrigir e reenviar
+  • IA — OCR de recibos: ao fotografar o cupom fiscal, Gemini Vision extrai
+    automaticamente valor total, CNPJ, fornecedor e data (extractReceiptFromImages)
+  • IA — Ditado por voz: técnico descreve o gasto verbalmente → IA preenche
+    os campos do formulário automaticamente (extractReceiptFromVoice)
+  • Budget validation integrada: ao preencher valor+categoria, o sistema
+    consulta RPC check_budget; exibe toast warning se % do budget atingido;
+    exibe alerta de bloqueio se budget exceeded (status: ok/warning/exceeded)
+  • Validação anti-fraude de CNPJ/PIX via API pública (publica.cnpj.ws):
+    exibe razão social e status ativo/inativo antes da submissão
+  • Detecção de comprovante duplicado: SHA-256 hash do arquivo; alerta
+    visual se mesmo comprovante já foi enviado anteriormente
+  • Workflow de aprovação multinível configurável
+  • Aprovação em lote (bulk approval): barra flutuante com checkboxes;
+    botão "Aprovar Todos" processa selecionados em paralelo
+  • Exportação PDF da lista de reembolsos: cabeçalho azul + logo do tenant,
+    tabela com colunas por role, totais consolidados por status (Pendente,
+    Aprovado, Rejeitado, Pago), rodapé com numeração de páginas
+  • Anexos (fotos de comprovantes) no Supabase Storage (bucket privado)
+  • Histórico de status imutável (reimbursement_history)
+  • Roles: Técnico (submete), Gestor/Financeiro (aprova/rejeita/paga)
+
+Módulo: Expense Reports
+  • Relatório consolidado de reembolsos por período
+  • Exportação para análise financeira
+
+Módulo: CP — Contas a Pagar
+  • Cadastro de contas a pagar com vencimento, valor, parcelas
+  • Workflow de aprovação com múltiplos aprovadores
+  • Histórico de status (payables_status_history) com audit trail
+  • Audit trail: updated_by + trigger BEFORE UPDATE em payables
+  • KPIs no Dashboard: contas vencendo, aprovações pendentes, total
+  • Roles: Financeiro, Gestor, Admin, Master
+
+──────────────────────────────────────────────────────────────────────
+GRUPO: RECURSOS HUMANOS
+──────────────────────────────────────────────────────────────────────
+Módulo: RH — Recursos Humanos
+  • Cadastro completo de colaboradores (admissão, cargo, departamento,
+    documentos, foto); campos de compliance: PIS/PASEP, CTPS, CNH com
+    datas de validade
+  • Certificações com validade: monitoramento automático de vencimento;
+    alerta visual (getExpiringCerts(30)) na listagem para certificações
+    que vencem em até 30 dias
+  • Gestão de departamentos com hierarquia; Posições com CBO (Classificação
+    Brasileira de Ocupações) e job_family para alinhamento à CLT
+  • KPIs: headcount, turnover, admissões/desligamentos no período
+  • Roles: Gestor, Admin, Master
+
+Módulo: DP — Departamento Pessoal
+  • KPIs anuais (YTD): Total Bruto, Total Líquido, FGTS Acumulado,
+    Competências Abertas — visíveis na listagem de períodos de folha
+  • Folha de pagamento com cálculo de INSS e IRRF progressivo
+  • Benefícios gerenciados por colaborador: Vale Transporte (vt_valor),
+    Plano de Saúde e Odonto (plano_saude_desconto, plano_odonto_desconto)
+    — deduzidos automaticamente no cálculo da folha
+  • Campo "Observações" em lançamentos de folha: anotações editáveis
+    pelo gestor durante o período de ajuste
+  • Holerite em PDF com logo do tenant e cabeçalho formatado (gerarHolerite.ts)
+  • Gestão de férias: agendamento, aprovação, controle de saldo
+  • Registro de ponto: entrada, saída, horas extras
+  • Roles: Gestor, Admin, Master
+
+──────────────────────────────────────────────────────────────────────
+GRUPO: CONHECIMENTO
+──────────────────────────────────────────────────────────────────────
+Módulo: Base de Conhecimento
+  • Criação e organização de artigos de conhecimento operacional
+  • Busca full-text por título e conteúdo (ILIKE no PostgreSQL)
+  • Acessível por todos os perfis operacionais (exceto Cliente)
+
+──────────────────────────────────────────────────────────────────────
+GRUPO: CONFIGURAÇÕES
+──────────────────────────────────────────────────────────────────────
+  • Tipos de Serviço — categorias e especializações disponíveis para OS
+  • SLA — políticas por prioridade (baixa/normal/alta/crítica) e tipo de
+    serviço; campos hours_to_respond e hours_to_resolve por política; toggle
+    ativo/inativo; monitorado pelo sla-checker Edge Function
+  • Checklists — Templates de checklist dinâmico por tipo de serviço
+    (editor visual com campos reordenáveis, tipos: texto, numérico, boolean,
+    foto obrigatória)
+  • Manutenção Preventiva — configuração de planos recorrentes
+
+──────────────────────────────────────────────────────────────────────
+GRUPO: ADMINISTRAÇÃO
+──────────────────────────────────────────────────────────────────────
+  • Perfil da Empresa — dados fiscais (CNPJ, IE), endereço, logo, cor
+    primária, setor empresarial (sector) para segmentação de tenant
+    (Master/Admin edita a própria empresa)
+  • Usuários — CRUD completo com definição de roles e convite por e-mail
+  • Budget — limite de gastos por categoria (Alimentação, Transporte,
+    Hospedagem, Outros/personalizado), período (mensal/trimestral/anual)
+    e data de vigência (start_date);
+    RPC get_budget_burn() retorna % consumido por categoria; widget
+    "Burn Rate de Budget" no Dashboard; check_budget() valida novos
+    reembolsos em tempo real antes da submissão
+  • Tenants — Master provisiona novos tenants (white-label)
+
+──────────────────────────────────────────────────────────────────────
+GRUPO: INTEGRAÇÕES (SPRINT G)
+──────────────────────────────────────────────────────────────────────
+Módulo: API Keys
+  • Geração de chaves API (nxtai_live_<32 bytes hex>)
+  • Chave mostrada uma única vez; armazenada apenas como SHA-256
+  • Escopos granulares: orders:read, orders:write, reimbursements:read,
+    clients:read, clients:write, quotes:read, webhooks:write
+  • Expiração opcional, controle de ativo/inativo, last_used_at
+  • Dashboard de uso por chave: total_requests, success_requests,
+    error_requests, avg_duration_ms — observabilidade de integrações
+
+Módulo: Webhooks
+  • Cadastro de endpoints com secret HMAC e filtro de eventos
+  • Eventos suportados: order.created, order.updated, order.completed,
+    reimbursement.approved, reimbursement.paid, quote.signed, payable.paid
+  • Sistema de retry com backoff exponencial (6 tentativas: imediato, 1min,
+    5min, 30min, 2h, 24h), status dead após esgotamento
+
+Módulo: OS Import Bridge
+  • Importação de OSs de sistemas legados via API REST autenticada
+  • Modos: JSON estruturado ou PDF (URL pública ou base64)
+  • Fontes suportadas: TOTVS, SAP, Omie, PDF genérico, custom
+  • Pipeline de extração PDF (v7):
+      1. Template registry (zero custo para formatos conhecidos, ex: Decathlon)
+      2. IA híbrida Gemini → fallback OpenAI com per-field confidence scores
+  • Resolução automática de entidades: cliente por CNPJ/nome → auto_create;
+    técnico por email/nome; tipo de serviço por ILIKE; prioridade PT+EN
+  • Deduplicação: (team_id, external_source, external_ref_id) — retorna OS
+    existente com duplicate:true, sem criar duplicata
+  • Badge de confiança visual na tela de detalhe da OS importada
+  • Log completo (os_import_log) com payload bruto, method, confidence,
+    scores por campo e resolução de entidades
+  • UI Admin (/admin/os-imports): tabela paginável com filtros status+source,
+    row expandida com payload JSON, botão "Reprocessar" para failed
+
+──────────────────────────────────────────────────────────────────────
+FUNCIONALIDADES TRANSVERSAIS (disponíveis em toda a plataforma)
+──────────────────────────────────────────────────────────────────────
+Sistema de Notificações In-App
+  • Sino com badge dinâmico de não lidas no header (aria-label acessível)
+  • Dropdown com lista de notificações, marcação individual como lida
+  • Tabela notifications com RLS (cada usuário vê apenas as próprias)
+  • Atualização em tempo real via Supabase Realtime (postgres_changes
+    INSERT + UPDATE na tabela notifications para user_id do usuário logado)
+  • Notificações automáticas via trigger notify_on_os_status_change():
+    aprovação, rejeição e devolução de OS geram notificação in-app
+    automática para o técnico responsável
+  • RPC SuperMaster: platform_get_all_notifications (cross-tenant)
+
+Web Push Notifications (PWA)
+  • usePushNotification.ts — solicita permissão ao técnico após login
+  • VAPID keys (VITE_VAPID_PUBLIC_KEY) + Service Worker Push API
+  • Compatível com instalação como PWA no celular (Android/iOS)
+  • Permite receber alertas de OS atribuída mesmo com o app em background
+
+Dark / Light / System Theme
+  • ThemeToggle com 3 opções: Claro / Escuro / Sistema
+  • Implementado com next-themes; preferência persistida no localStorage
+  • Sidebar, cards e todos os componentes suportam os dois modos
+  • Disponível no footer do sidebar para todos os usuários
+
+Navegação Mobile (Bottom Navigation)
+  • Barra de atalhos rápidos no rodapé em dispositivos móveis
+  • Configurável por usuário: até 3 atalhos (mínimo 1) escolhidos entre os
+    módulos disponíveis para o role; seleção via menu de perfil; persiste
+    em localStorage por usuário
+
+Geração de PDF com identidade visual do tenant (5 documentos)
+  • gerarPdfRelatorio.ts — Ordem de Serviço (OS)
+  • gerarPdfOrcamento.ts — Orçamento / Proposta Comercial (CPQ)
+  • gerarPdfPO.ts — Purchase Order (Compras)
+  • gerarHolerite.ts — Holerite / Folha de Pagamento (DP)
+  • gerarEtiquetaQR.ts — Etiqueta QR para equipamentos (PDF A7, 74×105mm):
+      QR Code estilizado com cor primária do tenant (#1e3a5f), nome do
+      equipamento, nº de série e texto "Escaneie para abrir OS"; URL do QR
+      contém deep link /reports/new?asset_id=<id>&client_id=<id> para que
+      o técnico abra a OS já pré-preenchida escaneando a etiqueta
+  • Padrão OS/ORC/PO/Holerite: async + cabeçalho azul + logo do tenant
+    (urlToDataUrl + measureImage + fitInBox) + jsPDF 4.x
+
+──────────────────────────────────────────────────────────────────────
+MÓDULOS PÚBLICOS (sem autenticação)
+──────────────────────────────────────────────────────────────────────
+  • Portal do Cliente (/portal) — Clientes com role='Cliente' visualizam
+    suas OSs em layout dedicado (ClientPortalLayout), sem acesso ao app
+  • CSAT Público (/csat/:token) — Avaliação de satisfação do cliente:
+      token UUID único por OS; página pública sem login; escala 1–5 estrelas
+      + campo de comentário opcional; guard already_submitted impede dupla
+      submissão (retorna 400 se token já avaliado); RPC getCsatAvg(days)
+      calcula média dos últimos N dias; widget "CSAT Médio" no Dashboard
+  • Política de Privacidade (/privacy) — conforme LGPD
+  • Loading Screen — animação NextAILogo (breathe+shimmer stagger, com
+    suporte a prefers-reduced-motion)
+
+──────────────────────────────────────────────────────────────────────
+PLATFORM — PAINEL SUPERMASTER
+──────────────────────────────────────────────────────────────────────
+  • /platform/tenants — listagem cross-tenant com toggle "mostrar removidas",
+    badges de status, ações: Editar | Restaurar | Deletar empresa
+  • /platform/company-profile — seletor de empresa + edição de qualquer
+    tenant (nome, cor, logo, CNPJ, IE, endereço completo)
+  • /platform/users — gestão de usuários da plataforma NextAI própria
+  • /platform/intelligence — Intelligence Hub multi-tenant:
+      15 abas de exportação cross-tenant: diagnostics, kb, reports,
+      checklist, attachments, status_history, signatures, reimbursements,
+      reimbursement_history, clients, client_locations, orcamentos,
+      equipments, materials, notifications
+      Formatos: JSON e CSV; busca por tenant slug; log de exportações;
+      Widget IA: total de requests, taxa de fallback, latência média,
+      alerta vermelho se fallback > 15% (dados de ai_routing_log)
+  • /platform/settings — configurações globais da plataforma
+  • Suspensão de tenant: toggle is_active — impede login dos usuários sem
+    apagar dados; reversível a qualquer momento pelo SuperMaster
+  • Soft delete tenant: reversível, marca deleted_at
+  • Hard delete tenant: irreversível via Edge Function admin-delete-tenant
+    (sequência: desativa Auth users → purga orphans → remove Storage →
+    DELETE CASCADE em 25 tabelas → log de auditoria)
+  • Backfill de Storage Legado: operação idempotente disponível para
+    SuperMaster que migra objetos de Storage para paths namespaceados por
+    tenant ({bucket}/{team_id}/arquivo) e atualiza URLs no banco — garante
+    isolamento correto em tenants criados antes do namespace-by-tenant
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. SISTEMA DE IA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Arquitetura de IA:
+  • Edge Function ai-proxy v10 (Supabase Deno) — ponto único de entrada para
+    chamadas de IA; rate limiting 20 req/min por usuário (Deno KV);
+    headers X-RateLimit-*; fallback automático Gemini → OpenAI
+  • Telemetria: tabela ai_routing_log (provider, is_fallback, latency_ms)
+    com retenção 90 dias; RPC get_ai_routing_stats(hours) acessível apenas
+    por SuperMaster; widget de inteligência no painel /platform/intelligence
+
+IA em produção — features implementadas:
+
+1. OCR de Recibos (Módulo Reembolsos)
+   Modelo: Google Gemini Vision (multimodal)
+   Input: foto do cupom fiscal capturada pelo celular
+   Output: JSON com valor_total, cnpj, fornecedor, data
+   Benefício: elimina digitação manual e reduz erros de preenchimento
+
+2. AI Diagnostic Assistant — OS Wizard (em produção)
+   Modelo: Google Gemini via ai-proxy
+   UI: componente AiDiagnosticAssistant no step 4 do wizard de OS
+   Input: texto informal do técnico + contexto (tipo de serviço, ativo, problema)
+   Output: diagnóstico técnico estruturado com descrição profissional,
+           causas prováveis e recomendação de ação
+   Benefício: transforma relatos informais em laudos técnicos padronizados
+
+3. OCR e Voz para Materiais/Compras (em produção)
+   Modelo: Google Gemini Vision / Speech
+   Input foto: etiqueta de peça, catálogo, plaquinha de equipamento
+   Output: especificação técnica, marca, modelo, código, tensão, capacidade
+   Input voz: técnico descreve verbalmente a peça/material necessária
+   Output: formulário de solicitação pré-preenchido (extractMaterialFromVoice)
+
+4. Voz para Reembolsos (em produção)
+   Modelo: Google Gemini
+   Input: técnico descreve verbalmente o gasto ("almocei no posto, R$42,50")
+   Output: formulário de reembolso pré-preenchido (extractReceiptFromVoice)
+
+5. OS Import Bridge — IA Híbrida (Sprint G)
+   Modelos: Gemini (principal) → OpenAI GPT-4o (fallback automático)
+   Input: PDF de OS de sistemas externos (TOTVS, SAP, Omie)
+   Output: campos normalizados com per-field confidence scores
+   Pipeline: template registry (zero custo) → IA híbrida → resolução entidades
+   Benefício: importação 100% sem redigitação; zero erros de campo crítico
+
+Segurança da IA:
+  • Secrets nunca no .env: GEMINI_API_KEY_1, GEMINI_API_KEY_2, OPENAI_API_KEY
+    gerenciados como Supabase Edge Function Secrets
+  • Toda chamada retorna responseSchema (JSON estruturado) — nenhuma
+    "alucinação textual" chega ao banco
+  • IA opera no Edge (Deno), nunca expõe chaves ao browser
+  • RPCs de telemetria IA são SECURITY DEFINER exclusivas para SuperMaster
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. ARQUITETURA TÉCNICA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+8.1 Stack Frontend
+  • React 19 + TypeScript 5.8 + Vite 6.2 (SPA com lazy loading por módulo)
+  • Tailwind CSS v4 + Base UI (@base-ui/react 1.4) + Shadcn/UI + tw-animate-css
+  • react-hook-form 7 + Zod v4 — validação de formulários
+  • react-router-dom v7 — roteamento SPA com RoleGuard/ProtectedRoute/PlatformGuard
+  • date-fns v4 ptBR — formatação de datas
+  • Recharts v3 — gráficos e widgets de KPI
+  • jsPDF v4 + jspdf-autotable — geração de PDFs (OS, Orçamento, PO, Holerite,
+    Etiqueta QR A7)
+  • sonner v2 — notificações toast
+  • idb v8 — IndexedDB (modo offline)
+  • driver.js v1.4 — onboarding guiado interativo
+  • @zxing/browser — leitura de QR Code e código de barras
+  • qr-code-styling — geração de QR Code (links de assinatura + etiquetas de
+    equipamentos)
+  • xlsx — exportação de planilhas
+  • @fontsource-variable/geist — fonte corporativa
+  • next-themes — suporte a tema dark/light
+
+8.2 Stack Backend (BaaS — sem servidor intermediário)
+  • Supabase (projeto: sksursvmgvxqbbdsztcd)
+    - Auth: JWT com custom claims (role, team_id, isPlatform)
+    - PostgreSQL (último plano free, migração Pro planejada)
+    - RLS multi-tenant: todas as tabelas com team_id indexado
+    - Storage: buckets privados por tenant ({bucket}/{team_id}/arquivo)
+    - Realtime: para atualizações em tempo real
+    - Edge Functions (Deno): 15 funções deployadas
+
+8.3 Edge Functions deployadas
+  • ai-proxy v10 — IA unificada (Gemini+OpenAI, rate limit Deno KV)
+  • api-gateway v2 — API pública REST (SHA-256, rate limit, RFC 7807,
+    cursor pagination, idempotency)
+  • os-import-processor v7 — OS Import Bridge (template registry + IA híbrida)
+  • webhook-dispatcher v2 — entregas com HMAC-SHA256 e retry exponencial
+  • admin-create-user v4 — provisionamento de usuários via Admin API
+  • admin-delete-user v3 — deleção de usuários via Admin API
+  • admin-reset-password v1 — reset de senha via Admin API
+  • admin-provision-tenant v1 — criação de tenant com usuário Master
+  • admin-delete-tenant v1 — hard delete de tenant (sequência atômica)
+  • platform-update-user v1 — edição de usuários cross-tenant (SuperMaster)
+  • sla-checker v1 — verifica SLAs vencidos e dispara alertas
+  • send-csat-email v1 — envia e-mail de avaliação CSAT após OS concluída
+  • maintenance-scheduler v1 — cron diário 09:00 UTC; executa RPC
+    create_due_maintenance_orders() para gerar OSs de manutenção preventiva
+    automaticamente; também invocável manualmente via botão na UI Admin
+  • push-notification v1 — envia Web Push (VAPID) via Database Webhook
+    quando INSERT na tabela notifications; usa push_subscriptions por usuário
+
+8.4 Arquitetura Multi-tenant
+  • Isolamento: todas as tabelas têm coluna team_id com RLS RESTRICTIVE
+  • Padrão de leitura: NÃO adicionar .eq('team_id') nas queries — RLS filtra
+    via função get_my_team_id() / get_caller_team_id()
+  • Padrão de escrita: injetar team_id manualmente no INSERT
+  • Índices: CREATE INDEX idx_{tabela}_team_id em todas as tabelas com team_id
+    (15 índices criados na sprint de hardening — 2026-06-07)
+  • Performance RLS: 64 policies com (SELECT auth.uid()) — init plan cacheado;
+    auth_rls_initplan = 0 confirmado no advisor Supabase
+
+8.5 API Pública REST (Sprint G)
+  • Autenticação: X-API-Key: nxtai_live_<token>
+  • Validação: SHA-256 da chave contra api_keys.key_hash (padrão GitHub/Stripe)
+  • Scopes: orders:read/write, reimbursements:read, clients:read/write,
+    quotes:read, webhooks:write
+  • Endpoints: GET/POST/PATCH /api/v1/orders, /api/v1/reimbursements,
+    /api/v1/clients, /api/v1/quotes
+  • Paginação: cursor composto (created_at, id) — zero perda em batch inserts
+  • Idempotência: header Idempotency-Key, cache 24h em api_idempotency_keys
+  • Rate limit: 1000 req/hora por chave (Deno KV)
+  • Erros: RFC 7807 (application/problem+json)
+  • Logs: api_access_log (base para billing e detecção de abuso), retenção 90d
+  • Delta sync: ?updated_after=ISO8601 em todas as listagens
+  • Developer Experience: OpenAPI 3.0, sandbox isolado, Postman collection
+
+8.6 PWA / Offline
+  • Service Worker: public/sw.js com cache nextai-v7 (SPA navigation
+    network-first, fallback index.html)
+  • IndexedDB: draft de OS salvo localmente quando offline, sincronizado
+    ao reconectar (queue síncrona via idb)
+  • Keep-alive: GitHub Actions (.github/workflows/supabase-keepalive.yml)
+    faz PATCH em app_health(id=1) diariamente às 08:17 UTC — elimina
+    hibernação do Supabase Free Tier após 7 dias sem atividade
+
+8.7 Bundle e Performance
+  • Lazy loading: TODAS as rotas em App.tsx são React.lazy() — somente
+    AppLayout está no bundle inicial
+  • manualChunks (vite.config.ts) com regex ancorada:
+    vendor-react (react, react-dom/client, react-router) · vendor-supabase ·
+    vendor-charts (recharts) · vendor-pdf (jspdf) · vendor-ui (base-ui,
+    floating-ui, sonner) · vendor-driver (driver.js) · vendor-utils
+  • Chunk principal: 44.73 kB gzip (meta ≤ 100 kB gzip)
+  • Plugin rollup-plugin-visualizer: dist/stats.html para análise de chunks
+
+8.8 CI/CD e Infraestrutura
+  • Deploy: Vercel (auto-deploy ao push no master)
+  • GitHub Actions:
+    - supabase-keepalive.yml — keep-alive diário 08:17 UTC
+    - a11y-audit.yml — auditoria axe-diff por PR (concurrency cancel, artefatos)
+  • Audit harness local (audit/):
+    - run-audit.mjs — Playwright + axe-core + Lighthouse vs produção
+    - check-axe-diff.mjs — falha apenas em NEW critical/serious vs baseline
+    - responsive-cross.mjs — cross-browser 4 viewports
+    - baseline-axe.json — 0 violações axe wcag2a/wcag2aa atual
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. ONBOARDING SAP-LEVEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+O NextAI possui sistema de onboarding interativo guiado com driver.js,
+cobrindo 100% dos módulos da plataforma.
+
+Arquitetura:
+  • OnboardingContext.tsx — provider com auto-trigger 1200ms pós-login,
+    startTour(), resetTour(), hasCompleted
+  • WelcomeModal.tsx — modal inicial: "Fazer tour agora" ou "Pular"
+  • useOnboardingDriver.ts — navega entre rotas, waitForElement(4s),
+    skip gracioso quando elemento não encontrado
+  • tours/index.ts — registra os 31 tour modules
+
+31 tour modules (cobertura 100% dos módulos):
+
+  Nav & Dashboard:     layout · dashboard · dashboard-customizer
+  Field Service:       os-list · os-wizard · os-detail · agenda
+  Assets & Clients:    equipamentos · clientes
+  Commercial:          orcamentos
+  Finance & Procurement: reembolsos · expense-reports · materiais · cp
+  Inventory:           fornecedores · pecas
+  Knowledge:           conhecimento
+  HR & Payroll:        rh · dp
+  Admin:               company-profile · admin · admin-sla · admin-budget ·
+                       admin-manutencao · admin-tenants-mgmt
+  Integrações:         api-keys · webhooks · os-import
+  Platform:            platform · platform-company-profile
+  Client Portal:       client-portal
+
+Persistência: chave localStorage onboarding_v1_done_{userId}
+Tour reset: useOnboarding().resetTour() ou remoção manual do localStorage
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+10. QUALIDADE E TESTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+10.1 Testes Unitários
+  • Framework: Vitest 3.2 + Testing Library
+  • 117 testes passando (npx vitest run)
+  • Cobertura: services, hooks, utilitários, cálculos financeiros
+
+10.2 Testes E2E (Playwright)
+  • tests/ux/                     — 37 testes UX/UI SAP-level (login a11y,
+                                    nav RBAC, estados, feedback, responsividade)
+  • tests/rh-module.spec.ts       — 7/7 ✅ (RBAC, lista, KPIs, admissão, depts)
+  • tests/dp-module.spec.ts       — 7/7 ✅ (RBAC, folha, status, dialog, subrotas)
+  • tests/cp-module.spec.ts       — 8/8 ✅ (RBAC, lista, KPIs, status, filtro REST)
+  • tests/dashboard-verify.spec.ts — 5 testes (Gestor, Personalizar, Período,
+                                     RBAC, Master HR)
+  • tests/os-orcamento-vinculacao.spec.ts — 33 testes (31 pass, 1 flaky timing)
+  • tests/platform-company-profile.spec.ts — 6/6 ✅ (SuperMaster)
+  • tests/sidebar-verify.spec.ts  — 5 testes (grupos SAP, roles, ordem, nav)
+  • tests/os-import.spec.ts       — 25 testes (IM-01→IM-25: RBAC, dialog,
+                                    CORS, auth, validação, import, dedup,
+                                    resolução entidades, prioridade)
+  • tests/orcamentos-sprint-d.spec.ts — 5 testes (assinatura eletrônica)
+  Total E2E: ~150+ testes cobrindo fluxos críticos de negócio
+
+10.3 Acessibilidade
+  • axe violations: 0 (auditado em produção via audit harness)
+  • WCAG 2.5.8 AA: touch targets ≥ 24px crítico em todos os elementos
+    interativos (sino, hamburger, botões, DropdownTriggers)
+  • Cross-browser: Chromium + Firefox + WebKit × 4 viewports (390, 768,
+    1280, 1440px) — 0 overflows
+
+10.4 Segurança
+  • SQL: zero auth.uid() raw em policies (todas wrapped com SELECT)
+  • API: X-API-Key hash SHA-256 (nunca plaintext), whitelists explícitas
+    em inserts via service_role
+  • RPCs: SECURITY DEFINER com guard (get_caller_team_id OU is_platform_master)
+    + REVOKE FROM PUBLIC + REVOKE FROM anon + GRANT TO authenticated
+  • Storage: políticas por team_id em todos os buckets privados
+  • Rate limiting: 20 req/min na IA (por usuário), 1000 req/hr na API pública
+    (por chave), ambos via Deno KV
+  • Audit trail: tabelas financeiras com *_status_history + trigger AFTER UPDATE
+  • Cursor pagination composta (created_at, id) na API pública
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+11. PRODUTO COMERCIAL — MODELO SAAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+11.1 Tenants em Produção (2026-06-09)
+
+  ┌───────────────────────┬──────────┬────────────────────────────────┬─────────┐
+  │ Tenant                │ Slug     │ Email                          │ Status  │
+  ├───────────────────────┼──────────┼────────────────────────────────┼─────────┤
+  │ NextAI (plataforma)   │ nextai   │ nextai@gmail.com               │ SM ✅   │
+  │ Mopar Engenharia      │ mopar    │ master@gmail.com               │ Ativo ✅│
+  │ Zambrano Engenharia   │ zamb-eng │ zambrano@zambranoengenharia... │ Ativo ✅│
+  └───────────────────────┴──────────┴────────────────────────────────┴─────────┘
+  SM = SuperMaster (is_platform=true)
+
+11.2 Modelo de Receita
+  • B2B SaaS — assinatura mensal por usuário ativo
+  • White-label: cada tenant tem identidade visual própria (logo, cor, CNPJ)
+  • Tiers planejados: Basic / Pro / Enterprise (distintos em rate limit de API)
+  • Modelo de pricing: BRL (moeda única — sem cross-border ainda)
+
+11.3 Landing Page de Aquisição
+  • URL: https://nextai-landing-gilt.vercel.app
+  • Stack: Vite + React 19 + TypeScript + Tailwind CSS v4 (repo separado)
+  • Seções: Hero (AiOrb 3D animado), ProvaRápida, Pillars (bento layout),
+    AiStories (mini-demos IA), Sectors, Results, Integration, FAQ, FinalCTA
+  • SEO: JSON-LD SoftwareApplication, OG image, Twitter meta tags
+  • Mobile: sticky CTA bar (aparece após 420px scroll)
+  • Pendências para campanha paga: métricas reais (4x value:null), Calendly
+    URL real, depoimentos de clientes reais autorizados (fictional:false)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+12. LIMITAÇÕES E RISCOS ATUAIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+12.1 Infraestrutura (Supabase Free Tier)
+  • O projeto ainda roda no plano Free, com limitações de conexões
+    simultâneas e sem read replica. Mitigado com keep-alive diário via
+    GitHub Actions.
+  • Migração para plano Pro necessária antes do onboarding enterprise em
+    escala (habilita read replica, mais conexões, backups automáticos).
+
+12.2 Cursor Pagination na API Pública (P6 — pendente)
+  • Listagens da API paginam por (created_at, id) compostos, mas o fix
+    completo ainda está pendente de deploy para os endpoints existentes.
+  • Impacto: batch inserts com timestamps idênticos podem perder registros
+    na sincronização incremental. Ativar antes do primeiro cliente enterprise
+    com sync noturno em batch.
+
+12.3 Multiple Permissive Policies (pendente)
+  • Supabase lint aponta múltiplas policies permissivas em algumas tabelas
+    (FOR SELECT OR ...) que combinam em OR — PostgreSQL avalia todas mesmo
+    se a primeira satisfizer. Consolidar quando CPU do Supabase virar gargalo
+    mensurável (após initplan fixes já aplicados).
+
+12.4 Rate Limit de API para Enterprise (planejado)
+  • Limite atual: 1000 req/hr. Sincronização noturna de 5.000 OS esgota em
+    1 hora. Implementar tiers Basic/Pro/Enterprise antes do primeiro cliente
+    com volume > 1000 OS/dia.
+
+12.5 Moeda única (BRL)
+  • Precificação e orçamentos em BRL apenas. Sem infraestrutura para
+    multi-moeda ou cross-border pricing.
+
+12.6 Notificações (Sprint H — em desenvolvimento)
+  • Email e WhatsApp ainda não estão implementados (Sprint H em andamento).
+    Alertas de SLA, aprovações e conclusões de OS são visualizados apenas
+    dentro da plataforma.
+
+12.7 Contas a Receber — CR (Sprint H — em desenvolvimento)
+  • Módulo financeiro ainda não tem CR. Orçamentos assinados não geram
+    automaticamente contas a receber. Previsto para Sprint H.
+
+12.8 LGPD Baseline (Sprint H — em desenvolvimento)
+  • Funcionalidade de anonimização de dados pessoais de usuários (direito
+    ao esquecimento) prevista para Sprint H. Política de privacidade
+    disponível em /privacy.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+13. ROADMAP — PRÓXIMAS EVOLUÇÕES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Sprint H — Comunicação & Conformidade (próxima sprint planejada):
+
+  Módulo 1: Notificações (Email + WhatsApp)
+    Providers: Resend (email) · Evolution API (WhatsApp)
+    Eventos: OS atribuída, OS concluída, SLA prestes a vencer (2h antes),
+    SLA vencido, reembolso aprovado/rejeitado, CP aprovação pendente, conta
+    quitada
+    Arquitetura: Edge Fn notification-dispatcher + tabelas
+    notification_preferences + notification_log
+
+  Módulo 2: LGPD Baseline
+    RPC anonymize_user_pii (anonimiza PII sem deletar registros históricos)
+    Soft-delete em users + pii_cleared_at
+    Tabela pii_treatment_log (auditoria de operações de tratamento)
+    UI: botão "Remover dados pessoais" na gestão de usuários (Admin/Master)
+
+  Módulo 3: AI Report Writer Avançado (evolução do AiDiagnosticAssistant)
+    O AiDiagnosticAssistant já está em produção no step 4 da OS.
+    Sprint H expande para steps 2 e 6 com Edge Fn dedicada (ai-report-writer)
+    Adiciona: modo de reescrita de texto já existente ("Melhorar com IA")
+    Rate limit dedicado: 10 chamadas/hora por usuário (Deno KV)
+
+  Módulo 4: CR — Contas a Receber
+    Geração automática de CR a partir de quote.signed
+    Tabelas: receivables + receivable_payments
+    Widget de aging no Dashboard (current/d30/d60/d90/over90/total_overdue)
+    Rota: /financeiro/cr (Financeiro, Gestor, Admin, Master)
+
+Backlog de escala (ativar conforme crescimento):
+  • Migração Supabase Free → Pro (read replica, mais conexões)
+  • Tiers de API (Basic/Pro/Enterprise) com rate limits distintos
+  • Cursor pagination composta em todos os endpoints
+  • Consolidação de multiple permissive policies
+
+Visão de longo prazo:
+  • Dispatch com roteamento logístico otimizado (Google Maps API)
+  • BI conversacional por RAG — "Quais equipamentos do cliente X tiveram mais
+    falhas nos últimos 4 invernos?" processado em linguagem natural
+  • Integração Totvs/SAP via webhook automático em payable.paid
+  • Multi-moeda para expansão international
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+APÊNDICE — DADOS TÉCNICOS RÁPIDOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Repositórios:
+  App principal:  github.com/vanzer80/nextai-plataform
+  Landing page:   github.com/vanzer80/nextai-landing
+
+Ambientes:
+  Produção app:   https://nextai-plataform.vercel.app
+  Produção LP:    https://nextai-landing-gilt.vercel.app
+  Dev app:        localhost:3001 (npm run dev)
+  Dev LP:         localhost:4321 (npm run dev)
+  Supabase ID:    sksursvmgvxqbbdsztcd
+
+Versões chave (package.json, junho 2026):
+  React 19.0 · TypeScript 5.8 · Vite 6.2 · Tailwind CSS 4.1 ·
+  Supabase-js 2.103 · react-hook-form 7.72 · Zod 4.3 · date-fns 4.1 ·
+  driver.js 1.4 · jsPDF 4.2 · recharts 3.8 · react-router-dom 7.14 ·
+  Vitest 3.2 · Playwright 1.59
+
+Métricas de qualidade (2026-06-07):
+  Testes unitários:       117/117 ✅
+  Testes E2E Playwright:  150+ testes
+  axe violations:         0 (WCAG 2.5.8 AA) ✅
+  Bundle principal:       44.73 kB gzip ✅
+  auth_rls_initplan:      0 (zero queries O(n) em policies) ✅
+  Cross-browser:          Chromium + Firefox + WebKit × 4 viewports ✅
+
+================================================================================
+FIM DO DOCUMENTO — NextAI PRD v2.3 · 2026-06-09
+================================================================================
