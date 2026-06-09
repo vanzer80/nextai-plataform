@@ -116,12 +116,39 @@ A partir da sessão sprint-filial-fk (2026-06-07):
 - Mesma semântica dual do `service_reports`.
 
 ### 7.3 Comportamento do ClientLocationSelect
-- Se cliente não selecionado → input desabilitado.
-- Se cliente sem filiais cadastradas → input de texto livre direto.
-- Se cliente com filiais → `<Select>` com as filiais + opção "Digitar manualmente".
-- Ao selecionar filial FK: preview read-only com dados completos; `site_location` = `formatLocationLabel(loc)`.
-- Ao entrar em modo manual: `client_location_id` limpo, input de texto livre.
-- `key` não é necessário — estado interno é resetado via `prevClientId` guard no render.
+
+O componente tem **três estados exclusivos** (renderiza apenas um por vez):
+
+| Estado | Condição | O que aparece |
+|--------|----------|---------------|
+| **A — FK selecionada** | `selectedLocationId` resolve para uma filial | Card de preview com todos os dados + botão "Trocar" (volta ao C) + link "Digitar manualmente" (vai para B) |
+| **B — Texto livre** | `manualMode === true` | Input de texto + link "Selecionar da lista" (volta ao C) |
+| **C — Select** | sem seleção, sem manual | `<Select>` Radix com as filiais + opção "Digitar manualmente" (vai para B) |
+
+**Regras de transição:**
+- `C → A`: usuário escolhe filial no Select → componente chama `onLocationSelect(loc)` (sem chamar `onManualTextChange`)
+- `A → C`: usuário clica "Trocar" → componente chama `onLocationSelect(null)`
+- `A → B` ou `C → B`: usuário clica "Digitar manualmente" → componente chama `onLocationSelect(null)` + `onManualTextChange('')`
+- Troca de cliente → reseta para estado C (via `prevClientId` guard no render)
+
+**Contrato dos callbacks no pai:**
+```tsx
+onLocationSelect={(loc) => {
+  if (loc) {
+    setValue('client_location_id', loc.id);
+    setValue('site_location', formatLocationLabel(loc));   // ← OBRIGATÓRIO
+  } else {
+    setValue('client_location_id', undefined);
+    setValue('site_location', '');                         // ← limpa ao trocar/voltar
+  }
+}}
+onManualTextChange={(text) => {
+  setValue('site_location', text);
+  setValue('client_location_id', undefined);               // ← modo manual: sem FK
+}}
+```
+
+`formatLocationLabel` deve ser importada do próprio componente: `import ClientLocationSelect, { formatLocationLabel } from '@/src/components/ClientLocationSelect'`
 
 ### 7.4 RPCs atualizadas
 - `submit_report`: inclui `client_location_id` no INSERT de `service_reports`.
@@ -186,6 +213,9 @@ A tabela `clients` tinha uma policy `clients_select_authenticated` que permitia 
 
 ### 9.12 ClientLocationSelect: reset de estado ao trocar de cliente
 Não usar `key={clientId}` no React 19 com TS — o prop `key` não é parte do tipo do componente e o TS 5.8 rejeita. Usar o padrão "reset state on prop change" com `useState(prevClientId)` + guard no render.
+
+### 9.14 ClientLocationSelect: onManualTextChange chamado ao selecionar FK limpa o FK
+Se `handleSelectChange` chamar `onManualTextChange(formatLocationLabel(loc))` após `onLocationSelect(loc)`, o pai executa `setValue('client_location_id', undefined)` dentro de `onManualTextChange` — apagando o FK imediatamente após setá-lo. Solução: `handleSelectChange` **nunca** chama `onManualTextChange`; o pai seta `site_location` dentro do próprio `onLocationSelect`. Ver seção 7.3 para o contrato correto.
 
 ---
 
