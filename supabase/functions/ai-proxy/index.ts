@@ -42,19 +42,45 @@ function extractUserId(authHeader: string): string | null {
   }
 }
 
-// Per-user sliding window rate limiter backed by Deno KV.
-// Limit: RATE_LIMIT_REQUESTS calls per RATE_LIMIT_WINDOW_MS per user.
+// Per-user sliding window rate limiter. Limit: RATE_LIMIT_REQUESTS por RATE_LIMIT_WINDOW_MS.
+// Deno.openKv() não é suportado de forma estável no Supabase Edge Runtime (API do Deno
+// Deploy) — quando indisponível, cai para um Map in-memory do isolate. Qualquer falha de
+// infraestrutura é fail-open: rate limit é proteção de custo, nunca pode derrubar a feature.
+let kvPromise: Promise<Deno.Kv | null> | null = null;
+function getKv(): Promise<Deno.Kv | null> {
+  // try síncrono: se Deno.openKv não existir no runtime, a chamada lança TypeError
+  kvPromise ??= (async () => {
+    try { return await Deno.openKv(); } catch { return null; }
+  })();
+  return kvPromise;
+}
+
+const memCounts = new Map<string, number>();
+
 async function checkRateLimit(userId: string): Promise<{ allowed: boolean; remaining: number }> {
-  const kv = await Deno.openKv();
-  const window = Math.floor(Date.now() / RATE_LIMIT_WINDOW_MS);
-  const key = ["ratelimit", userId, window];
-  const entry = await kv.get<number>(key);
-  const count = (entry.value ?? 0) + 1;
-  if (count > RATE_LIMIT_REQUESTS) {
-    return { allowed: false, remaining: 0 };
+  try {
+    const window = Math.floor(Date.now() / RATE_LIMIT_WINDOW_MS);
+    const kv = await getKv();
+    if (kv) {
+      const key = ["ratelimit", userId, window];
+      const entry = await kv.get<number>(key);
+      const count = (entry.value ?? 0) + 1;
+      if (count > RATE_LIMIT_REQUESTS) return { allowed: false, remaining: 0 };
+      await kv.set(key, count, { expireIn: RATE_LIMIT_WINDOW_MS * 2 });
+      return { allowed: true, remaining: RATE_LIMIT_REQUESTS - count };
+    }
+    // Fallback in-memory (por isolate): mesma janela; janelas antigas são descartadas.
+    const memKey = `${userId}:${window}`;
+    for (const k of memCounts.keys()) {
+      if (!k.endsWith(`:${window}`)) memCounts.delete(k);
+    }
+    const count = (memCounts.get(memKey) ?? 0) + 1;
+    memCounts.set(memKey, count);
+    if (count > RATE_LIMIT_REQUESTS) return { allowed: false, remaining: 0 };
+    return { allowed: true, remaining: RATE_LIMIT_REQUESTS - count };
+  } catch {
+    return { allowed: true, remaining: RATE_LIMIT_REQUESTS };
   }
-  await kv.set(key, count, { expireIn: RATE_LIMIT_WINDOW_MS * 2 });
-  return { allowed: true, remaining: RATE_LIMIT_REQUESTS - count };
 }
 
 function isQuota(err: Error) {
@@ -132,46 +158,42 @@ function logRouting(
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Forbidden" }), {
-      status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  // Headers por requisição — NUNCA mutar corsHeaders (objeto module-level compartilhado
+  // entre requisições concorrentes do mesmo isolate).
+  const resHeaders: Record<string, string> = { ...corsHeaders, "Content-Type": "application/json" };
 
-  // Per-user rate limiting: 20 req/min. Protects against runaway costs across all tenants.
-  const userId = extractUserId(authHeader);
-  if (userId) {
-    const { allowed, remaining } = await checkRateLimit(userId);
-    if (!allowed) {
-      return new Response(
-        JSON.stringify({ error: "Limite de requisições atingido. Tente novamente em 1 minuto." }),
-        {
-          status: 429,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "Retry-After": "60",
-            "X-RateLimit-Limit": String(RATE_LIMIT_REQUESTS),
-            "X-RateLimit-Remaining": "0",
-          },
-        },
-      );
-    }
-    // Expose remaining quota in response headers for client-side awareness
-    corsHeaders["X-RateLimit-Limit"] = String(RATE_LIMIT_REQUESTS);
-    corsHeaders["X-RateLimit-Remaining"] = String(remaining);
-  }
-
-  let body: Record<string, unknown>;
-  try { body = await req.json(); }
-  catch { return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
-
-  const { type } = body;
-  const startTime = Date.now();
-
+  // Try externo: invariante — nenhum caminho de resposta sai sem os headers CORS.
+  // Exceção não tratada faria o runtime devolver 500 sem CORS → browser bloqueia a
+  // leitura e o client recebe FunctionsFetchError em vez do erro real.
   try {
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: resHeaders });
+    }
+
+    // Per-user rate limiting: 20 req/min. Protects against runaway costs across all tenants.
+    const userId = extractUserId(authHeader);
+    if (userId) {
+      const { allowed, remaining } = await checkRateLimit(userId);
+      // Expose remaining quota in response headers for client-side awareness
+      resHeaders["X-RateLimit-Limit"] = String(RATE_LIMIT_REQUESTS);
+      resHeaders["X-RateLimit-Remaining"] = String(remaining);
+      if (!allowed) {
+        return new Response(
+          JSON.stringify({ error: "Limite de requisições atingido. Tente novamente em 1 minuto." }),
+          { status: 429, headers: { ...resHeaders, "Retry-After": "60" } },
+        );
+      }
+    }
+
+    let body: Record<string, unknown>;
+    try { body = await req.json(); }
+    catch { return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: resHeaders }); }
+
+    const { type } = body;
+    const startTime = Date.now();
+
+    try {
     let callResult: CallResult;
 
     if (type === "receipt_images" || type === "material_images") {
@@ -214,18 +236,23 @@ Deno.serve(async (req: Request) => {
       );
 
     } else {
-      return new Response(JSON.stringify({ error: `Tipo desconhecido: ${type}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: `Tipo desconhecido: ${type}` }), { status: 400, headers: resHeaders });
     }
 
     const latencyMs = Date.now() - startTime;
     logRouting(type as string, callResult.provider, callResult.isFallback, latencyMs, true, null);
 
-    return new Response(JSON.stringify(JSON.parse(callResult.text)), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify(JSON.parse(callResult.text)), { headers: resHeaders });
 
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const latencyMs = Date.now() - startTime;
+      logRouting(type as string, "gemini_1", false, latencyMs, false, msg.slice(0, 100));
+      return new Response(JSON.stringify({ error: msg }), { status: 500, headers: resHeaders });
+    }
   } catch (err) {
+    // Última linha de defesa — erro imprevisto (fora do dispatch) ainda responde com CORS.
     const msg = err instanceof Error ? err.message : String(err);
-    const latencyMs = Date.now() - startTime;
-    logRouting(type as string, "gemini_1", false, latencyMs, false, msg.slice(0, 100));
-    return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: msg }), { status: 500, headers: resHeaders });
   }
 });

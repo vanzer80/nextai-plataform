@@ -168,7 +168,7 @@ Labels usam `text-sidebar-foreground/40` (nunca `text-muted-foreground` — fica
 
 ## Edge Functions deployadas
 
-`ai-proxy` v10 (rate limiting 20 req/min Deno KV · `X-RateLimit-*` headers · versionada em `supabase/functions/ai-proxy/index.ts`)  
+`ai-proxy` v11 (rate limiting 20 req/min fail-open: Deno KV → fallback Map in-memory · `X-RateLimit-*` headers · try/catch externo garante CORS em toda resposta · versionada em `supabase/functions/ai-proxy/index.ts`)  
 `api-gateway` v2 (valida X-API-Key SHA-256 · rate limit 1000 req/hr · RFC 7807 · cursor pagination · idempotency · `api_access_log`)  
 `os-import-processor` v7 (X-API-Key + Bearer JWT · scope orders:write · mode json/pdf · **template registry** Decathlon + **IA híbrida** Gemini→OpenAI · per-field confidence scores · resolução client/técnico · `os_import_log` · `import_confidence` em service_reports)  
 `webhook-dispatcher` v2 (HMAC-SHA256 · retry 6× backoff [0,1m,5m,30m,2h,24h] · dead = attempts ≥ 6)  
@@ -270,6 +270,7 @@ get_dashboard_agenda_kpis()            → jsonb  -- os_hoje, tecnicos_hoje, cri
 57. **Rate limit 1k/hr bloqueia qualquer batch ERP com >1k registros** → sync noturno de 5.000 OS esgota o limite na primeira hora, travando a integração até reset. Antes de onboarding enterprise, implementar tiers (Basic/Pro/Enterprise) ou o cliente simplesmente não consegue usar a API para o caso de uso principal.
 58. **RLS performance — sempre `(SELECT auth.uid())`, nunca `auth.uid()` raw** → `auth.uid()` direto numa policy USING/WITH CHECK é reavaliado para cada linha da tabela (O(n) por query). `(SELECT auth.uid())` cria um init plan: avaliado uma vez por query e cacheado. Mesmo problema com `auth.role()`. O lint do Supabase `auth_rls_initplan` detecta o anti-pattern. Toda policy nova deve usar a forma wrapped.
 59. **Toda tabela com `team_id` precisa de índice em `team_id`** → a RLS filtra por `team_id = get_caller_team_id()` em todo SELECT de usuário autenticado. Sem índice = seq scan completo na tabela a cada read. Sempre criar `CREATE INDEX IF NOT EXISTS idx_<tabela>_team_id ON public.<tabela>(team_id)` no mesmo migration da tabela.
+60. **`Deno.openKv()` não é suportado de forma estável no Supabase Edge Runtime** → é API do Deno Deploy; em produção lança exceção. Se a chamada estiver fora do try/catch do handler, o runtime devolve 500 **sem os corsHeaders** → browser bloqueia por CORS → client recebe `FunctionsFetchError` ("Failed to send a request") em vez do erro real, e a telemetria interna nunca roda (crash antes do try). Diagnóstico clássico: logs mostram `OPTIONS 200 + POST 500` e a tabela de log interna fica vazia. Padrão obrigatório em Edge Functions: (a) try/catch **externo** cobrindo o handler inteiro, sempre respondendo com corsHeaders; (b) rate limiter fail-open com fallback in-memory (`Map` do isolate); (c) nunca mutar objetos module-level (ex: `corsHeaders`) por requisição — estado compartilhado entre requisições concorrentes do isolate. Corrigido na ai-proxy v11 (2026-06-11).
 
 ## Padrões de Segurança (s72)
 
@@ -316,21 +317,45 @@ USING (
 ```
 Nunca usar `USING (bucket_id = 'meu-bucket')` sem restrição de tenant — permite listing de todos os arquivos.
 
-### Rate limiting em Edge Functions (Deno KV)
+### Rate limiting em Edge Functions (fail-open obrigatório — ver armadilha #60)
+
+`Deno.openKv()` lança em produção no Supabase Edge Runtime. O padrão correto tenta KV uma vez (lazy, cacheado em módulo), cai para `Map` in-memory do isolate, e **nunca lança** (fail-open — rate limit é proteção de custo, não pode derrubar a feature). Implementação de referência: `supabase/functions/ai-proxy/index.ts` (v11).
 
 ```typescript
 const RATE_LIMIT_REQUESTS = 20;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 
+let kvPromise: Promise<Deno.Kv | null> | null = null;
+function getKv(): Promise<Deno.Kv | null> {
+  kvPromise ??= (async () => {
+    try { return await Deno.openKv(); } catch { return null; }
+  })();
+  return kvPromise;
+}
+
+const memCounts = new Map<string, number>();
+
 async function checkRateLimit(userId: string) {
-  const kv = await Deno.openKv();
-  const window = Math.floor(Date.now() / RATE_LIMIT_WINDOW_MS);
-  const key = ['ratelimit', userId, window];
-  const entry = await kv.get<number>(key);
-  const count = (entry.value ?? 0) + 1;
-  if (count > RATE_LIMIT_REQUESTS) return { allowed: false, remaining: 0 };
-  await kv.set(key, count, { expireIn: RATE_LIMIT_WINDOW_MS * 2 });
-  return { allowed: true, remaining: RATE_LIMIT_REQUESTS - count };
+  try {
+    const window = Math.floor(Date.now() / RATE_LIMIT_WINDOW_MS);
+    const kv = await getKv();
+    if (kv) {
+      const key = ['ratelimit', userId, window];
+      const entry = await kv.get<number>(key);
+      const count = (entry.value ?? 0) + 1;
+      if (count > RATE_LIMIT_REQUESTS) return { allowed: false, remaining: 0 };
+      await kv.set(key, count, { expireIn: RATE_LIMIT_WINDOW_MS * 2 });
+      return { allowed: true, remaining: RATE_LIMIT_REQUESTS - count };
+    }
+    const memKey = `${userId}:${window}`;
+    for (const k of memCounts.keys()) if (!k.endsWith(`:${window}`)) memCounts.delete(k);
+    const count = (memCounts.get(memKey) ?? 0) + 1;
+    memCounts.set(memKey, count);
+    if (count > RATE_LIMIT_REQUESTS) return { allowed: false, remaining: 0 };
+    return { allowed: true, remaining: RATE_LIMIT_REQUESTS - count };
+  } catch {
+    return { allowed: true, remaining: RATE_LIMIT_REQUESTS }; // fail-open
+  }
 }
 ```
 
