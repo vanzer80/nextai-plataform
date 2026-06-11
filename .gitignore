@@ -13,3 +13,6 @@ playwright-report/
 
 # Vault sync marker — local only, managed by /fechar-sessao
 .claude/last-vault-sync
+
+# Supabase CLI cache local — nunca versionar
+supabase/.temp/
