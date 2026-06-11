@@ -4,14 +4,37 @@ import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  // Browser cacheia o preflight por 24h — elimina um roundtrip OPTIONS por chamada
-  "Access-Control-Max-Age": "86400",
-  // Sem Expose-Headers o JS do app não consegue ler estes headers cross-origin
-  "Access-Control-Expose-Headers": "X-RateLimit-Limit, X-RateLimit-Remaining, Retry-After",
-};
+// ── CORS: allowlist de origens (defense-in-depth; o JWT é a barreira real) ─────
+// Domínio novo (ex: app.nextai.com.br) → adicionar ao secret ALLOWED_ORIGINS
+// (lista separada por vírgula) — sem redeploy. Previews da Vercel cobertos por regex.
+const STATIC_ALLOWED_ORIGINS = new Set([
+  "https://nextai-plataform.vercel.app",
+  "http://localhost:3001",
+]);
+const VERCEL_PREVIEW_RE = /^https:\/\/nextai-plataform-[a-z0-9-]+\.vercel\.app$/;
+
+function resolveAllowedOrigin(req: Request): string | null {
+  const origin = req.headers.get("origin");
+  if (!origin) return null; // client não-browser (curl/servidor) — CORS irrelevante
+  if (STATIC_ALLOWED_ORIGINS.has(origin) || VERCEL_PREVIEW_RE.test(origin)) return origin;
+  const extra = (Deno.env.get("ALLOWED_ORIGINS") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  return extra.includes(origin) ? origin : null;
+}
+
+function corsHeadersFor(allowedOrigin: string | null): Record<string, string> {
+  const h: Record<string, string> = {
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    // Browser cacheia o preflight por 24h — elimina um roundtrip OPTIONS por chamada
+    "Access-Control-Max-Age": "86400",
+    // Sem Expose-Headers o JS do app não consegue ler estes headers cross-origin
+    "Access-Control-Expose-Headers": "X-RateLimit-Limit, X-RateLimit-Remaining, Retry-After",
+    // Resposta varia por Origin — caches/CDN não podem reaproveitar entre origens
+    "Vary": "Origin",
+  };
+  // Origin ausente do allowlist → sem Allow-Origin → browser bloqueia a leitura
+  if (allowedOrigin) h["Access-Control-Allow-Origin"] = allowedOrigin;
+  return h;
+}
 
 const RATE_LIMIT_REQUESTS = 20;    // max per user per window
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1-minute sliding window
@@ -175,6 +198,9 @@ async function callWithFallback(
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
       if (!isQuota(lastErr)) throw lastErr;
+      // Observabilidade: sem este log, o motivo da falha do Gemini é descartado
+      // quando o fallback OpenAI salva a requisição — quota esgotada fica invisível.
+      console.warn(`[ai-proxy] gemini_${i + 1} falhou (quota/indisponível): ${lastErr.message.slice(0, 300)}`);
     }
   }
   const text = await callOpenAI(system, openaiUserContent);
@@ -215,11 +241,12 @@ function logRouting(
 // ── Handler ────────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const allowedOrigin = resolveAllowedOrigin(req);
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeadersFor(allowedOrigin) });
 
-  // Headers por requisição — NUNCA mutar corsHeaders (objeto module-level compartilhado
-  // entre requisições concorrentes do mesmo isolate).
-  const resHeaders: Record<string, string> = { ...corsHeaders, "Content-Type": "application/json" };
+  // Headers por requisição — corsHeadersFor cria objeto novo a cada chamada; nunca
+  // compartilhar/mutar headers module-level entre requisições concorrentes do isolate.
+  const resHeaders: Record<string, string> = { ...corsHeadersFor(allowedOrigin), "Content-Type": "application/json" };
 
   // Try externo: invariante — nenhum caminho de resposta sai sem os headers CORS.
   // Exceção não tratada faria o runtime devolver 500 sem CORS → browser bloqueia a
