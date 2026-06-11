@@ -1,7 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+// gemini-2.0-flash teve o free tier ZERADO pelo Google (429 com limit: 0) — todas as
+// chaves passaram a cair no fallback OpenAI. O free tier atual vale para gemini-2.5-flash.
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 
 // ── CORS: allowlist de origens (defense-in-depth; o JWT é a barreira real) ─────
@@ -163,7 +165,8 @@ async function callGemini(apiKey: string, contents: unknown[], system: string, s
   const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ contents, generationConfig: { responseMimeType: "application/json", responseSchema: schema }, systemInstruction: { parts: [{ text: system }] } }),
+    // thinkingBudget: 0 — 2.5-flash pensa por default; para extração estruturada só adiciona latência/custo
+    body: JSON.stringify({ contents, generationConfig: { responseMimeType: "application/json", responseSchema: schema, thinkingConfig: { thinkingBudget: 0 } }, systemInstruction: { parts: [{ text: system }] } }),
   });
   if (!res.ok) throw new Error(`GEMINI_${res.status}:${await res.text()}`);
   const d = await res.json();
