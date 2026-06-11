@@ -168,7 +168,7 @@ Labels usam `text-sidebar-foreground/40` (nunca `text-muted-foreground` — fica
 
 ## Edge Functions deployadas
 
-`ai-proxy` v11 (rate limiting 20 req/min fail-open: Deno KV → fallback Map in-memory · `X-RateLimit-*` headers · try/catch externo garante CORS em toda resposta · versionada em `supabase/functions/ai-proxy/index.ts`)  
+`ai-proxy` v12 (rate limiting 20 req/min fail-open: Deno KV → fallback Map in-memory · try/catch externo garante CORS em toda resposta · validação de payload: máx 5 imagens/8 MB, mime jpeg/png/webp/pdf, textos ≤ 4k chars · erro 500 genérico ao client, detalhe só em telemetria/logs · `Access-Control-Max-Age: 86400` + `Expose-Headers` p/ `X-RateLimit-*` · versionada em `supabase/functions/ai-proxy/index.ts` · contrato testado em `tests/ai-proxy-contract.spec.ts`)  
 `api-gateway` v2 (valida X-API-Key SHA-256 · rate limit 1000 req/hr · RFC 7807 · cursor pagination · idempotency · `api_access_log`)  
 `os-import-processor` v7 (X-API-Key + Bearer JWT · scope orders:write · mode json/pdf · **template registry** Decathlon + **IA híbrida** Gemini→OpenAI · per-field confidence scores · resolução client/técnico · `os_import_log` · `import_confidence` em service_reports)  
 `webhook-dispatcher` v2 (HMAC-SHA256 · retry 6× backoff [0,1m,5m,30m,2h,24h] · dead = attempts ≥ 6)  
@@ -191,6 +191,7 @@ Secrets (nunca no .env): `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, `OPENAI_API_KEY
   - `tests/platform-company-profile.spec.ts` — 6 testes Perfil Comercial SuperMaster ✅ 6/6
   - `tests/sidebar-verify.spec.ts` — 5 testes sidebar SAP groups (grupos, roles, ordem, navegação, console errors)
   - `tests/os-import.spec.ts` — 25 testes OS Import Bridge (IM-01→IM-25): RBAC, dialog UI, CORS, auth 401/403, validação 400/415, import mínima, deduplicação, resolução entidades, prioridade, admin page, filtros; IM-25 skipped sem `TEST_PDF_IMPORT=true`
+  - `tests/ai-proxy-contract.spec.ts` — 8 testes de contrato ai-proxy (AI-01→AI-08): CORS em todo caminho de resposta (armadilha #60), preflight Max-Age, auth 401, validação de payload (máx imagens, tamanho, mimeType, length de texto); nenhum consome quota de IA ✅ 8/8
 - Credenciais em `tests/.env.test` (gitignored)
 - **CRÍTICO:** nunca rodar spec files em paralelo com `run_in_background` — Supabase free tier + Vite não aguentam carga simultânea (ERR_CONNECTION_REFUSED cascata)
 
