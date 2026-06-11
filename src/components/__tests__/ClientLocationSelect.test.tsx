@@ -137,7 +137,7 @@ describe('ClientLocationSelect', () => {
       expect(screen.getByText(/digitar manualmente/i)).toBeInTheDocument();
     });
 
-    it('chama onLocationSelect e onManualTextChange ao selecionar uma filial', async () => {
+    it('chama onLocationSelect — e NUNCA onManualTextChange — ao selecionar uma filial', async () => {
       const onLocationSelect = vi.fn();
       const onManualTextChange = vi.fn();
       const user = userEvent.setup();
@@ -152,9 +152,9 @@ describe('ClientLocationSelect', () => {
       await user.click(screen.getByText('Filial Centro'));
 
       expect(onLocationSelect).toHaveBeenCalledWith(LOC_PRINCIPAL);
-      expect(onManualTextChange).toHaveBeenCalledWith(
-        expect.stringContaining('Filial Centro'),
-      );
+      // Contrato (armadilha #66): o pai seta site_location dentro de onLocationSelect.
+      // Se o componente chamasse onManualTextChange aqui, o pai apagaria o FK recém-setado.
+      expect(onManualTextChange).not.toHaveBeenCalled();
     });
 
     it('exibe preview read-only ao selecionar filial via FK', () => {
@@ -176,17 +176,28 @@ describe('ClientLocationSelect', () => {
 
     it('entra em modo manual ao clicar em "Digitar manualmente" no preview', async () => {
       const onLocationSelect = vi.fn();
+      const onManualTextChange = vi.fn();
       const user = userEvent.setup();
 
-      render(
+      const { rerender } = render(
         <ClientLocationSelect
-          {...makeProps({ selectedLocationId: 'loc-1', onLocationSelect })}
+          {...makeProps({ selectedLocationId: 'loc-1', onLocationSelect, onManualTextChange })}
         />,
       );
 
       await user.click(screen.getByRole('button', { name: /digitar manualmente/i }));
 
       expect(onLocationSelect).toHaveBeenCalledWith(null);
+      expect(onManualTextChange).toHaveBeenCalledWith('');
+
+      // Componente é controlado: o input manual só aparece depois que o pai
+      // limpa o FK em resposta ao onLocationSelect(null) — simulado via rerender.
+      rerender(
+        <ClientLocationSelect
+          {...makeProps({ selectedLocationId: undefined, onLocationSelect, onManualTextChange })}
+        />,
+      );
+
       await waitFor(() => {
         expect(screen.getByPlaceholderText(/planta 2/i)).toBeInTheDocument();
       });
