@@ -13,6 +13,7 @@ export interface SubmitReportPayload {
   technicianSignature: string | null;
   clientSignature: string | null;
   clientSignerName: string;
+  clientLocationId?: string | null;
 }
 
 function toTimestamp(date: string | undefined, time: string | undefined | null): string | null {
@@ -112,6 +113,7 @@ export async function submitReport(payload: SubmitReportPayload): Promise<string
     technicianSignature,
     clientSignature,
     clientSignerName,
+    clientLocationId,
   } = payload;
 
   // Pre-generate report ID so Storage paths are known before the DB transaction
@@ -152,6 +154,7 @@ export async function submitReport(payload: SubmitReportPayload): Promise<string
       finished_at: toTimestamp(formValues.service_date, formValues.finished_at),
       client_id: formValues.client_id || null,
       site_location: formValues.site_location || null,
+      client_location_id: clientLocationId || null,
       asset_id: formValues.asset_id || null,
       asset_name_manual: formValues.asset_name_manual || null,
       geo_lat: formValues.geo_lat ?? null,

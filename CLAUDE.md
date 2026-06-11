@@ -272,6 +272,12 @@ get_dashboard_agenda_kpis()            → jsonb  -- os_hoje, tecnicos_hoje, cri
 58. **RLS performance — sempre `(SELECT auth.uid())`, nunca `auth.uid()` raw** → `auth.uid()` direto numa policy USING/WITH CHECK é reavaliado para cada linha da tabela (O(n) por query). `(SELECT auth.uid())` cria um init plan: avaliado uma vez por query e cacheado. Mesmo problema com `auth.role()`. O lint do Supabase `auth_rls_initplan` detecta o anti-pattern. Toda policy nova deve usar a forma wrapped.
 59. **Toda tabela com `team_id` precisa de índice em `team_id`** → a RLS filtra por `team_id = get_caller_team_id()` em todo SELECT de usuário autenticado. Sem índice = seq scan completo na tabela a cada read. Sempre criar `CREATE INDEX IF NOT EXISTS idx_<tabela>_team_id ON public.<tabela>(team_id)` no mesmo migration da tabela.
 60. **`Deno.openKv()` não é suportado de forma estável no Supabase Edge Runtime** → é API do Deno Deploy; em produção lança exceção. Se a chamada estiver fora do try/catch do handler, o runtime devolve 500 **sem os corsHeaders** → browser bloqueia por CORS → client recebe `FunctionsFetchError` ("Failed to send a request") em vez do erro real, e a telemetria interna nunca roda (crash antes do try). Diagnóstico clássico: logs mostram `OPTIONS 200 + POST 500` e a tabela de log interna fica vazia. Padrão obrigatório em Edge Functions: (a) try/catch **externo** cobrindo o handler inteiro, sempre respondendo com corsHeaders; (b) rate limiter fail-open com fallback in-memory (`Map` do isolate); (c) nunca mutar objetos module-level (ex: `corsHeaders`) por requisição — estado compartilhado entre requisições concorrentes do isolate. Corrigido na ai-proxy v11 (2026-06-11).
+61. **Race condition: INITIAL_SESSION + initializeAuth** → `onAuthStateChange(INITIAL_SESSION)` e `initializeAuth()` podem resolver em ordens diferentes, causando role errado no contexto. Guard com `useRef` para executar apenas uma vez. (sessão sprint-filial-fk)
+62. **`schema-atual.sql` está desatualizado** → o arquivo `supabase/schema-atual.sql` foi gerado em 2026-04-25 e não reflete o banco real. Usar MCP `execute_sql` ou `list_tables(verbose=true)` para inspecionar o schema atual. Tabelas como `client_locations`, `tenants` e colunas `team_id` não aparecem no arquivo.
+63. **`vi.fn` generics no Vitest 3.x** → a sintaxe `vi.fn<[ArgType], ReturnType>()` não é mais válida. Use `vi.fn<(arg: ArgType) => ReturnType>()` ou simplesmente `vi.fn()` sem generics.
+64. **`clients_select_authenticated` — cross-tenant leak (corrigido 2026-06-08)** → a tabela `clients` tinha uma policy que permitia qualquer usuário autenticado ver clientes de **todos** os tenants. Removida na migration `20260608_fix_clients_rls_cross_tenant`. Só a `team_isolation` (ALL) deve existir em `clients`. Sintoma do bug: filiais não apareciam ao selecionar cliente porque `client_locations` era corretamente isolada por tenant enquanto `clients` não era.
+65. **ClientLocationSelect: reset de estado ao trocar de cliente** → não usar `key={clientId}` no React 19 com TS — o prop `key` não é parte do tipo do componente e o TS 5.8 rejeita. Usar o padrão "reset state on prop change" com `useState(prevClientId)` + guard no render.
+66. **ClientLocationSelect: `onManualTextChange` chamado ao selecionar FK limpa o FK** → se `handleSelectChange` chamar `onManualTextChange(formatLocationLabel(loc))` após `onLocationSelect(loc)`, o pai executa `setValue('client_location_id', undefined)` dentro de `onManualTextChange` — apagando o FK imediatamente após setá-lo. Solução: `handleSelectChange` **nunca** chama `onManualTextChange`; o pai seta `site_location` dentro do próprio `onLocationSelect`. Ver seção "Padrão de Filiais" § contrato dos callbacks.
 
 ## Padrões de Segurança (s72)
 
@@ -1114,6 +1120,74 @@ reserve_os_number_service(p_team_id UUID) → TEXT
 Rota: `/admin/os-imports` · Roles: Admin, Master  
 Grupo: Integrações (sidebar) · Ícone: UploadCloud  
 Funcionalidades: tabela paginável · filtros status+source · row expandida com payload JSON · botão "Reprocessar" (copia payload) para status=failed
+
+---
+
+## Padrão de Filiais (client_locations) — sessão sprint-filial-fk, 2026-06-07
+
+> Implementado em outra máquina (`C:\dev\portal-mopar`); integrado ao master em 2026-06-11.
+
+### Constraint de banco
+`client_locations.client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE` — **nenhuma filial órfã é possível**. A UI sempre passa `clientId` ao criar/editar.
+**RLS:** `client_locations` não tem `team_id` próprio — isolamento é via JOIN em `clients.team_id` (policy `team_isolation`).
+**Hook:** `useClientLocations.ts` — `client_locations` sem cache, fresh por clientId.
+
+### Vínculo em OS e Orçamentos
+
+**`service_reports`:**
+- `client_location_id UUID REFERENCES client_locations(id) ON DELETE SET NULL` — nullable, backward-compat.
+- `site_location TEXT` — texto livre (fallback quando não há filial cadastrada OU quando o técnico digita manualmente).
+- Quando `client_location_id` preenchido: `site_location` contém o label formatado da filial (`nome — logradouro, numero — cidade/UF`).
+
+**`orcamentos`:**
+- `client_location_id UUID REFERENCES client_locations(id) ON DELETE SET NULL` — nullable.
+- `site_location TEXT` — texto livre. Mesma semântica dual do `service_reports`.
+
+### Comportamento do ClientLocationSelect
+
+O componente tem **três estados exclusivos** (renderiza apenas um por vez):
+
+| Estado | Condição | O que aparece |
+|--------|----------|---------------|
+| **A — FK selecionada** | `selectedLocationId` resolve para uma filial | Card de preview com todos os dados + botão "Trocar" (volta ao C) + link "Digitar manualmente" (vai para B) |
+| **B — Texto livre** | `manualMode === true` | Input de texto + link "Selecionar da lista" (volta ao C) |
+| **C — Select** | sem seleção, sem manual | `<Select>` Radix com as filiais + opção "Digitar manualmente" (vai para B) |
+
+**Regras de transição:**
+- `C → A`: usuário escolhe filial no Select → componente chama `onLocationSelect(loc)` (sem chamar `onManualTextChange`)
+- `A → C`: usuário clica "Trocar" → componente chama `onLocationSelect(null)`
+- `A → B` ou `C → B`: usuário clica "Digitar manualmente" → componente chama `onLocationSelect(null)` + `onManualTextChange('')`
+- Troca de cliente → reseta para estado C (via `prevClientId` guard no render)
+
+**Contrato dos callbacks no pai:**
+```tsx
+onLocationSelect={(loc) => {
+  if (loc) {
+    setValue('client_location_id', loc.id);
+    setValue('site_location', formatLocationLabel(loc));   // ← OBRIGATÓRIO
+  } else {
+    setValue('client_location_id', undefined);
+    setValue('site_location', '');                         // ← limpa ao trocar/voltar
+  }
+}}
+onManualTextChange={(text) => {
+  setValue('site_location', text);
+  setValue('client_location_id', undefined);               // ← modo manual: sem FK
+}}
+```
+
+`formatLocationLabel` deve ser importada do próprio componente: `import ClientLocationSelect, { formatLocationLabel } from '@/src/components/ClientLocationSelect'`
+
+### RPCs atualizadas
+- `submit_report`: inclui `client_location_id` no INSERT de `service_reports`.
+- `create_orcamento`: inclui `client_location_id` e `site_location` no INSERT de `orcamentos`.
+- Ambas são `SECURITY DEFINER SET search_path = public`, GRANT a `authenticated`.
+
+### Migrations da sessão sprint-filial-fk
+| Data | Arquivo | Descrição |
+|------|---------|-----------|
+| 2026-06-07 | `20260607_client_location_fk.sql` | FK `client_location_id` em `service_reports` e `orcamentos`; atualiza RPCs `submit_report` e `create_orcamento` |
+| 2026-06-08 | `20260608_fix_clients_rls_cross_tenant.sql` | Remove `clients_select_authenticated` — policy permitia cross-tenant leak (armadilha #64) |
 
 ---
 

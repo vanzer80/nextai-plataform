@@ -16,6 +16,7 @@ export interface ServiceReport {
 
   technician_id: string;
   client_id: string | null;
+  client_location_id: string | null;
   asset_id: string | null;
   asset_name_manual: string | null;
   site_location: string | null;

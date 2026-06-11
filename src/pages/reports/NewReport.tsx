@@ -35,9 +35,10 @@ export const reportSchema = z.object({
   priority:     z.enum(['baixa', 'normal', 'alta', 'critica']).optional(),
 
   // Step 2
-  client_id:         z.string().optional(),
-  site_location:     z.string().optional(),
-  asset_id:          z.string().optional(),
+  client_id:          z.string().optional(),
+  client_location_id: z.string().optional(),
+  site_location:      z.string().optional(),
+  asset_id:           z.string().optional(),
   asset_name_manual: z.string().optional(),
   geo_lat:         z.number().optional(),
   geo_lng:         z.number().optional(),
@@ -106,6 +107,7 @@ export default function NewReport() {
       started_at: '',
       priority: 'normal' as const,
       client_id: undefined,
+      client_location_id: undefined,
       site_location: '',
       asset_id: undefined,
       asset_name_manual: '',
@@ -197,8 +199,9 @@ export default function NewReport() {
 
     setIsSubmitting(true);
     try {
+      const values = form.getValues();
       const reportId = await submitReport({
-        formValues: form.getValues(),
+        formValues: values,
         technicianId: user?.id ?? '',
         teamId: tenant?.id ?? '',
         localDraftId: draft.localDraftId,
@@ -207,6 +210,7 @@ export default function NewReport() {
         technicianSignature,
         clientSignature,
         clientSignerName,
+        clientLocationId: values.client_location_id || null,
       });
 
       await draft.discardDraft();

@@ -20,7 +20,9 @@ import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useClients } from '@/src/hooks/useClients';
 import { criarOrcamento, atualizarOrcamento, buscarOrcamento } from '@/src/services/orcamentoService';
+import ClientLocationSelect, { formatLocationLabel } from '@/src/components/ClientLocationSelect';
 import { ItemRow } from './components/ItemRow';
+import type { ClientLocation } from '@/src/types/client';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -90,13 +92,15 @@ const itemSchema = z.object({
 });
 
 const orcamentoSchema = z.object({
-  client_id:    z.string().min(1, 'Selecione um cliente'),
-  titulo:       z.string().optional(),
-  observacoes:  z.string().optional(),
-  validade:     z.string().optional(),
-  desconto_pct: z.number().min(0).max(100),
-  itens:        z.array(itemSchema).min(1, 'Adicione pelo menos um item'),
-  report_id:    z.string().uuid().optional(),
+  client_id:          z.string().min(1, 'Selecione um cliente'),
+  client_location_id: z.string().optional(),
+  site_location:      z.string().optional(),
+  titulo:             z.string().optional(),
+  observacoes:        z.string().optional(),
+  validade:           z.string().optional(),
+  desconto_pct:       z.number().min(0).max(100),
+  itens:              z.array(itemSchema).min(1, 'Adicione pelo menos um item'),
+  report_id:          z.string().uuid().optional(),
 });
 
 export type OrcamentoFormValues = z.infer<typeof orcamentoSchema>;
@@ -167,13 +171,15 @@ export default function NovoOrcamento() {
   } = useForm<OrcamentoFormValues>({
     resolver: zodResolver(orcamentoSchema),
     defaultValues: {
-      client_id:    '',
-      titulo:       '',
-      observacoes:  '',
-      validade:     '',
-      desconto_pct: 0,
-      itens:        [DEFAULT_ITEM],
-      report_id:    undefined,
+      client_id:          '',
+      client_location_id: undefined,
+      site_location:      '',
+      titulo:             '',
+      observacoes:        '',
+      validade:           '',
+      desconto_pct:       0,
+      itens:              [DEFAULT_ITEM],
+      report_id:          undefined,
     },
   });
 
@@ -196,12 +202,14 @@ export default function NovoOrcamento() {
           });
         }
         reset({
-          client_id:    orc.client_id,
-          titulo:       orc.titulo ?? '',
-          observacoes:  orc.observacoes ?? '',
-          validade:     orc.validade ?? '',
-          desconto_pct: orc.desconto_pct,
-          report_id:    orc.report_id ?? undefined,
+          client_id:          orc.client_id,
+          client_location_id: orc.client_location_id ?? undefined,
+          site_location:      orc.site_location ?? '',
+          titulo:             orc.titulo ?? '',
+          observacoes:        orc.observacoes ?? '',
+          validade:           orc.validade ?? '',
+          desconto_pct:       orc.desconto_pct,
+          report_id:          orc.report_id ?? undefined,
           itens: orc.orcamento_itens.length > 0
             ? orc.orcamento_itens.map(i => ({
                 descricao:      i.descricao,
@@ -416,26 +424,30 @@ export default function NovoOrcamento() {
     try {
       if (isEdit && id) {
         await atualizarOrcamento(id, {
-          client_id:    values.client_id,
-          titulo:       values.titulo,
-          observacoes:  values.observacoes,
-          validade:     values.validade || null,
-          desconto_pct: values.desconto_pct,
-          report_id:    values.report_id ?? null, // C1: preservar vínculo em edição
-          itens:        values.itens,
+          client_id:          values.client_id,
+          client_location_id: values.client_location_id || null,
+          site_location:      values.site_location || null,
+          titulo:             values.titulo,
+          observacoes:        values.observacoes,
+          validade:           values.validade || null,
+          desconto_pct:       values.desconto_pct,
+          report_id:          values.report_id ?? null,
+          itens:              values.itens,
         }, user.id);
         toast.success('Orçamento atualizado!');
         navigate(`/orcamentos/${id}`);
       } else {
         const novoId = await criarOrcamento({
-          client_id:     values.client_id,
-          technician_id: user.id,
-          titulo:        values.titulo,
-          observacoes:   values.observacoes,
-          validade:      values.validade || null,
-          desconto_pct:  values.desconto_pct,
-          itens:         values.itens,
-          report_id:     values.report_id ?? null,
+          client_id:          values.client_id,
+          technician_id:      user.id,
+          client_location_id: values.client_location_id || null,
+          site_location:      values.site_location || null,
+          titulo:             values.titulo,
+          observacoes:        values.observacoes,
+          validade:           values.validade || null,
+          desconto_pct:       values.desconto_pct,
+          itens:              values.itens,
+          report_id:          values.report_id ?? null,
         });
         toast.success('Orçamento criado!');
         navigate(`/orcamentos/${novoId}`);
@@ -731,6 +743,8 @@ export default function NovoOrcamento() {
                 value={watch('client_id')}
                 onValueChange={v => {
                   setValue('client_id', v, { shouldValidate: true });
+                  setValue('client_location_id', undefined);
+                  setValue('site_location', '');
                   removeFromAutoFilled('client_id');
                 }}
               >
@@ -750,6 +764,26 @@ export default function NovoOrcamento() {
                 <p className="text-[11px] text-rose-500">{errors.client_id.message}</p>
               )}
             </div>
+
+            <ClientLocationSelect
+              clientId={watch('client_id') || undefined}
+              selectedLocationId={watch('client_location_id')}
+              manualText={watch('site_location') ?? ''}
+              onLocationSelect={(loc: ClientLocation | null) => {
+                if (loc) {
+                  setValue('client_location_id', loc.id);
+                  setValue('site_location', formatLocationLabel(loc));
+                } else {
+                  setValue('client_location_id', undefined);
+                  setValue('site_location', '');
+                }
+              }}
+              onManualTextChange={(text: string) => {
+                setValue('site_location', text);
+                setValue('client_location_id', undefined);
+              }}
+              label="Filial / Unidade (opcional)"
+            />
 
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2">

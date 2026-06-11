@@ -1,9 +1,13 @@
 -- =============================================================================
 -- Schema real do Portal Mopar
--- Gerado em: 2026-04-25
+-- Gerado em: 2026-04-25 | Atualizado manualmente em: 2026-06-07
 -- Fonte: pg_catalog + information_schema (leitura direta do banco)
 -- Uso: referência e disaster recovery
--- NÃO editar manualmente — regenerar via queries de auditoria
+-- ATENÇÃO: Este arquivo está DESATUALIZADO em relação ao banco real.
+--   Tabelas ausentes: client_locations, tenants (e colunas relacionadas).
+--   Colunas ausentes: clients.team_id, service_reports.team_id, etc.
+--   Para o schema atual, consultar via MCP execute_sql ou list_tables.
+-- Última atualização manual: migração 20260607_client_location_fk.sql
 -- =============================================================================
 
 
@@ -74,8 +78,29 @@ CREATE TABLE public.clients (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name       TEXT NOT NULL,
   cnpj       TEXT,
+  team_id    UUID,  -- FK → tenants.id (coluna real no banco; ausente neste snapshot)
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- NOTA: client_locations existe no banco real mas não estava neste snapshot.
+-- Adicionada aqui para referência (2026-06-07):
+CREATE TABLE public.client_locations (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id        UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
+  nome             TEXT NOT NULL,
+  logradouro       TEXT,
+  numero           TEXT,
+  complemento      TEXT,
+  bairro           TEXT,
+  cep              TEXT,
+  cidade           TEXT,
+  estado           TEXT,
+  contato_nome     TEXT,
+  contato_telefone TEXT,
+  is_principal     BOOLEAN     DEFAULT false,
+  created_at       TIMESTAMPTZ DEFAULT now()
+);
+-- RLS: team_isolation policy via JOIN em clients.team_id
 
 CREATE TABLE public.sites (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -150,7 +175,9 @@ CREATE TABLE public.service_reports (
   reviewed_at             TIMESTAMPTZ,
   local_draft_id          TEXT,
   last_synced_at          TIMESTAMPTZ,
-  updated_at              TIMESTAMPTZ DEFAULT now()
+  updated_at              TIMESTAMPTZ DEFAULT now(),
+  -- Adicionado em 20260607_client_location_fk.sql:
+  client_location_id      UUID REFERENCES public.client_locations(id) ON DELETE SET NULL
 );
 
 CREATE TABLE public.report_attachments (
@@ -280,7 +307,10 @@ CREATE TABLE public.orcamentos (
   validade       DATE,
   desconto_pct   NUMERIC NOT NULL DEFAULT 0,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- Adicionados em 20260607_client_location_fk.sql:
+  client_location_id UUID REFERENCES public.client_locations(id) ON DELETE SET NULL,
+  site_location      TEXT
 );
 
 CREATE TABLE public.orcamento_itens (

@@ -39,6 +39,8 @@ export interface Orcamento {
   signed_at: string | null;
   signer_name: string | null;
   signer_email: string | null;
+  client_location_id: string | null;
+  site_location: string | null;
   created_at: string;
   updated_at: string;
   clients?: {
@@ -71,6 +73,8 @@ export interface CreateOrcamentoPayload {
   report_id?: string | null;
   client_id: string;
   technician_id: string;
+  client_location_id?: string | null;
+  site_location?: string | null;
   titulo?: string;
   observacoes?: string;
   validade?: string | null;
@@ -86,6 +90,8 @@ export interface CreateOrcamentoPayload {
 export interface UpdateOrcamentoPayload {
   report_id?: string | null;
   client_id?: string;
+  client_location_id?: string | null;
+  site_location?: string | null;
   titulo?: string;
   observacoes?: string;
   validade?: string | null;
