@@ -16,3 +16,6 @@ playwright-report/
 
 # Supabase CLI cache local — nunca versionar
 supabase/.temp/
+
+# Configuração local pessoal do Claude Code — nunca versionar
+.claude/settings.local.json
