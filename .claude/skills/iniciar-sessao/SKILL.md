@@ -33,7 +33,7 @@ Use como base para decisões arquiteturais e convenções do projeto durante a s
 
 ## Passo 4 — Verificar estado do repositório
 
-Em `C:\Users\vanze\OneDrive\Área de Trabalho\portal-mopar`:
+Em `C:\dev\portal-mopar`:
 - `git log --oneline -5` — confirme os últimos commits
 - `git status` — working tree deve estar limpa
 - `npx tsc --noEmit` — reporte se há erros TypeScript abertos

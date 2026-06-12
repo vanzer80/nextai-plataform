@@ -13,7 +13,7 @@
 
 ## Ambiente (app principal)
 
-- **Diretório local:** `C:\Users\vanze\OneDrive\Área de Trabalho\portal-mopar`
+- **Diretório local:** `C:\dev\portal-mopar`
 - **GitHub:** `https://github.com/vanzer80/nextai-plataform.git`
 - **Produção:** `https://nextai-plataform.vercel.app` (auto-deploy ao push no master)
 - **Supabase Project ID:** `sksursvmgvxqbbdsztcd`
@@ -1125,7 +1125,7 @@ Funcionalidades: tabela paginável · filtros status+source · row expandida com
 
 ## Padrão de Filiais (client_locations) — sessão sprint-filial-fk, 2026-06-07
 
-> Implementado em outra máquina (`C:\dev\portal-mopar`); integrado ao master em 2026-06-11.
+> Implementado numa cópia separada do repo e integrado ao master em 2026-06-11.
 
 ### Constraint de banco
 `client_locations.client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE` — **nenhuma filial órfã é possível**. A UI sempre passa `clientId` ao criar/editar.
