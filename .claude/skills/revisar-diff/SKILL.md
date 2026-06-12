@@ -33,6 +33,7 @@ Para cada item abaixo, verifique se o diff viola a regra. Marque ✅ (ok), ⚠�
 12. KPIs Dashboard → sem fallback numérico hardcoded (ex: `88%`, `85%`)?
 13. `jsPDF` 4.x → sem `setLineDash()` — usando `setLineWidth()` + `line()`?
 14. Auth race condition → role inicializado só após `AUTH_STATE_CHANGE`, nunca no `INITIAL_SESSION`?
+15. Branding → nenhum texto novo usa "Portal Mopar" ou "Mopar" como nome do produto/sistema? (Mopar Engenharia é apenas um tenant/cliente)
 
 ## Passo 4 — Relatório
 
