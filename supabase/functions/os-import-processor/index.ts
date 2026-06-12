@@ -1,7 +1,10 @@
-// os-import-processor v7 — NextAI OS Import Bridge
+// os-import-processor v8 — NextAI OS Import Bridge
 //
 // Recebe uma OS de qualquer sistema externo (TOTVS, SAP, Omie, PDF),
 // normaliza para o schema padrão NextAI e cria em service_reports.
+// v8: fotos embutidas no PDF são extraídas e anexadas à OS (report_attachments);
+//     fotos passam ao bucket reports_media (o app lê anexos de lá, não de "reports");
+//     extração IA migrada para gemini-2.5-flash (free tier do 2.0-flash foi zerado).
 //
 // Separado da api-gateway porque:
 //   - Processamento PDF pode levar 5-15s (Gemini + Storage) — bloquearia a gateway responsiva
@@ -15,11 +18,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { processDocument } from "./document/pipeline.ts";
+import { extractJpegImagesFromPdf } from "./document/image-extractor.ts";
 import type { ExtractionResult } from "./types.ts";
 
 const SUPABASE_URL              = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const STORAGE_BUCKET = "reports";
+// Mesmo bucket e convenção de caminho do app (reportService.ts) — a tela de
+// detalhe da OS gera signed URLs de reports_media a partir de report_attachments.
+const STORAGE_BUCKET = "reports_media";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":  "*",
@@ -217,16 +223,29 @@ async function mapServiceType(
 
 // Extração PDF migrada para ./document/pipeline.ts (template registry + IA híbrida)
 
-// ── Upload de fotos ───────────────────────────────────────────────────────────
+// ── Persistência de fotos ─────────────────────────────────────────────────────
 
-async function uploadPhotos(
-  admin: Admin,
-  teamId: string,
-  osId: string,
+interface PhotoToPersist {
+  bytes:    Uint8Array;
+  mimeType: string;
+  filename: string;
+  caption:  string | null;
+}
+
+function b64ToBytes(b64: string): Uint8Array {
+  const raw = b64.replace(/^data:[^;]+;base64,/, "");
+  const binary = atob(raw);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+// Baixa (URL) ou decodifica (base64) as fotos enviadas no payload
+async function collectPayloadPhotos(
   photos: OsImportPayload["photos"],
-): Promise<number> {
-  if (!photos || photos.length === 0) return 0;
-  let uploaded = 0;
+): Promise<PhotoToPersist[]> {
+  if (!photos || photos.length === 0) return [];
+  const result: PhotoToPersist[] = [];
 
   for (let i = 0; i < photos.length; i++) {
     const photo = photos[i];
@@ -234,28 +253,68 @@ async function uploadPhotos(
       if (typeof photo === "string") {
         const res = await fetch(photo);
         if (!res.ok) continue;
-        const blob = await res.blob();
-        const ext = (blob.type.split("/")[1] ?? "jpg").replace(/;.*/, "");
-        const path = `${teamId}/${osId}/ext-${i}.${ext}`;
-        const { error } = await admin.storage.from(STORAGE_BUCKET)
-          .upload(path, blob, { contentType: blob.type, upsert: true });
-        if (!error) uploaded++;
+        const mimeType = res.headers.get("content-type")?.split(";")[0] ?? "image/jpeg";
+        const ext = mimeType.split("/")[1] ?? "jpg";
+        result.push({
+          bytes: new Uint8Array(await res.arrayBuffer()),
+          mimeType,
+          filename: `ext-${i + 1}.${ext}`,
+          caption: null,
+        });
       } else {
-        const raw = photo.base64.replace(/^data:[^;]+;base64,/, "");
-        const binary = atob(raw);
-        const bytes = new Uint8Array(binary.length);
-        for (let j = 0; j < binary.length; j++) bytes[j] = binary.charCodeAt(j);
         const ext = (photo.mime_type.split("/")[1] ?? "jpg").replace(/;.*/, "");
-        const path = `${teamId}/${osId}/ext-${i}.${ext}`;
-        const { error } = await admin.storage.from(STORAGE_BUCKET)
-          .upload(path, bytes, { contentType: photo.mime_type, upsert: true });
-        if (!error) uploaded++;
+        result.push({
+          bytes: b64ToBytes(photo.base64),
+          mimeType: photo.mime_type,
+          filename: photo.filename ?? `ext-${i + 1}.${ext}`,
+          caption: null,
+        });
       }
     } catch {
       // Foto individual falhou — não bloqueia a importação da OS
     }
   }
-  return uploaded;
+  return result;
+}
+
+/**
+ * Sobe cada foto para reports_media (caminho padrão do app) e registra em
+ * report_attachments — sem a linha na tabela a foto não aparece na tela da OS.
+ * uploadedBy é null em importações via X-API-Key (sem usuário autenticado).
+ */
+async function persistPhotos(
+  admin: Admin,
+  teamId: string,
+  osId: string,
+  uploadedBy: string | null,
+  photos: PhotoToPersist[],
+): Promise<number> {
+  let persisted = 0;
+
+  for (let i = 0; i < photos.length; i++) {
+    const photo = photos[i];
+    try {
+      const ext = (photo.mimeType.split("/")[1] ?? "jpg").replace(/;.*/, "");
+      const path = `${teamId}/reports/${osId}/attachments/imported-${i + 1}.${ext}`;
+      const { error: upErr } = await admin.storage.from(STORAGE_BUCKET)
+        .upload(path, photo.bytes, { contentType: photo.mimeType, upsert: true });
+      if (upErr) continue;
+
+      const { error: rowErr } = await admin.from("report_attachments").insert({
+        report_id:   osId,
+        uploaded_by: uploadedBy,
+        url:         path,
+        filename:    photo.filename,
+        mime_type:   photo.mimeType,
+        size_bytes:  photo.bytes.length,
+        caption:     photo.caption,
+      });
+      if (!rowErr) persisted++;
+    } catch {
+      // Foto individual falhou — não bloqueia a importação da OS
+    }
+  }
+  return persisted;
 }
 
 // ── Handler principal ─────────────────────────────────────────────────────────
@@ -282,6 +341,7 @@ Deno.serve(async (req: Request) => {
 
   let teamId: string;
   let apiKeyId: string | null = null;
+  let callerUserId: string | null = null; // preenchido apenas no caminho Bearer JWT
 
   if (rawKey) {
     // ── X-API-Key path ────────────────────────────────────────────────────────
@@ -321,6 +381,7 @@ Deno.serve(async (req: Request) => {
       return rfc7807(403, "insufficient_role", "Requer perfil Admin, Master ou Gestor.", instance);
 
     teamId = profile.team_id as string;
+    callerUserId = authUser.id;
 
   } else {
     return rfc7807(401, "missing_auth", "Forneça X-API-Key ou Authorization: Bearer.", instance);
@@ -423,9 +484,10 @@ Deno.serve(async (req: Request) => {
     // 7. Normalização — modo PDF usa pipeline de extração documental ────────────
     let normalized: Partial<OsImportPayload> = { ...payload };
     let extractionResult: ExtractionResult | null = null;
+    let pdfBase64: string | undefined; // mantido para extração de fotos no passo 11
 
     if (payload.mode === "pdf") {
-      let pdfBase64 = payload.pdf_base64;
+      pdfBase64 = payload.pdf_base64;
       if (!pdfBase64 && payload.pdf_url) {
         const res = await fetch(payload.pdf_url);
         if (!res.ok) return await failLog(`Não foi possível baixar o PDF: HTTP ${res.status}`);
@@ -517,8 +579,29 @@ Deno.serve(async (req: Request) => {
 
     if (srErr || !sr) return await failLog(`Erro ao criar OS no banco: ${srErr?.message ?? "resultado vazio"}`);
 
-    // 11. Upload de fotos (best-effort — falha não bloqueia importação) ──────────
-    const photosUploaded = await uploadPhotos(admin, teamId, sr.id, normalized.photos);
+    // 11. Fotos: payload + embutidas no PDF (best-effort — falha não bloqueia) ───
+    const photosToPersist = await collectPayloadPhotos(normalized.photos);
+    let photosFromPdf = 0;
+
+    if (pdfBase64) {
+      try {
+        const { images, skipped } = extractJpegImagesFromPdf(b64ToBytes(pdfBase64));
+        if (skipped > 0) console.log(`[photos] ${skipped} imagens do PDF descartadas por filtro (logo/thumbnail/duplicada)`);
+        photosFromPdf = images.length;
+        for (let i = 0; i < images.length; i++) {
+          photosToPersist.push({
+            bytes:    images[i].bytes,
+            mimeType: "image/jpeg",
+            filename: `pdf-foto-${i + 1}.jpg`,
+            caption:  "Importada do PDF de origem",
+          });
+        }
+      } catch (err) {
+        console.warn("[photos] extração de imagens do PDF falhou:", err);
+      }
+    }
+
+    const photosUploaded = await persistPhotos(admin, teamId, sr.id, callerUserId, photosToPersist);
 
     // 12. Atualizar log para 'success' com metadados de extração ─────────────────
     if (logId) {
@@ -544,6 +627,7 @@ Deno.serve(async (req: Request) => {
       technician_resolution: techRes,
       duplicate:             false,
       photos_uploaded:       photosUploaded,
+      photos_from_pdf:       photosFromPdf,
       ...(extractionResult ? {
         extraction_method:  extractionResult.method,
         overall_confidence: extractionResult.overall_confidence,

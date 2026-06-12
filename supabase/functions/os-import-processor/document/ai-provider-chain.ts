@@ -62,6 +62,10 @@ function jsonToFields(
 
 // ─── Gemini ───────────────────────────────────────────────────────────────────
 
+// gemini-2.0-flash teve o free tier ZERADO pelo Google (429 com limit: 0) — mesma
+// migração feita no ai-proxy v15. O free tier atual vale para gemini-2.5-flash.
+const GEMINI_MODEL = "gemini-2.5-flash";
+
 async function callGemini(
   apiKey: string,
   pdfBase64: string,
@@ -78,11 +82,18 @@ async function callGemini(
   }
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts }] }),
+      body: JSON.stringify({
+        contents: [{ parts }],
+        // thinkingBudget: 0 — 2.5-flash pensa por default; para extração estruturada só adiciona latência/custo
+        generationConfig: {
+          responseMimeType: "application/json",
+          thinkingConfig: { thinkingBudget: 0 },
+        },
+      }),
     },
   );
 
