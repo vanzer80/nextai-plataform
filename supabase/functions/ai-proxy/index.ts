@@ -54,10 +54,12 @@ const MATERIAL_PROMPT = `Você é um especialista em equipamentos de HVAC, refri
 const RECEIPT_VOICE_PROMPT = `Você é um assistente de preenchimento de formulário de reembolso. O usuário descreveu verbalmente uma despesa.\nREGRA 1: Interprete datas relativas com base na data atual.\nREGRA 2: 'amount' deve ser numérico (sem R$).\nREGRA 3: Se o usuário não mencionou algum campo, retorne string vazia '' ou 0 para amount.\nREGRA 4: 'expense_date' no formato YYYY-MM-DD.`;
 const MATERIAL_VOICE_PROMPT = `Você é um assistente de preenchimento de solicitação de compra de materiais industriais.\nREGRA 1: Preencha 'especificacao_tecnica' com uma frase descritiva do material em texto simples.\nREGRA 2: Para 'marca', 'modelo', 'codigo_referencia', 'tensao', 'capacidade': extraia se o técnico mencionou, retorne '' caso contrário.\nREGRA 3: 'quantidade' deve incluir unidade (ex: '2 unidades', '5 metros'). Default: '1 unidade'.\nREGRA 4: Se algum campo não foi mencionado, retorne string vazia ''.`;
 const DIAGNOSTIC_PROMPT = `Você é um engenheiro técnico especialista em manutenção industrial.\n1. Reescreva o diagnóstico em linguagem técnica formal.\n2. Identifique possíveis causas raiz.\n3. Sugira recomendação técnica objetiva.\nREGRAS: Nunca inventar informações. Linguagem profissional. 'possible_causes' é array (1-4 itens).`;
+const EXECUTION_PROMPT = `Você é um engenheiro de manutenção industrial responsável por redigir relatórios de serviço (OS) em português do Brasil.\nO técnico descreveu informalmente os serviços que executou em campo.\n1. Reescreva o relato em 'services_performed' usando linguagem técnica profissional e norma culta (tom de relatório técnico ABNT), com frases objetivas em voz passiva técnica (ex: "Foi realizada a substituição da bomba d'água, que apresentava folga no eixo e vazamento pelo selo mecânico.").\n2. Em 'technical_recommendation', sugira UMA recomendação técnica objetiva derivada diretamente do serviço executado (ex: inspeção preventiva, prazo de reavaliação, monitoramento de componente).\n3. Em 'pending_issues', preencha SOMENTE se o relato mencionar pendências, itens não concluídos ou dependências (peça em falta, necessidade de retorno, aguardando aprovação). Se nada for mencionado, retorne string vazia ''.\nREGRAS: Nunca inventar fatos, peças, medições, causas ou serviços não mencionados pelo técnico. Não adicionar diagnósticos novos. Preservar nomes técnicos, modelos e unidades citados. Corrigir apenas gramática, terminologia e estrutura.`;
 
 const RECEIPT_SCHEMA = { type: "OBJECT", properties: { expenseType: { type: "STRING", enum: ["Combustível","Alimentação","Hospedagem","Estacionamento","Material","Outros"] }, amount: { type: "NUMBER" }, favorecido: { type: "STRING" }, pix: { type: "STRING" }, description: { type: "STRING" }, expense_date: { type: "STRING" } }, required: ["expenseType","amount","favorecido","pix","description","expense_date"] };
 const MATERIAL_SCHEMA = { type: "OBJECT", properties: { especificacao_tecnica: { type: "STRING" }, marca: { type: "STRING" }, modelo: { type: "STRING" }, codigo_referencia: { type: "STRING" }, tensao: { type: "STRING" }, capacidade: { type: "STRING" }, quantidade: { type: "STRING" }, obs: { type: "STRING" } }, required: ["especificacao_tecnica","marca","modelo","codigo_referencia","tensao","capacidade","quantidade","obs"] };
 const DIAGNOSTIC_SCHEMA = { type: "OBJECT", properties: { final_diagnosis: { type: "STRING" }, technical_description: { type: "STRING" }, possible_causes: { type: "ARRAY", items: { type: "STRING" } }, recommendation: { type: "STRING" } }, required: ["final_diagnosis","technical_description","possible_causes","recommendation"] };
+const EXECUTION_SCHEMA = { type: "OBJECT", properties: { services_performed: { type: "STRING" }, technical_recommendation: { type: "STRING" }, pending_issues: { type: "STRING" } }, required: ["services_performed","technical_recommendation","pending_issues"] };
 
 interface CallResult {
   text:       string;
@@ -330,6 +332,19 @@ Deno.serve(async (req: Request) => {
           [{ parts: [{ text: prompt }], role: "user" }],
           DIAGNOSTIC_PROMPT, DIAGNOSTIC_SCHEMA,
           [{ type: "text", text: `${DIAGNOSTIC_PROMPT}\n\n${prompt}\n\nRetorne JSON com: final_diagnosis, technical_description, possible_causes (array), recommendation` }],
+        );
+
+      } else if (type === "execution") {
+        const v = validateText(body.rawInput, "rawInput");
+        if (!v.ok) return new Response(JSON.stringify({ error: v.error }), { status: 400, headers: resHeaders });
+        const rawInput = v.text;
+        // ?? {} defensivo: context ausente não pode derrubar a requisição (TypeError → 500)
+        const ctx = (body.context ?? {}) as { serviceType?: string; reportedProblem?: string; finalDiagnosis?: string; partsUsed?: string };
+        const prompt = `Relato informal do serviço executado: "${rawInput}"${ctx.serviceType ? `\nTipo de serviço: ${ctx.serviceType}.` : ""}${ctx.reportedProblem ? `\nProblema relatado: ${ctx.reportedProblem}.` : ""}${ctx.finalDiagnosis ? `\nDiagnóstico final: ${ctx.finalDiagnosis}.` : ""}${ctx.partsUsed ? `\nPeças/materiais utilizados: ${ctx.partsUsed}.` : ""}\nReescreva e estruture.`;
+        callResult = await callWithFallback(
+          [{ parts: [{ text: prompt }], role: "user" }],
+          EXECUTION_PROMPT, EXECUTION_SCHEMA,
+          [{ type: "text", text: `${EXECUTION_PROMPT}\n\n${prompt}\n\nRetorne JSON com: services_performed, technical_recommendation, pending_issues` }],
         );
 
       } else {

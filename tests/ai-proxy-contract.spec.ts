@@ -18,6 +18,8 @@
  *   AI-08  POST receipt_images com mimeType proibido → 400 com CORS
  *   AI-09  Origin fora do allowlist → resposta SEM Allow-Origin (browser bloquearia)
  *   AI-10  Origin localhost:3001 (dev) → Allow-Origin echo
+ *   AI-11  POST execution sem rawInput → 400 de validação com CORS
+ *   AI-12  POST execution com rawInput > 4000 chars → 400 com CORS
  *
  * Nenhum teste consome quota de Gemini/OpenAI — todos param na validação.
  */
@@ -135,5 +137,25 @@ test.describe('ai-proxy — contrato CORS e validação', () => {
     });
     expect(res.status()).toBe(400);
     expectCors(res, 'http://localhost:3001');
+  });
+
+  test('AI-11: execution sem rawInput retorna 400 de validação', async ({ request }) => {
+    const res = await request.post(FUNCTION_URL, {
+      headers: AUTH_HEADERS,
+      data: { type: 'execution' },
+    });
+    expect(res.status()).toBe(400);
+    expectCors(res);
+    expect((await res.json()).error).toContain("'rawInput'");
+  });
+
+  test('AI-12: execution com rawInput acima de 4000 chars retorna 400', async ({ request }) => {
+    const res = await request.post(FUNCTION_URL, {
+      headers: AUTH_HEADERS,
+      data: { type: 'execution', rawInput: 'x'.repeat(4001) },
+    });
+    expect(res.status()).toBe(400);
+    expectCors(res);
+    expect((await res.json()).error).toContain('4000');
   });
 });

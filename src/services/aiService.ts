@@ -113,3 +113,24 @@ export async function enhanceDiagnostic(
 ): Promise<DiagnosticEnhancementResult> {
   return normalizeDiagnostic(await callProxy('diagnostic', { rawInput, context }));
 }
+
+export interface ExecutionEnhancementResult {
+  services_performed: string;
+  technical_recommendation: string;
+  pending_issues: string;
+}
+
+function normalizeExecution(raw: any): ExecutionEnhancementResult {
+  return {
+    services_performed:       String(raw.services_performed ?? ''),
+    technical_recommendation: String(raw.technical_recommendation ?? ''),
+    pending_issues:           String(raw.pending_issues ?? ''),
+  };
+}
+
+export async function enhanceExecution(
+  rawInput: string,
+  context: { serviceType: string; reportedProblem?: string; finalDiagnosis?: string; partsUsed?: string },
+): Promise<ExecutionEnhancementResult> {
+  return normalizeExecution(await callProxy('execution', { rawInput, context }));
+}

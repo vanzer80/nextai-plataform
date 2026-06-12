@@ -85,6 +85,16 @@ export const osWizardTour: TourModule = {
       roles: ['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master'],
     },
     {
+      element: '[data-onboarding="wizard-step5-ia"]',
+      route: '/reports/new',
+      popover: {
+        title: 'Melhorar com IA',
+        description: 'Descreva informalmente o que você fez e toque em "Melhorar com IA". A IA reescreve em linguagem técnica profissional e sugere recomendação técnica e pendências. Você sempre revisa antes de aplicar.',
+        side: 'top',
+      },
+      roles: ['Tecnico', 'Supervisor', 'Gestor', 'Admin', 'Master'],
+    },
+    {
       element: '[data-onboarding="wizard-step6-fotos"]',
       route: '/reports/new',
       popover: {

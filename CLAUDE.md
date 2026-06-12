@@ -168,7 +168,7 @@ Labels usam `text-sidebar-foreground/40` (nunca `text-muted-foreground` — fica
 
 ## Edge Functions deployadas
 
-`ai-proxy` v15 (**modelo gemini-2.5-flash + thinkingBudget:0** — o free tier do gemini-2.0-flash foi ZERADO pelo Google (429 `limit: 0`), nunca voltar para ele · rate limiting 20 req/min fail-open: Deno KV → fallback Map in-memory · try/catch externo garante CORS em toda resposta · **CORS allowlist**: vercel.app prod + previews regex + localhost:3001 + secret `ALLOWED_ORIGINS` (CSV, p/ domínio customizado sem redeploy) · validação de payload: máx 5 imagens/8 MB, mime jpeg/png/webp/pdf, textos ≤ 4k chars · erro 500 genérico ao client, detalhe só em telemetria/logs · `console.warn` com motivo da falha Gemini quando fallback salva · `Access-Control-Max-Age: 86400` + `Expose-Headers` p/ `X-RateLimit-*` · versionada em `supabase/functions/ai-proxy/index.ts` · contrato testado em `tests/ai-proxy-contract.spec.ts`)  
+`ai-proxy` v16 (**type "execution"** — AI Report Writer Step 5: reescreve serviços executados em linguagem técnica + sugere technical_recommendation + pending_issues condicional · **modelo gemini-2.5-flash + thinkingBudget:0** — o free tier do gemini-2.0-flash foi ZERADO pelo Google (429 `limit: 0`), nunca voltar para ele · rate limiting 20 req/min fail-open: Deno KV → fallback Map in-memory · try/catch externo garante CORS em toda resposta · **CORS allowlist**: vercel.app prod + previews regex + localhost:3001 + secret `ALLOWED_ORIGINS` (CSV, p/ domínio customizado sem redeploy) · validação de payload: máx 5 imagens/8 MB, mime jpeg/png/webp/pdf, textos ≤ 4k chars · erro 500 genérico ao client, detalhe só em telemetria/logs · `console.warn` com motivo da falha Gemini quando fallback salva · `Access-Control-Max-Age: 86400` + `Expose-Headers` p/ `X-RateLimit-*` · versionada em `supabase/functions/ai-proxy/index.ts` · contrato testado em `tests/ai-proxy-contract.spec.ts`)  
 `api-gateway` v2 (valida X-API-Key SHA-256 · rate limit 1000 req/hr · RFC 7807 · cursor pagination · idempotency · `api_access_log`)  
 `os-import-processor` v7 (X-API-Key + Bearer JWT · scope orders:write · mode json/pdf · **template registry** Decathlon + **IA híbrida** Gemini→OpenAI · per-field confidence scores · resolução client/técnico · `os_import_log` · `import_confidence` em service_reports)  
 `webhook-dispatcher` v2 (HMAC-SHA256 · retry 6× backoff [0,1m,5m,30m,2h,24h] · dead = attempts ≥ 6)  
@@ -191,7 +191,7 @@ Secrets (nunca no .env): `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, `OPENAI_API_KEY
   - `tests/platform-company-profile.spec.ts` — 6 testes Perfil Comercial SuperMaster ✅ 6/6
   - `tests/sidebar-verify.spec.ts` — 5 testes sidebar SAP groups (grupos, roles, ordem, navegação, console errors)
   - `tests/os-import.spec.ts` — 25 testes OS Import Bridge (IM-01→IM-25): RBAC, dialog UI, CORS, auth 401/403, validação 400/415, import mínima, deduplicação, resolução entidades, prioridade, admin page, filtros; IM-25 skipped sem `TEST_PDF_IMPORT=true`
-  - `tests/ai-proxy-contract.spec.ts` — 10 testes de contrato ai-proxy (AI-01→AI-10): CORS em todo caminho de resposta (armadilha #60), allowlist de Origin (echo, hostil bloqueada, localhost dev), preflight Max-Age, auth 401, validação de payload (máx imagens, tamanho, mimeType, length de texto); nenhum consome quota de IA ✅ 10/10
+  - `tests/ai-proxy-contract.spec.ts` — 12 testes de contrato ai-proxy (AI-01→AI-12): CORS em todo caminho de resposta (armadilha #60), allowlist de Origin (echo, hostil bloqueada, localhost dev), preflight Max-Age, auth 401, validação de payload (máx imagens, tamanho, mimeType, length de texto, rawInput do type execution); nenhum consome quota de IA ✅ 12/12
 - Credenciais em `tests/.env.test` (gitignored)
 - **CRÍTICO:** nunca rodar spec files em paralelo com `run_in_background` — Supabase free tier + Vite não aguentam carga simultânea (ERR_CONNECTION_REFUSED cascata)
 
@@ -1282,28 +1282,19 @@ CREATE TABLE public.pii_treatment_log (
 
 ---
 
-### Módulo 3: AI Report Writer
+### Módulo 3: AI Report Writer — ✅ CONCLUÍDO 2026-06-11 (s74)
 
-**Proposta de valor:** Técnico digita "trocou a bomba d'agua que estava com folga e vazamento" → GPT-4o transforma em "Identificado desgaste prematuro no conjunto de vedação da bomba d'água, com folga axial de ~0,8mm e vazamento por falha de gaxeta. Efetuada substituição do conjunto por componente OEM. Teste de pressão realizado com êxito."
+**Implementação real** (difere da proposta original — reuso da infra existente, não Edge Function separada):
 
-**Arquitetura:**
-
-```typescript
-// Edge Fn: ai-report-writer (reutiliza ai-proxy)
-// Input: { raw_text: string, os_context: { vehicle, symptoms, parts_used } }
-// Output: { professional_text: string, tokens_used: number }
-
-// Prompt engineering:
-const SYSTEM_PROMPT = `
-Você é um redator técnico especializado em laudos de serviços automotivos.
-Transforme a descrição informal do técnico em linguagem técnica profissional,
-mantendo todas as informações factuais. Tom: objetivo, preciso, norma ABNT NBR.
-`;
-```
-
-**Integração:** Botão "Melhorar com IA" no campo "Descrição do problema/solução" da OS (step 2 e step 6 do wizard). Substitui o texto selecionado com confirmação do técnico.
-
-**Rate limit:** 10 chamadas/hora por usuário (Deno KV, reutiliza padrão ai-proxy).
+- **Step 4 (Diagnóstico)** — já existia: `AiDiagnosticAssistant.tsx` + `ai-proxy type "diagnostic"` + `enhanceDiagnostic()`
+- **Step 5 (Execução)** — implementado em s74: `AiExecutionAssistant.tsx` + `ai-proxy type "execution"` (v16) + `enhanceExecution()`
+  - Input: relato informal do técnico (rawInput ≤ 4k chars) + context `{serviceType, reportedProblem?, finalDiagnosis?, partsUsed?}` (`?? {}` defensivo no servidor)
+  - Output: `{services_performed, technical_recommendation, pending_issues}` — pendências SOMENTE se mencionadas no relato, senão `''`
+  - UX: "Aplicar" sobrescreve `services_performed`; `technical_recommendation`/`pending_issues` só preenchem se vazios (nunca sobrescrevem texto do técnico)
+  - Step5Execution refatorado para controlled nos 3 campos (padrão Step4 — React 19: setValue sobre register() não re-renderiza)
+  - Tour: step `wizard-step5-ia` adicionado ao os-wizard (11 steps agora)
+  - Rate limit: 20 req/min compartilhado do ai-proxy (não foi criado limite separado)
+  - Testes: `Step5Execution.test.tsx` (unit, 11) + `Step5Execution.integration.test.tsx` (5) + AI-11/AI-12 no contrato
 
 ---
 
