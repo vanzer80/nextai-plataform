@@ -1,5 +1,5 @@
 /**
- * Smoke tests — Portal Mopar
+ * Smoke tests — NextAI
  *
  * Pré-requisitos:
  *   1. Dev server rodando: npm run dev

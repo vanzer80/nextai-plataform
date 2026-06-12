@@ -1,8 +1,8 @@
-# Portal Mopar
+# NextAI
 
 ## Sobre o Projeto
 
-O **Portal Mopar** é um sistema operacional web para equipes de manutenção, campo e backoffice da Mopar Engenharia — e a base da plataforma SaaS white-label **NextAI**, que permite provisionar múltiplas empresas com branding, dados e usuários completamente isolados por tenant.
+O **NextAI** é uma plataforma SaaS B2B de gestão de field service que provisiona múltiplas empresas como tenants isolados — cada uma com branding próprio, dados e usuários completamente separados. A Mopar Engenharia foi o tenant de referência no desenvolvimento inicial da plataforma.
 
 O sistema centraliza processos que antes dependiam de WhatsApp, planilhas e PDF manual: relatórios técnicos com checklist e assinatura digital, reembolsos com extração IA de comprovantes, solicitações de compra, orçamentos, dashboard de KPIs em tempo real e notificações via Supabase Realtime. O app é instalável como PWA com suporte a operação offline parcial via IndexedDB.
 
@@ -88,7 +88,7 @@ Todas as chamadas IA passam pela Edge Function `ai-proxy` — nenhuma chave expo
 
 ## Arquitetura Multi-Tenant / NextAI
 
-O Portal Mopar é a base da plataforma SaaS **NextAI**: cada empresa é um tenant isolado com branding próprio e dados completamente separados dentro da mesma instância Supabase.
+O **NextAI** é uma plataforma SaaS multi-tenant: cada empresa é um tenant isolado com branding próprio e dados completamente separados dentro da mesma instância Supabase.
 
 **Modelo de tenancy:** shared database com row-level isolation por `team_id` — isolamento garantido por políticas RLS em todas as tabelas principais.
 

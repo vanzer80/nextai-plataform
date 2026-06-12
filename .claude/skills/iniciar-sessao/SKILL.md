@@ -2,7 +2,7 @@
 description: Retomada de sessão — lê o vault Obsidian e o estado do repo para saber exatamente onde parou
 ---
 
-Você está iniciando uma sessão de trabalho no Portal Mopar. Leia todos os arquivos abaixo antes de qualquer outra ação. Não resuma antes de terminar de ler tudo.
+Você está iniciando uma sessão de trabalho no NextAI. Leia todos os arquivos abaixo antes de qualquer outra ação. Não resuma antes de terminar de ler tudo.
 
 ## Passo 1 — Ler histórico da última sessão
 
@@ -43,7 +43,7 @@ Em `C:\dev\portal-mopar`:
 Com base em tudo que leu, apresente ao usuário um briefing conciso:
 
 ```
-## Sessão [N+1] — Portal Mopar
+## Sessão [N+1] — NextAI
 
 **Última sessão ([data]):** [o que foi feito]
 

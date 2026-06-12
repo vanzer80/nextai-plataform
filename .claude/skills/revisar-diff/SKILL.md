@@ -1,8 +1,8 @@
 ---
-description: Review do diff atual contra as armadilhas críticas do Portal Mopar + TypeScript check
+description: Review do diff atual contra as armadilhas críticas do NextAI + TypeScript check
 ---
 
-Revise as mudanças pendentes no Portal Mopar sistematicamente.
+Revise as mudanças pendentes no NextAI sistematicamente.
 
 ## Passo 1 — Obter diff
 

@@ -2,7 +2,7 @@
 description: Kickoff de nova sprint — lê roadmap, verifica estado do repositório e propõe entregáveis ordenados
 ---
 
-Execute o kickoff da nova sprint do Portal Mopar. Leia antes de agir.
+Execute o kickoff da nova sprint do NextAI. Leia antes de agir.
 
 ## Passo 1 — Ler contexto atual
 

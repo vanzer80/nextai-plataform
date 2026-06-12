@@ -1,4 +1,4 @@
-# NextAI — Portal Mopar · Contexto de Desenvolvimento
+# NextAI · Contexto de Desenvolvimento
 
 ## Ecossistema NextAI — repositórios
 

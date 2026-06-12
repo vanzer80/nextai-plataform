@@ -2,7 +2,7 @@
 description: Ritual de encerramento de sessão — tsc check, atualização do vault Obsidian e commit+push
 ---
 
-Execute o ritual de encerramento de sessão do Portal Mopar na ordem exata abaixo. Não pule etapas.
+Execute o ritual de encerramento de sessão do NextAI na ordem exata abaixo. Não pule etapas.
 
 ## Passo 1 — TypeScript check
 
