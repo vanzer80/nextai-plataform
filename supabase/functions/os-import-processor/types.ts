@@ -10,7 +10,7 @@ export interface ExtractionResult {
   template_id: string | null; // ex: "decathlon-chamado"
   method: "template" | "ai:gemini" | "ai:openai" | "hybrid";
   overall_confidence: number;
-  requires_review: boolean; // true se overall_confidence < threshold
+  requires_review: boolean; // true se overall_confidence < threshold ou service_date ambígua no template
   fields: Record<string, FieldExtraction>;
 }
 

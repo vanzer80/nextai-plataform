@@ -10,9 +10,45 @@ function firstMatch(text: string, re: RegExp, group = 1): string | null {
   return re.exec(text)?.[group]?.trim() || null;
 }
 
-// Converte DD/MM/YYYY → YYYY-MM-DD
-function parseBrDate(d: string, m: string, y: string): string {
-  return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+// Datas da Decathlon vêm em EN-US — "4/8/2026 2:31 PM" é 8 de abril (M/D/YYYY).
+// Componente > 12 torna a leitura inequívoca em qualquer ordem; ambos ≤ 12 é
+// ambíguo e o locale do template decide, com confiança reduzida para que o
+// pipeline force revisão humana do campo.
+const DATE_CONFIDENCE_UNAMBIGUOUS = 0.97;
+const DATE_CONFIDENCE_AMBIGUOUS = 0.55;
+
+interface LocaleDate {
+  iso: string;
+  ambiguous: boolean;
+}
+
+function parseEnUsDate(aRaw: string, bRaw: string, y: string): LocaleDate | null {
+  const a = Number(aRaw);
+  const b = Number(bRaw);
+
+  let month: number;
+  let day: number;
+  let ambiguous = false;
+
+  if (a <= 12 && b > 12) {
+    month = a;
+    day = b;
+  } else if (a > 12 && b <= 12) {
+    month = b;
+    day = a;
+  } else if (a <= 12 && b <= 12) {
+    month = a;
+    day = b;
+    ambiguous = true;
+  } else {
+    return null;
+  }
+
+  const iso = `${y}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  // Round-trip via Date rejeita componentes inválidos (0, 2/30, 4/31, …)
+  const check = new Date(`${iso}T00:00:00Z`);
+  if (check.getUTCMonth() + 1 !== month || check.getUTCDate() !== day) return null;
+  return { iso, ambiguous };
 }
 
 // Extrai bloco de texto entre dois marcadores (primeiro match de cada)
@@ -47,13 +83,14 @@ function parse(text: string): Record<string, FieldExtraction> {
   const rawClient = clientMatch?.[1]?.replace(/\s*E-mail.*$/i, "").trim() ?? null;
   fields.client_name = field(rawClient, rawClient ? 0.92 : 0);
 
-  // service_date — "Criado em\n DD/MM/YYYY" (duas colunas intercaladas)
+  // service_date — "Criado em\n M/D/YYYY" (duas colunas intercaladas, locale EN-US)
   const dateMatch =
     /Criado\s+em\s*[\n\r]+\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/i.exec(text) ??
     /Criado\s+em\s+(\d{1,2})\/(\d{1,2})\/(\d{4})/i.exec(text);
+  const date = dateMatch ? parseEnUsDate(dateMatch[1], dateMatch[2], dateMatch[3]) : null;
   fields.service_date = field(
-    dateMatch ? parseBrDate(dateMatch[1], dateMatch[2], dateMatch[3]) : null,
-    dateMatch ? 0.97 : 0,
+    date?.iso ?? null,
+    date ? (date.ambiguous ? DATE_CONFIDENCE_AMBIGUOUS : DATE_CONFIDENCE_UNAMBIGUOUS) : 0,
   );
 
   // service_type — linha após "Tipo de Serviço" ou regex de tipo de manutenção

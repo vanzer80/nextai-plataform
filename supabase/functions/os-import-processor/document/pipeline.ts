@@ -47,6 +47,16 @@ export async function processDocument(
   let method: ExtractionResult["method"] = "template";
   let templateId: string | null = templateMatch?.parser_id ?? null;
 
+  // service_date ambígua (ex: "4/8/2026" em template EN-US): o parser já aplicou
+  // o locale do template e rebaixou a confiança de propósito. A IA não pode
+  // sobrescrever esse campo no merge — sua confiança fixa (0.78) mascararia a
+  // ambiguidade e desfaria o forçamento de revisão humana.
+  const templateDate = templateMatch?.fields.service_date;
+  const ambiguousDate =
+    templateDate !== undefined &&
+    templateDate.value !== null &&
+    templateDate.confidence < AI_BOOST_THRESHOLD;
+
   // ── 3. Verifica se template cobriu tudo bem ───────────────────────────────
   const hasWeakFields = Object.entries(fields).some(
     ([key, f]) => f.confidence < AI_BOOST_THRESHOLD || ALWAYS_AI_ENHANCE.has(key),
@@ -84,6 +94,10 @@ export async function processDocument(
     }
   }
 
+  if (templateDate && ambiguousDate) {
+    fields = { ...fields, service_date: templateDate };
+  }
+
   // ── 4. Confiança geral ────────────────────────────────────────────────────
   const overallConfidence = computeOverallConfidence(fields);
 
@@ -95,7 +109,7 @@ export async function processDocument(
     template_id: templateId,
     method,
     overall_confidence: overallConfidence,
-    requires_review: needsReview(overallConfidence),
+    requires_review: needsReview(overallConfidence) || ambiguousDate,
     fields,
   };
 }

@@ -32,6 +32,7 @@ Regras:
 - Retorne APENAS o JSON acima, sem texto adicional
 - Para campos não encontrados, use null
 - Datas sempre em YYYY-MM-DD
+- Datas numéricas ambíguas (ex: "4/8/2026" pode ser 8 de abril ou 4 de agosto): determine o locale pelo contexto do documento — horários AM/PM ou datas por extenso em inglês (ex: "Saturday, June 6, 2026") indicam EN-US, leia M/D/YYYY; documento em português sem esses indícios, leia D/M/YYYY
 - priority deve ser exatamente: alta, media, baixa ou null
 `.trim();
 
