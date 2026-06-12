@@ -1,5 +1,5 @@
-import { useState, Fragment } from 'react';
-import { Navigate } from 'react-router-dom';
+import { useState, Fragment, type ReactNode } from 'react';
+import { Navigate, Link } from 'react-router-dom';
 import { Settings2 } from 'lucide-react';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useTenant } from '@/src/contexts/TenantContext';
@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { useDashboardData } from './useDashboardData';
 import { useDashboardPrefs } from './useDashboardPrefs';
 import { DashboardCustomizer } from './DashboardCustomizer';
-import { WIDGET_COL_SPAN, PERIOD_LABELS } from './widgetRegistry';
+import { WIDGET_COL_SPAN, WIDGET_ROUTES, WIDGET_LABEL, PERIOD_LABELS } from './widgetRegistry';
 import type { WidgetId, DashboardPeriod } from './widgetRegistry';
+import type { UserRole } from '@/src/contexts/AuthContext';
 
 import { ReportsKpiWidget } from './widgets/ReportsKpiWidget';
 import { ReimbursementsKpiWidget } from './widgets/ReimbursementsKpiWidget';
@@ -139,7 +140,9 @@ export default function Dashboard() {
         >
           {kpiWidgets.map(id => (
             <Fragment key={id}>
-              <WidgetRenderer id={id} data={data} isLoading={effectiveIsLoading} />
+              <KpiClickable id={id} role={user?.role}>
+                <WidgetRenderer id={id} data={data} isLoading={effectiveIsLoading} />
+              </KpiClickable>
             </Fragment>
           ))}
         </div>
@@ -181,6 +184,27 @@ export default function Dashboard() {
         onReset={prefs.resetPrefs}
       />
     </div>
+  );
+}
+
+/**
+ * Torna o KPI um drill-down clicável para a tela de origem da métrica.
+ * Só vira link quando há rota mapeada E o role atual tem acesso a ela —
+ * caso contrário renderiza o card estático (sem clique em beco sem saída).
+ */
+function KpiClickable({ id, role, children }: { id: WidgetId; role?: UserRole; children: ReactNode }) {
+  const route = WIDGET_ROUTES[id];
+  if (!route || !role || !route.roles.includes(role)) {
+    return <Fragment>{children}</Fragment>;
+  }
+  return (
+    <Link
+      to={route.path}
+      aria-label={`Abrir ${WIDGET_LABEL.get(id) ?? 'detalhes'}`}
+      className="block h-full rounded-xl transition-all hover:-translate-y-0.5 hover:shadow-md hover:ring-2 hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 [&>*]:h-full"
+    >
+      {children}
+    </Link>
   );
 }
 

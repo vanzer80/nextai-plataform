@@ -1,4 +1,5 @@
 import type { UserRole } from '@/src/contexts/AuthContext';
+import { ROUTE_ROLES } from '@/src/config/routeAccess';
 
 export type WidgetId =
   | 'reports-kpi'
@@ -187,3 +188,37 @@ export const PERIOD_LABELS: Record<DashboardPeriod, string> = {
 export function getEligibleWidgets(role: UserRole): WidgetDefinition[] {
   return WIDGET_DEFINITIONS.filter(w => w.roles.includes(role));
 }
+
+/** Lookup O(1) de label por id — usado para aria-label legível no drill-down */
+export const WIDGET_LABEL = new Map<WidgetId, string>(
+  WIDGET_DEFINITIONS.map(w => [w.id, w.label])
+);
+
+/**
+ * Drill-down: ao clicar num KPI, navega para a tela de origem daquela métrica.
+ * `roles` vem de ROUTE_ROLES (mesma fonte dos <RoleGuard> em App.tsx) — o card só
+ * vira link quando o role atual tem acesso, evitando clique morto que o RoleGuard
+ * rebateria para /dashboard.
+ *
+ * Critério de inclusão: só recebe rota o KPI cuja tela de destino realmente expõe
+ * os dados por trás da métrica. CSAT fica de fora de propósito — não há tela que
+ * mostre satisfação hoje, e um link para /reports seria enganoso.
+ */
+export interface WidgetRoute {
+  path: string;
+  roles: UserRole[];
+}
+
+export const WIDGET_ROUTES: Partial<Record<WidgetId, WidgetRoute>> = {
+  'reports-kpi':        { path: '/reports', roles: ROUTE_ROLES.reports },
+  'sla-rate':           { path: '/reports', roles: ROUTE_ROLES.reports },
+  'return-rate':        { path: '/reports', roles: ROUTE_ROLES.reports },
+  'productivity':       { path: '/reports', roles: ROUTE_ROLES.reports },
+  'reimbursements-kpi': { path: '/reimbursements', roles: ROUTE_ROLES.reimbursements },
+  'ticket-medio':       { path: '/reimbursements', roles: ROUTE_ROLES.reimbursements },
+  'approval-rate':      { path: '/reimbursements', roles: ROUTE_ROLES.reimbursements },
+  'cpq-kpi':            { path: '/orcamentos', roles: ROUTE_ROLES.orcamentos },
+  'agenda-hoje':        { path: '/agenda', roles: ROUTE_ROLES.agenda },
+  'estoque-critico':    { path: '/parts', roles: ROUTE_ROLES.inventory },
+  'budget-burn':        { path: '/admin/budget', roles: ROUTE_ROLES.admin },
+};

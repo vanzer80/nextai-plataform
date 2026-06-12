@@ -179,7 +179,7 @@ Secrets (nunca no .env): `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, `OPENAI_API_KEY
 
 ## Estado dos testes
 
-- **Vitest (unit):** 117 testes passando ✅ (`npx vitest run`)
+- **Vitest (unit):** 163 testes passando ✅ (`npx vitest run`)
 - **Playwright E2E:**
   - `tests/ux/` — 37 testes UX/UI (login, RBAC, responsividade, estados)
   - `tests/orcamentos-sprint-d.spec.ts` — 5 testes Sprint D (assinatura eletrônica) — flaky cold-start free tier
@@ -201,7 +201,7 @@ Secrets (nunca no .env): `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, `OPENAI_API_KEY
 
 ```
 src/pages/dashboard/
-  widgetRegistry.ts          — 15 widgets definidos; WIDGET_COL_SPAN Map O(1); DashboardPeriod type
+  widgetRegistry.ts          — 15 widgets definidos; WIDGET_COL_SPAN Map O(1); DashboardPeriod type; WIDGET_ROUTES + WIDGET_LABEL (drill-down)
   dashboardConfig.ts         — defaults por role (sem personalização)
   dashboardPreferencesService.ts — load/save/reset no Supabase (3 round-trips)
   useDashboardPrefs.ts       — hook: carrega prefs do banco, merge com role, segurança contra downgrade
@@ -213,6 +213,16 @@ src/pages/dashboard/
     AgendaHojeWidget.tsx     — OS hoje/técnicos/criticas/SLA vencido
     EstoqueCriticoWidget.tsx — itens abaixo do mínimo/valor total
 ```
+
+### KPIs clicáveis (drill-down) — 2026-06-12
+
+Cada card de KPI (colSpan 1) é um `<Link>` para a tela de origem da métrica, via `KpiClickable` em `Dashboard.tsx` + `WIDGET_ROUTES` no registry.
+
+- **Fonte única de roles:** `src/config/routeAccess.ts` (`ROUTE_ROLES`) alimenta **tanto** os `<RoleGuard>` de `App.tsx` quanto o gate de cada `WIDGET_ROUTES`. Nunca hardcodar arrays de role no registry (ver armadilha #70).
+- **Gate por acesso:** o card só vira link quando o role atual ∈ `route.roles`; senão renderiza estático. Evita o clique morto que o `RoleGuard` rebateria para `/dashboard` (ex.: `Financeiro` vê "Burn Rate" mas não acessa `/admin/budget`; `Comprador` vê "Estoque Crítico" mas não acessa `/parts`).
+- **Critério de inclusão:** só recebe rota o KPI cuja tela de destino expõe os dados da métrica. **CSAT fica de fora de propósito** — não há tela que mostre satisfação; link para `/reports` seria enganoso.
+- **A11y/affordance:** `aria-label` legível (`Abrir ${WIDGET_LABEL}`, nunca o path cru) + `hover:ring-2` (não colide com a iconografia heterogênea dos cards, sem layout shift — ≠ chevron do `HrSummaryWidget`, cujos cards são uniformes).
+- **Integridade travada por teste:** `__tests__/widgetRegistry.test.ts` falha se um array de role for hardcoded (em vez de referência a `ROUTE_ROLES`), se um card clicável perder label, ou se a audiência do widget não intersectar as roles da rota.
 
 ### Migrations aplicadas (2026-05-31)
 
@@ -253,6 +263,7 @@ get_dashboard_agenda_kpis()            → jsonb  -- os_hoje, tecnicos_hoje, cri
 42. **RPC `RETURNS void` → HTTP 204** → funções PostgreSQL que não retornam valor (`RETURNS void`) retornam HTTP 204 No Content via PostgREST, não 200. Em testes Playwright: `expect([200, 204]).toContain(resp.status())`.
 43. **PlatformLayout usa `<aside>`, não `<nav>`** → os links da sidebar do PlatformLayout ficam dentro de `<aside>`, não `<nav>`. Seletores Playwright devem usar `a[href="/platform/..."]` sem prefixo de tag, ou `aside a[href=...]`.
 44. **Playwright `waitForResponse` deve ser configurado ANTES do click** → configurar o listener depois do click cria race condition: se a resposta chegar antes do listener estar ativo, o teste trava até timeout. Padrão correto: `const p = page.waitForResponse(...); await button.click(); await p;`
+70. **Acesso por rota tem fonte única em `src/config/routeAccess.ts` (`ROUTE_ROLES`)** → os `<RoleGuard allowedRoles={...}>` de `App.tsx` e o gate de drill-down dos KPIs (`WIDGET_ROUTES`) referenciam o **mesmo** objeto. Nunca recriar um array de roles inline — duas fontes divergem silenciosamente e um card passa a linkar para rota bloqueada (clique morto → `RoleGuard` rebate para `/dashboard`). Ao alterar o `allowedRoles` de uma rota, edite só o `ROUTE_ROLES`. Travado por `src/pages/dashboard/__tests__/widgetRegistry.test.ts` (integridade referencial).
 45. **Dados de teste Playwright com RPCs de escrita** → ao usar `update_tenant_commercial` em testes, o banco é modificado permanentemente. Se o teste falhar no meio, os dados ficam corrompidos para execuções futuras. Usar campos não-críticos (ex: `phone`) para testes de save, ou restaurar via `afterEach` com limpeza explícita.
 46. **Novo export em service mockado no Vitest** → ao adicionar uma função a um service que já tem `vi.mock(...)` em algum teste, a nova função precisa ser adicionada ao mock também — caso contrário o Vitest lança `No "funcao" export is defined on the mock`. Sempre atualizar o mock ao adicionar exports a services testados.
 47. **RPCs SECURITY DEFINER: isolamento vs autorização** → distinguir claramente os dois padrões:

@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from '@/src/contexts/AuthContext';
 import { TenantProvider } from '@/src/contexts/TenantContext';
 import { OnboardingProvider } from '@/src/onboarding/OnboardingContext';
 import { ProtectedRoute, RoleGuard, PlatformGuard } from '@/src/components/auth/ProtectedRoute';
+import { ROUTE_ROLES } from '@/src/config/routeAccess';
 import AppLayout from '@/src/components/layout/AppLayout';
 import PlatformLayout from '@/src/components/layout/PlatformLayout';
 import ClientPortalLayout from '@/src/components/layout/ClientPortalLayout';
@@ -121,14 +122,14 @@ export default function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               
               {/* OS — Master, Admin, Gestor, Supervisor, Técnico */}
-              <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor', 'Tecnico']} />}>
+              <Route element={<RoleGuard allowedRoles={ROUTE_ROLES.reports} />}>
                 <Route path="/reports" element={<ReportsList />} />
                 <Route path="/reports/new" element={<NewReport />} />
                 <Route path="/reports/:id" element={<ReportDetail />} />
               </Route>
 
               {/* Orçamentos — Master, Admin, Gestor, Supervisor */}
-              <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor']} />}>
+              <Route element={<RoleGuard allowedRoles={ROUTE_ROLES.orcamentos} />}>
                 <Route path="/orcamentos" element={<OrcamentosList />} />
                 <Route path="/orcamentos/novo" element={<NovoOrcamento />} />
                 <Route path="/orcamentos/:id/editar" element={<NovoOrcamento />} />
@@ -136,7 +137,7 @@ export default function App() {
               </Route>
 
               {/* Reembolsos — Master, Admin, Gestor, Supervisor, Financeiro, Administrativo, Técnico */}
-              <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor', 'Financeiro', 'Administrativo', 'Tecnico']} />}>
+              <Route element={<RoleGuard allowedRoles={ROUTE_ROLES.reimbursements} />}>
                 <Route path="/reimbursements" element={<ReimbursementsList />} />
                 <Route path="/reimbursements/new" element={<NewReimbursement />} />
                 <Route path="/reimbursements/:id/edit" element={<NewReimbursement />} />
@@ -144,40 +145,40 @@ export default function App() {
               </Route>
 
               {/* Compras — Master, Admin, Gestor, Supervisor, Financeiro, Comprador, Administrativo, Técnico */}
-              <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor', 'Financeiro', 'Comprador', 'Administrativo', 'Tecnico']} />}>
+              <Route element={<RoleGuard allowedRoles={ROUTE_ROLES.materials} />}>
                 <Route path="/materials" element={<MaterialsList />} />
                 <Route path="/materials/new" element={<NewMaterialRequest />} />
                 <Route path="/materials/:id/edit" element={<NewMaterialRequest />} />
               </Route>
 
               {/* Agenda/Dispatch — Master, Admin, Gestor, Supervisor */}
-              <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor']} />}>
+              <Route element={<RoleGuard allowedRoles={ROUTE_ROLES.agenda} />}>
                 <Route path="/agenda" element={<AgendaPage />} />
               </Route>
 
               {/* Clientes — Master, Admin, Gestor, Supervisor */}
-              <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor']} />}>
+              <Route element={<RoleGuard allowedRoles={ROUTE_ROLES.clients} />}>
                 <Route path="/clients" element={<ClientsList />} />
               </Route>
 
               {/* Equipamentos — Master, Admin, Gestor, Supervisor */}
-              <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor']} />}>
+              <Route element={<RoleGuard allowedRoles={ROUTE_ROLES.equipments} />}>
                 <Route path="/equipments" element={<EquipmentManagement />} />
               </Route>
 
               {/* Fornecedores e Peças — Master, Admin, Gestor, Supervisor */}
-              <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor']} />}>
+              <Route element={<RoleGuard allowedRoles={ROUTE_ROLES.inventory} />}>
                 <Route path="/suppliers" element={<SupplierManagement />} />
                 <Route path="/parts" element={<PartsManagement />} />
               </Route>
 
               {/* Base de Conhecimento — todos os perfis operacionais */}
-              <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor', 'Supervisor', 'Tecnico', 'Financeiro', 'Administrativo', 'Comprador']} />}>
+              <Route element={<RoleGuard allowedRoles={ROUTE_ROLES.knowledge} />}>
                 <Route path="/knowledge" element={<KnowledgeBase />} />
               </Route>
 
               {/* Admin Area */}
-              <Route element={<RoleGuard allowedRoles={['Master', 'Admin', 'Gestor']} />}>
+              <Route element={<RoleGuard allowedRoles={ROUTE_ROLES.admin} />}>
                 <Route path="/admin/usuarios" element={<UserManagement />} />
                 <Route path="/admin/checklist-templates" element={<ChecklistTemplates />} />
                 <Route path="/admin/checklist-templates/new" element={<TemplateEditor />} />
@@ -193,12 +194,12 @@ export default function App() {
               </Route>
 
               {/* Master-only: tenant provisioning */}
-              <Route element={<RoleGuard allowedRoles={['Master']} />}>
+              <Route element={<RoleGuard allowedRoles={ROUTE_ROLES.tenants} />}>
                 <Route path="/admin/tenants" element={<TenantManagement />} />
               </Route>
 
               {/* RH — Recursos Humanos */}
-              <Route element={<RoleGuard allowedRoles={['Gestor', 'Admin', 'Master']} />}>
+              <Route element={<RoleGuard allowedRoles={ROUTE_ROLES.rh} />}>
                 <Route path="/rh"                        element={<Navigate to="/rh/employees" replace />} />
                 <Route path="/rh/employees"              element={<EmployeesList />} />
                 <Route path="/rh/employees/new"          element={<EmployeeForm />} />
@@ -207,7 +208,7 @@ export default function App() {
               </Route>
 
               {/* DP — Departamento Pessoal */}
-              <Route element={<RoleGuard allowedRoles={['Gestor', 'Admin', 'Master']} />}>
+              <Route element={<RoleGuard allowedRoles={ROUTE_ROLES.dp} />}>
                 <Route path="/dp"                        element={<Navigate to="/dp/payroll" replace />} />
                 <Route path="/dp/payroll"                element={<PayrollList />} />
                 <Route path="/dp/payroll/:id"            element={<PayrollDetail />} />
@@ -216,7 +217,7 @@ export default function App() {
               </Route>
 
               {/* CP — Contas a Pagar */}
-              <Route element={<RoleGuard allowedRoles={['Financeiro', 'Gestor', 'Admin', 'Master']} />}>
+              <Route element={<RoleGuard allowedRoles={ROUTE_ROLES.cp} />}>
                 <Route path="/cp"                        element={<Navigate to="/cp/payables" replace />} />
                 <Route path="/cp/payables"               element={<PayablesList />} />
                 <Route path="/cp/new"                    element={<PayableForm />} />
