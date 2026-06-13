@@ -16,7 +16,12 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/src/components/ui/alert-dialog';
-import { supabase } from '@/src/lib/supabase';
+import {
+  getApiKeys,
+  getApiUsageStats,
+  createApiKey,
+  revokeApiKey,
+} from '@/src/services/apiKeyService';
 import type { ApiKey, ApiUsageStats } from '@/src/types/integrations';
 import { API_SCOPES } from '@/src/types/integrations';
 
@@ -64,8 +69,8 @@ export default function ApiKeys() {
   const load = useCallback(async () => {
     setLoading(true);
     const [keysRes, statsRes] = await Promise.all([
-      supabase.rpc('get_api_keys'),
-      supabase.rpc('get_api_usage_stats', { p_days: 7 }),
+      getApiKeys(),
+      getApiUsageStats(7),
     ]);
     if (keysRes.error) toast.error('Erro ao carregar API keys.');
     else setKeys((keysRes.data ?? []) as ApiKey[]);
@@ -84,11 +89,7 @@ export default function ApiKeys() {
     if (formScopes.length === 0) { toast.warning('Selecione ao menos um escopo.'); return; }
     setCreating(true);
     const expiresAt = formExpires ? new Date(formExpires).toISOString() : null;
-    const { data, error } = await supabase.rpc('create_api_key', {
-      p_name: formName.trim(),
-      p_scopes: formScopes,
-      p_expires_at: expiresAt,
-    });
+    const { data, error } = await createApiKey(formName.trim(), formScopes, expiresAt);
     setCreating(false);
     if (error) { toast.error(error.message); return; }
     const result = data as { id: string; key: string; prefix: string };
@@ -102,7 +103,7 @@ export default function ApiKeys() {
   async function handleRevoke() {
     if (!revokeTarget) return;
     setRevoking(true);
-    const { error } = await supabase.rpc('revoke_api_key', { p_key_id: revokeTarget.id });
+    const { error } = await revokeApiKey(revokeTarget.id);
     setRevoking(false);
     setRevokeTarget(null);
     if (error) { toast.error(error.message); return; }
