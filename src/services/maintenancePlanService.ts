@@ -1,8 +1,10 @@
 import { supabase } from '@/src/lib/supabase';
 import type { MaintenancePlan, CreateMaintenancePlanDTO } from '@/src/types/maintenancePlan';
 
-// Lança o erro bruto do supabase (não Error) para preservar o tratamento
-// `e instanceof Error ? e.message : <generico>` dos callers.
+// Lança o erro BRUTO do supabase (não `new Error`), idêntico ao comportamento
+// original — que também lançava o objeto cru. PostgrestError NÃO é instância de
+// Error: em handleSave (`e instanceof Error ? e.message : <generico>`) cai no
+// genérico, como já era no base; toggle/delete usam `e?.message`. Preservado tal qual.
 
 export async function getMaintenancePlans(): Promise<MaintenancePlan[]> {
   const { data, error } = await supabase
