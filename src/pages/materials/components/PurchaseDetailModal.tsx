@@ -9,7 +9,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/src/components/ui/select';
 import { toast } from 'sonner';
-import { supabase } from '@/src/lib/supabase';
+import { processMaterialRequest } from '@/src/services/materialRequestService';
+import type { PurchaseRequest } from '@/src/types/materialRequest';
 import { useAuth } from '@/src/contexts/AuthContext';
 import {
   ExternalLink, Image as ImageIcon, Calendar, MapPin, Building2,
@@ -18,34 +19,6 @@ import {
 import clsx from 'clsx';
 import { generatePurchaseOrder } from '@/src/services/purchaseOrderService';
 import type { GeneratePOInput } from '@/src/types/purchaseOrder';
-
-export type PurchaseRequest = {
-  id: string;
-  request_number?: string;
-  tech_id: string;
-  item: string;
-  quantity: string;
-  status: string;
-  created_at: string;
-  cidade?: string;
-  loja?: string;
-  maintenance_type?: string;
-  prazo?: string;
-  especificacao_tecnica?: string;
-  foto_url?: string;
-  link_referencia?: string;
-  obs?: string;
-  comprador_response?: string;
-  comprador_id?: string;
-  processed_at?: string;
-  purchase_price?: number;
-  purchase_link?: string;
-  logistics_type?: 'retirada' | 'entrega' | null;
-  supplier_name?: string | null;
-  pickup_address?: string | null;
-  clients?: { name: string };
-  users?: { full_name: string };
-};
 
 interface Props {
   request: PurchaseRequest | null;
@@ -147,15 +120,13 @@ export default function PurchaseDetailModal({ request, canProcess, onClose, onUp
         supplier_name: supplierName.trim() || null,
         pickup_address: logisticsType && pickupAddress.trim() ? pickupAddress.trim() : null,
       };
-      const { error } = await supabase.from('material_requests').update(payload).eq('id', request.id);
-      if (error) throw error;
       const itemName = request.especificacao_tecnica || request.item;
       const notif = buildNotification(status, itemName, response.trim(), {
         type: logisticsType,
         supplier: supplierName.trim(),
         address: pickupAddress.trim(),
       });
-      await supabase.from('notifications').insert({ user_id: request.tech_id, ...notif });
+      await processMaterialRequest(request.id, payload, request.tech_id, notif);
       toast.success('Salvo!', { id: toastId, description: `Status: "${status}" — técnico notificado.` });
       onUpdated({ ...request, ...payload } as PurchaseRequest);
     } catch (err: any) {

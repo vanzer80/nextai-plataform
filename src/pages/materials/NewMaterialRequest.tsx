@@ -7,10 +7,15 @@ import { ArrowLeft, Package, MapPin, Wrench, Upload, Loader2, Sparkles } from 'l
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useTenant } from '@/src/contexts/TenantContext';
 import { toast } from 'sonner';
-import { supabase } from '@/src/lib/supabase';
-import { withTimeout } from '@/src/lib/withTimeout';
 import { useClients } from '@/src/hooks/useClients';
 import { extractMaterialFromImages, extractMaterialFromVoice } from '@/src/services/aiService';
+import {
+  getMaterialRequestById,
+  uploadMaterialPhoto,
+  createMaterialRequest,
+  updateMaterialRequest,
+  notifyCompradores,
+} from '@/src/services/materialRequestService';
 import type { CapturedImage } from '@/src/components/capture/CaptureStep';
 import CaptureStep from '@/src/components/capture/CaptureStep';
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
@@ -68,13 +73,7 @@ export default function NewMaterialRequest() {
     if (!isEditMode || !id) return;
     const loadRequest = async () => {
       try {
-        const { data, error } = await supabase
-          .from('material_requests')
-          .select('*')
-          .eq('id', id)
-          .single();
-
-        if (error) throw error;
+        const data = await getMaterialRequestById(id);
         if (!data) throw new Error('Solicitação não encontrada.');
 
         setValue('cidade', data.cidade || '');
@@ -177,11 +176,7 @@ export default function NewMaterialRequest() {
         toast.loading('Enviando foto...', { id: toastId });
         const ext = foto.name.split('.').pop();
         const path = `${tenant?.id ?? user.id}/materials/${user.id}/${Date.now()}.${ext}`;
-        const { error: uploadError } = await withTimeout(
-          supabase.storage.from('materials_media').upload(path, foto),
-          30000
-        ) as { data: unknown; error: { message: string } | null };
-        if (uploadError) throw new Error('Erro no upload da foto: ' + uploadError.message);
+        await uploadMaterialPhoto(path, foto);
         foto_url = path;
       }
 
@@ -202,39 +197,31 @@ export default function NewMaterialRequest() {
 
       if (isEditMode) {
         toast.loading('Salvando alterações...', { id: toastId });
-        const { error } = await withTimeout(
-          supabase.from('material_requests').update(payload).eq('id', id),
-          30000
-        ) as { data: unknown; error: { message: string } | null };
-        if (error) throw new Error(error.message);
+        await updateMaterialRequest(id!, payload);
 
         const techName = user.full_name || user.email?.split('@')[0] || 'Técnico';
         const itemShort = values.especificacao_tecnica.substring(0, 60);
-        await supabase.rpc('notify_compradores', {
-          p_title: 'Solicitação editada',
-          p_message: `${techName} atualizou a solicitação: "${itemShort}".`,
-        });
+        await notifyCompradores(
+          'Solicitação editada',
+          `${techName} atualizou a solicitação: "${itemShort}".`,
+        );
         toast.success('Solicitação atualizada!', { id: toastId });
       } else {
         toast.loading('Salvando solicitação...', { id: toastId });
-        const { error } = await withTimeout(
-          supabase.from('material_requests').insert({
-            ...payload,
-            tech_id: user.id,
-            urgency: 'Média',
-            status: 'Pendente',
-          }),
-          30000
-        ) as { data: unknown; error: { message: string } | null };
-        if (error) throw new Error(error.message);
+        await createMaterialRequest({
+          ...payload,
+          tech_id: user.id,
+          urgency: 'Média',
+          status: 'Pendente',
+        });
 
         const techName = user.full_name || user.email?.split('@')[0] || 'Técnico';
         const itemShort = values.especificacao_tecnica.substring(0, 60);
         const localizacao = [values.cidade, values.loja].filter(Boolean).join(' / ');
-        await supabase.rpc('notify_compradores', {
-          p_title: 'Nova solicitação de compra',
-          p_message: `${techName} solicitou: "${itemShort}"${localizacao ? ` — ${localizacao}` : ''}.`,
-        });
+        await notifyCompradores(
+          'Nova solicitação de compra',
+          `${techName} solicitou: "${itemShort}"${localizacao ? ` — ${localizacao}` : ''}.`,
+        );
         toast.success('Solicitação enviada com sucesso!', { id: toastId });
       }
 
