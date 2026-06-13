@@ -21,7 +21,14 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/src/components/ui/alert-dialog';
-import { supabase } from '@/src/lib/supabase';
+import {
+  getMaintenancePlans,
+  createMaintenancePlan,
+  updateMaintenancePlan,
+  setMaintenancePlanActive,
+  deleteMaintenancePlan,
+  runDueMaintenanceOrders,
+} from '@/src/services/maintenancePlanService';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useTenant } from '@/src/contexts/TenantContext';
 import { useClients } from '@/src/hooks/useClients';
@@ -83,12 +90,7 @@ export default function MaintenancePlans() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('maintenance_plans')
-        .select('*, clients(name), users:assigned_technician_id(full_name)')
-        .order('next_due_at', { ascending: true });
-      if (error) throw error;
-      setPlans((data ?? []) as MaintenancePlan[]);
+      setPlans(await getMaintenancePlans());
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Erro ao carregar planos.');
     } finally {
@@ -146,17 +148,10 @@ export default function MaintenancePlans() {
     setSaving(true);
     try {
       if (editing) {
-        const { error } = await supabase
-          .from('maintenance_plans')
-          .update({ ...form, updated_at: new Date().toISOString() })
-          .eq('id', editing.id);
-        if (error) throw error;
+        await updateMaintenancePlan(editing.id, form);
         toast.success('Plano atualizado.');
       } else {
-        const { error } = await supabase
-          .from('maintenance_plans')
-          .insert({ ...form, team_id: tenant?.id ?? '' });
-        if (error) throw error;
+        await createMaintenancePlan(form, tenant?.id ?? '');
         toast.success('Plano criado. A primeira OS será gerada automaticamente no dia programado.');
       }
       setDialogOpen(false);
@@ -169,29 +164,34 @@ export default function MaintenancePlans() {
   };
 
   const handleToggleActive = async (plan: MaintenancePlan) => {
-    const { error } = await supabase
-      .from('maintenance_plans')
-      .update({ is_active: !plan.is_active, updated_at: new Date().toISOString() })
-      .eq('id', plan.id);
-    if (error) { toast.error(error.message); return; }
+    try {
+      await setMaintenancePlanActive(plan.id, !plan.is_active);
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Erro ao atualizar.');
+      return;
+    }
     toast.success(plan.is_active ? 'Plano pausado.' : 'Plano reativado.');
     load();
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    const { error } = await supabase.from('maintenance_plans').delete().eq('id', deleteTarget.id);
-    if (error) { toast.error(error.message); }
-    else { toast.success('Plano excluído.'); load(); }
-    setDeleteTarget(null);
+    try {
+      await deleteMaintenancePlan(deleteTarget.id);
+      toast.success('Plano excluído.');
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Erro ao excluir.');
+    } finally {
+      setDeleteTarget(null);
+    }
   };
 
   const handleRunNow = async () => {
     setRunning(true);
     try {
-      const { data, error } = await supabase.rpc('create_due_maintenance_orders');
-      if (error) throw error;
-      toast.success(`${data} OS criada(s) com sucesso.`);
+      const count = await runDueMaintenanceOrders();
+      toast.success(`${count} OS criada(s) com sucesso.`);
       load();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Erro ao executar.');
