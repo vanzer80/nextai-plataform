@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Settings, Palette, Image as ImageIcon, Loader2, User as UserIcon, Save } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/src/lib/supabase';
+import { uploadTenantLogo, updateTenant } from '@/src/services/platformTenantService';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useTenant } from '@/src/contexts/TenantContext';
 import { applyTenantBrand } from '@/src/lib/color';
@@ -91,19 +91,12 @@ export default function PlatformSettings() {
       };
 
       if (logoFile) {
-        const ext = logoFile.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-        const path = `${tenant.slug}/logo.${ext}`;
-        const { error: uploadErr } = await supabase.storage
-          .from('tenant-assets')
-          .upload(path, logoFile, { upsert: true, contentType: logoFile.type });
-        if (uploadErr) throw new Error(`Erro ao fazer upload do logo: ${uploadErr.message}`);
-        const { data: urlData } = supabase.storage.from('tenant-assets').getPublicUrl(path);
-        updates.logo_url = `${urlData.publicUrl}?t=${Date.now()}`;
+        updates.logo_url = await uploadTenantLogo(logoFile, tenant.slug);
       } else if (logoRemoved) {
         updates.logo_url = null;
       }
 
-      const { error } = await supabase.from('tenants').update(updates).eq('id', tenant.id);
+      const { error } = await updateTenant(tenant.id, updates);
       if (error) throw error;
 
       applyTenantBrand(data.primary_color);

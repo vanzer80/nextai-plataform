@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Wrench, Loader2, Pencil, Trash2, Eye, AlertTriangle, QrCode } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Wrench, Loader2, Pencil, Trash2, Eye, AlertTriangle, QrCode, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
@@ -18,7 +18,7 @@ import { useEquipments } from '@/src/hooks/useEquipments';
 import { useClients } from '@/src/hooks/useClients';
 import { createEquipment, updateEquipment, deleteEquipment } from '@/src/services/equipmentService';
 import { maintenanceStatus } from '@/src/types/equipment';
-import type { Equipment, CreateEquipmentDTO } from '@/src/types/equipment';
+import type { Equipment, CreateEquipmentDTO, MaintenanceStatus } from '@/src/types/equipment';
 import EquipmentDetailDialog from './components/EquipmentDetailDialog';
 
 // ── Manutenção status badge ───────────────────────────────────────────────────
@@ -33,6 +33,8 @@ const MAINT_CONFIG = {
 const STATUS_LABELS: Record<string, string> = {
   ativo: 'Ativo', inativo: 'Inativo', manutencao: 'Em Manutenção',
 };
+
+const PAGE_SIZE_OPTIONS = [20, 50, 100] as const;
 
 // ── Form draft ────────────────────────────────────────────────────────────────
 
@@ -63,7 +65,49 @@ export default function EquipmentManagement() {
   const [deleting, setDeleting] = useState(false);
   const [draft, setDraft] = useState<CreateEquipmentDTO>(EMPTY_DRAFT);
 
+  // ── Filtros & paginação ─────────────────────────────────────────────────────
+  const [search, setSearch] = useState('');
+  const [filterClient, setFilterClient] = useState('__all__');
+  const [filterStatus, setFilterStatus] = useState('__all__');
+  const [filterMaint, setFilterMaint] = useState('__all__');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(20);
+
+  const hasActiveFilters = search || filterClient !== '__all__' || filterStatus !== '__all__' || filterMaint !== '__all__';
+
+  const clearFilters = () => {
+    setSearch('');
+    setFilterClient('__all__');
+    setFilterStatus('__all__');
+    setFilterMaint('__all__');
+    setPage(1);
+  };
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return equipments.filter(eq => {
+      if (q && !eq.name.toLowerCase().includes(q) && !(eq.serial_number ?? '').toLowerCase().includes(q) && !(eq.manufacturer ?? '').toLowerCase().includes(q)) return false;
+      if (filterClient !== '__all__' && eq.client_id !== filterClient) return false;
+      if (filterStatus !== '__all__' && eq.status !== filterStatus) return false;
+      if (filterMaint !== '__all__' && maintenanceStatus(eq) !== filterMaint) return false;
+      return true;
+    });
+  }, [equipments, search, filterClient, filterStatus, filterMaint]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+
   const overdueCount = equipments.filter(e => maintenanceStatus(e) === 'vencida').length;
+
+  // Derivar lista de clientes únicos presentes nos equipamentos
+  const uniqueClients = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const eq of equipments) {
+      if (eq.client_id && eq.clients?.name) map.set(eq.client_id, eq.clients.name);
+    }
+    return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  }, [equipments]);
 
   const openCreate = () => {
     setSelected(null);
@@ -149,8 +193,15 @@ export default function EquipmentManagement() {
     }
   };
 
+  // Reset page when filters change
+  const handleSearchChange = (v: string) => { setSearch(v); setPage(1); };
+  const handleClientFilter = (v: string) => { setFilterClient(v); setPage(1); };
+  const handleStatusFilter = (v: string) => { setFilterStatus(v); setPage(1); };
+  const handleMaintFilter = (v: string) => { setFilterMaint(v); setPage(1); };
+  const handlePageSizeChange = (v: string) => { setPageSize(Number(v)); setPage(1); };
+
   return (
-    <div className="flex flex-col gap-6 h-full w-full pb-6 animate-in fade-in duration-300">
+    <div className="flex flex-col gap-6 w-full pb-6 animate-in fade-in duration-300">
 
       {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -173,6 +224,79 @@ export default function EquipmentManagement() {
         </Button>
       </div>
 
+      {/* ── Filtros ──────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* Busca */}
+          <div className="relative flex-1 min-w-0 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              value={search}
+              onChange={e => handleSearchChange(e.target.value)}
+              placeholder="Buscar por nome, série ou fabricante..."
+              className="h-10 rounded-xl pl-9 pr-3"
+            />
+          </div>
+
+          {/* Filtros */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={filterClient} onValueChange={handleClientFilter}>
+              <SelectTrigger className="h-10 rounded-xl w-auto min-w-[160px]">
+                <SelectValue placeholder="Cliente" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todos os clientes</SelectItem>
+                {uniqueClients.map(([id, name]) => (
+                  <SelectItem key={id} value={id}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterStatus} onValueChange={handleStatusFilter}>
+              <SelectTrigger className="h-10 rounded-xl w-auto min-w-[140px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todos os status</SelectItem>
+                <SelectItem value="ativo">Ativo</SelectItem>
+                <SelectItem value="inativo">Inativo</SelectItem>
+                <SelectItem value="manutencao">Em Manutenção</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={filterMaint} onValueChange={handleMaintFilter}>
+              <SelectTrigger className="h-10 rounded-xl w-auto min-w-[160px]">
+                <SelectValue placeholder="Preventiva" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todas preventivas</SelectItem>
+                <SelectItem value="vencida">Vencida</SelectItem>
+                <SelectItem value="proxima">Próxima</SelectItem>
+                <SelectItem value="ok">Em dia</SelectItem>
+                <SelectItem value="sem-dados">Sem dados</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-10 px-3 text-muted-foreground hover:text-foreground gap-1.5">
+                <X className="h-3.5 w-3.5" />
+                Limpar
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Counter */}
+        {!loading && equipments.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            {filtered.length === equipments.length
+              ? `${equipments.length} equipamento${equipments.length > 1 ? 's' : ''} no total`
+              : `${filtered.length} de ${equipments.length} equipamento${equipments.length > 1 ? 's' : ''}`}
+            {' · '}Página {safePage} de {totalPages}
+          </p>
+        )}
+      </div>
+
       {/* Tabela */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         {loading ? (
@@ -185,75 +309,149 @@ export default function EquipmentManagement() {
             <p className="text-sm font-medium">Nenhum equipamento cadastrado.</p>
             <p className="text-xs">Cadastre o primeiro equipamento clicando em "Novo Equipamento".</p>
           </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center py-16 gap-3 text-muted-foreground">
+            <Filter className="h-10 w-10 opacity-30" />
+            <p className="text-sm font-medium">Nenhum equipamento encontrado com esses filtros.</p>
+            <Button variant="outline" size="sm" onClick={clearFilters} className="gap-1.5">
+              <X className="h-3.5 w-3.5" /> Limpar filtros
+            </Button>
+          </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead className="hidden sm:table-cell">Cliente</TableHead>
-                <TableHead className="hidden md:table-cell">Tipo</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Preventiva</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {equipments.map(eq => {
-                const ms = maintenanceStatus(eq);
-                const msConfig = MAINT_CONFIG[ms];
-                return (
-                  <TableRow key={eq.id} className="hover:bg-muted/50 transition-colors">
-                    <TableCell className="font-medium">{eq.name}</TableCell>
-                    <TableCell className="hidden sm:table-cell text-muted-foreground">
-                      {eq.clients?.name ?? '—'}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell text-muted-foreground">
-                      {eq.type ?? '—'}
-                    </TableCell>
-                    <TableCell>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        eq.status === 'ativo' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' :
-                        eq.status === 'manutencao' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400' :
-                        'bg-muted text-muted-foreground'
-                      }`}>
-                        {STATUS_LABELS[eq.status] ?? eq.status}
-                      </span>
-                    </TableCell>
-                    <TableCell data-onboarding={eq === equipments[0] ? 'eq-preventiva-col' : undefined}>
-                      {ms !== 'sem-dados' && (
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${msConfig.className}`}>
-                          {msConfig.label}
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead className="hidden sm:table-cell">Cliente</TableHead>
+                  <TableHead className="hidden md:table-cell">Tipo</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Preventiva</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginated.map(eq => {
+                  const ms = maintenanceStatus(eq);
+                  const msConfig = MAINT_CONFIG[ms];
+                  return (
+                    <TableRow key={eq.id} className="hover:bg-muted/50 transition-colors">
+                      <TableCell className="font-medium">{eq.name}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-muted-foreground">
+                        {eq.clients?.name ?? '—'}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-muted-foreground">
+                        {eq.type ?? '—'}
+                      </TableCell>
+                      <TableCell>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                          eq.status === 'ativo' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' :
+                          eq.status === 'manutencao' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400' :
+                          'bg-muted text-muted-foreground'
+                        }`}>
+                          {STATUS_LABELS[eq.status] ?? eq.status}
                         </span>
-                      )}
-                      {ms === 'sem-dados' && <span className="text-muted-foreground text-xs">—</span>}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(eq)} data-onboarding={eq === equipments[0] ? 'eq-detalhe-btn' : undefined}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(eq)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary/70 hover:text-primary" title="Gerar Etiqueta QR"
-                          onClick={async () => {
-                            try {
-                              const { exportarEtiquetaQR } = await import('@/src/utils/gerarEtiquetaQR');
-                              await exportarEtiquetaQR(eq);
-                            } catch (e) { toast.error('Erro ao gerar QR: ' + (e instanceof Error ? e.message : String(e))); }
-                          }}>
-                          <QrCode className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => openDelete(eq)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                      <TableCell data-onboarding={eq === equipments[0] ? 'eq-preventiva-col' : undefined}>
+                        {ms !== 'sem-dados' && (
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${msConfig.className}`}>
+                            {msConfig.label}
+                          </span>
+                        )}
+                        {ms === 'sem-dados' && <span className="text-muted-foreground text-xs">—</span>}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(eq)} data-onboarding={eq === equipments[0] ? 'eq-detalhe-btn' : undefined}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(eq)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary/70 hover:text-primary" title="Gerar Etiqueta QR"
+                            onClick={async () => {
+                              try {
+                                const { exportarEtiquetaQR } = await import('@/src/utils/gerarEtiquetaQR');
+                                await exportarEtiquetaQR(eq);
+                              } catch (e) { toast.error('Erro ao gerar QR: ' + (e instanceof Error ? e.message : String(e))); }
+                            }}>
+                            <QrCode className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => openDelete(eq)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {/* ── Paginação ────────────────────────────────────────────────────────── */}
+        {!loading && filtered.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-border bg-muted/30">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>Exibir</span>
+              <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
+                <SelectTrigger className="h-8 w-[70px] rounded-lg text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZE_OPTIONS.map(n => (
+                    <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span>por página</span>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline" size="icon"
+                className="h-8 w-8 rounded-lg"
+                disabled={safePage <= 1}
+                onClick={() => setPage(1)}
+                title="Primeira página"
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline" size="icon"
+                className="h-8 w-8 rounded-lg"
+                disabled={safePage <= 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                title="Página anterior"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              <span className="text-sm font-medium px-3 tabular-nums">
+                {safePage} / {totalPages}
+              </span>
+
+              <Button
+                variant="outline" size="icon"
+                className="h-8 w-8 rounded-lg"
+                disabled={safePage >= totalPages}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                title="Próxima página"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline" size="icon"
+                className="h-8 w-8 rounded-lg"
+                disabled={safePage >= totalPages}
+                onClick={() => setPage(totalPages)}
+                title="Última página"
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         )}
       </div>
 

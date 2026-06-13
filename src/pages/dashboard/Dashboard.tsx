@@ -62,7 +62,7 @@ export default function Dashboard() {
   const hasCharts = showBar || showPie;
 
   return (
-    <div className="flex flex-col gap-5 h-full w-full pb-6 animate-in fade-in duration-300">
+    <div className="flex flex-col gap-5 w-full pb-6 animate-in fade-in duration-300">
 
       {/* Header */}
       <header className="flex items-start justify-between gap-4 mb-1">
