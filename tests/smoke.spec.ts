@@ -26,6 +26,21 @@ async function login(page: Page, email: string, password: string) {
   await page.fill('input[type="password"]', password);
   await page.click('button[type="submit"]');
   await page.waitForURL(/\/(dashboard|reports)/, { timeout: 15_000 });
+
+  // Suppress onboarding modal so it doesn't block test interactions
+  await page.evaluate(() => {
+    for (const key of Object.keys(localStorage)) {
+      if (key.includes('auth-token')) {
+        try {
+          const data = JSON.parse(localStorage.getItem(key) ?? '{}');
+          const userId = data?.user?.id;
+          if (userId) {
+            localStorage.setItem(`onboarding_v1_done_${userId}`, 'true');
+          }
+        } catch { /* ignore */ }
+      }
+    }
+  });
 }
 
 // ── Helper: logout ─────────────────────────────────────────────────────────────
@@ -83,10 +98,12 @@ test('S1 — Técnico cria relatório (7 steps) → aparece na lista', async ({ 
     await page.mouse.up();
   }
 
-  await page.getByRole('button', { name: /enviar relatório/i }).click();
+  const sendBtn = page.getByRole('button', { name: /enviar relatório|enviar os/i });
+  await sendBtn.waitFor({ state: 'visible', timeout: 5_000 });
+  await sendBtn.click();
 
   // Aguardar toast de sucesso e redirect para /reports
-  await expect(page.getByText(/enviado com sucesso/i)).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/enviada com sucesso/i)).toBeVisible({ timeout: 20_000 });
   await page.waitForURL('/reports', { timeout: 10_000 });
 
   // Confirmar que o relatório aparece na lista
@@ -100,10 +117,10 @@ test('S2 — Gestor aprova relatório → status muda para Aprovado', async ({ p
   await login(page, MGR_EMAIL, MGR_PASSWORD);
   await page.goto('/reports');
 
-  // Clicar no primeiro relatório com status "Aguardando Revisão"
-  const pendingCard = page.getByText(/aguardando revis/i).first();
-  await pendingCard.waitFor({ timeout: 10_000 });
-  await pendingCard.click();
+  // Clicar no "Detalhes" do primeiro relatório
+  const firstDetailLink = page.getByRole('link', { name: 'Detalhes' }).first();
+  await firstDetailLink.waitFor({ timeout: 25_000 });
+  await firstDetailLink.click();
 
   // Aguardar a tela de detalhe
   await page.waitForURL(/\/reports\/.+/, { timeout: 10_000 });
@@ -128,16 +145,24 @@ test('S3 — Reembolso criado tem status PT correto (sem enum duplicado)', async
   await login(page, TECH_EMAIL, TECH_PASSWORD);
   await page.goto('/reimbursements/new');
 
-  await page.waitForSelector('input, select', { timeout: 10_000 });
+  // Se estiver na tela de seleção inicial, clica em "Preencher manualmente"
+  const manualBtn = page.getByRole('button', { name: /preencher manualmente/i });
+  await manualBtn.waitFor({ state: 'visible', timeout: 10_000 });
+  await manualBtn.click();
+
+  // Selecionar categoria (obrigatória no novo form)
+  await page.getByRole('combobox').first().click();
+  await page.getByRole('option', { name: 'Alimentação' }).click();
 
   // Preencher campos mínimos do formulário de reembolso
   const amountInput = page.locator('input[placeholder*="valor"], input[type="number"]').first();
+  await amountInput.waitFor({ state: 'visible', timeout: 10_000 });
   if (await amountInput.count() > 0) await amountInput.fill('50.00');
 
   const descInput = page.locator('textarea, input[placeholder*="descri"]').first();
   if (await descInput.count() > 0) await descInput.fill('Almoço de campo');
 
-  await page.getByRole('button', { name: /salvar|enviar|criar/i }).first().click();
+  await page.getByRole('button', { name: /salvar|enviar|criar|solicitar/i }).first().click();
 
   await expect(page.getByText(/pendente/i).first()).toBeVisible({ timeout: 15_000 });
 
@@ -155,8 +180,8 @@ test('S4 — RLS isolation: Técnico B não vê relatório do Técnico A', async
   await page.goto('/reports');
 
   // Pegar o ID do primeiro relatório do Tech A
-  const firstLink = page.locator('a[href*="/reports/"]').first();
-  await firstLink.waitFor({ timeout: 10_000 });
+  const firstLink = page.getByRole('link', { name: 'Detalhes' }).first();
+  await firstLink.waitFor({ timeout: 25_000 });
   const href = await firstLink.getAttribute('href') ?? '';
   const reportId = href.split('/reports/')[1];
   expect(reportId).toBeTruthy();

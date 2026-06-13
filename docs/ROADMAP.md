@@ -1,6 +1,6 @@
 # Roadmap Técnico — NextAI
 
-> Última atualização: 2026-06-13 (Sessão 69)  
+> Última atualização: 2026-06-13 (Sessão 67 - Permissões OS)  
 > Ver também: [[11 - Auditoria 2026-04-25]], [[Problemas e Dívida Técnica]], [[Segurança — Checklist]], [[14 - Auditoria de Performance 2026-05-02]]
 
 ---
@@ -49,6 +49,7 @@
 | s66–67 | ✅ Completo | Cadastro comercial tenants + onboarding 25 tours 85+ steps |
 | s68 | ✅ Completo | SuperMaster edita perfil comercial + 6 testes E2E Platform |
 | s69 | ✅ Completo | Correção de rolagem de tabelas e responsividade (min-h-full e overflow-x-auto) |
+| s67-OS (Permissões) | ✅ Completo | Correção de RLS para carregar Clientes/Equipamentos no Técnico + Fixes testes smoke Playwright |
 | **Background Sync** | **⏳ Pendente** | **Offline-first completo: sync automático ao reconectar** |
 | Notificações externas | ⏳ Pendente | Email (Resend) + WhatsApp (Evolution API) |
 | Fase 6 SaaS | ⏳ Pendente | Subdomain routing + billing + pentest |
