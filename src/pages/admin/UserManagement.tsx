@@ -4,7 +4,16 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Plus, MoreHorizontal, Edit, Trash2, Shield, Loader2, KeyRound, Search } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/src/lib/supabase';
+import {
+  fetchTeamUsers,
+  fetchClientsForLinking,
+  adminCreateUser,
+  findUserIdByEmail,
+  linkUserToClient,
+  updateUser,
+  adminResetPassword,
+  adminDeleteUser,
+} from '@/src/services/userManagementService';
 import { useAuth } from '@/src/contexts/AuthContext';
 
 import {
@@ -162,13 +171,7 @@ export default function UserManagement() {
     if (!currentUser?.team_id) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, full_name, email, role, status, team_id, created_at, linked_client_id')
-        .eq('team_id', currentUser.team_id)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      setUsers(data || []);
+      setUsers(await fetchTeamUsers(currentUser.team_id));
     } catch (err: any) {
       toast.error('Erro ao buscar colaboradores', { description: err.message });
     } finally {
@@ -182,8 +185,7 @@ export default function UserManagement() {
 
   useEffect(() => {
     if (!currentUser?.team_id) return;
-    supabase.from('clients').select('id, name').order('name')
-      .then(({ data }) => setClients(data ?? []));
+    fetchClientsForLinking().then(setClients);
   }, [currentUser?.team_id]);
 
   const filteredUsers = users.filter(u =>
@@ -198,16 +200,16 @@ export default function UserManagement() {
   const onCreateSubmit = async (data: CreateFormValues) => {
     setIsCreateSubmitting(true);
     try {
-      const { data: result, error } = await supabase.functions.invoke('admin-create-user', {
-        body: { email: data.email, password: data.password, full_name: data.full_name, role: data.role },
+      const { data: result, error } = await adminCreateUser({
+        email: data.email, password: data.password, full_name: data.full_name, role: data.role,
       });
       if (error) throw new Error(error.message);
       if (result?.error) throw new Error(result.error);
       // Link client if role is Cliente
       if (data.role === 'Cliente' && createLinkedClientId) {
-        const { data: newUser } = await supabase.from('users').select('id').eq('email', data.email).single();
+        const newUser = await findUserIdByEmail(data.email);
         if (newUser) {
-          await supabase.from('users').update({ linked_client_id: createLinkedClientId }).eq('id', newUser.id);
+          await linkUserToClient(newUser.id, createLinkedClientId);
         }
       }
       toast.success('Colaborador adicionado!', {
@@ -246,8 +248,7 @@ export default function UserManagement() {
         updates.linked_client_id = data.role === 'Cliente' ? (editLinkedClientId || null) : null;
       }
 
-      const { error } = await supabase.from('users').update(updates).eq('id', editingUser.id);
-      if (error) throw error;
+      await updateUser(editingUser.id, updates);
       toast.success('Colaborador atualizado!');
       await fetchUsers();
       setIsEditOpen(false);
@@ -263,9 +264,7 @@ export default function UserManagement() {
     if (!resetPwdUser) return;
     setIsResetSubmitting(true);
     try {
-      const { data: result, error } = await supabase.functions.invoke('admin-reset-password', {
-        body: { userId: resetPwdUser.id, new_password: data.new_password },
-      });
+      const { data: result, error } = await adminResetPassword(resetPwdUser.id, data.new_password);
       if (error) throw new Error(error.message);
       if (result?.error) throw new Error(result.error);
       toast.success(`Senha de ${resetPwdUser.name} redefinida.`);
@@ -284,9 +283,7 @@ export default function UserManagement() {
     setDeletingId(id);
     setConfirmDelete(null);
     try {
-      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
-        body: { userId: id },
-      });
+      const { data, error } = await adminDeleteUser(id);
       if (error) {
         const msg = (data as any)?.error ?? error.message;
         throw new Error(msg);

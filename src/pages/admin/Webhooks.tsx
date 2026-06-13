@@ -16,7 +16,14 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/src/components/ui/alert-dialog';
-import { supabase } from '@/src/lib/supabase';
+import {
+  getWebhookEndpoints,
+  getWebhookDeliveries,
+  createWebhookEndpoint,
+  updateWebhookEndpoint,
+  deleteWebhookEndpoint,
+  dispatchWebhooks,
+} from '@/src/services/webhookService';
 import type { WebhookEndpoint, WebhookDelivery } from '@/src/types/integrations';
 import { WEBHOOK_EVENTS } from '@/src/types/integrations';
 
@@ -77,7 +84,7 @@ export default function Webhooks() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.rpc('get_webhook_endpoints');
+    const { data, error } = await getWebhookEndpoints();
     if (error) toast.error('Erro ao carregar webhooks.');
     else setEndpoints((data ?? []) as WebhookEndpoint[]);
     setLoading(false);
@@ -87,10 +94,7 @@ export default function Webhooks() {
 
   async function loadDeliveries(endpointId: string) {
     setLoadingDeliveries(endpointId);
-    const { data, error } = await supabase.rpc('get_webhook_deliveries', {
-      p_endpoint_id: endpointId,
-      p_limit: 20,
-    });
+    const { data, error } = await getWebhookDeliveries(endpointId);
     setLoadingDeliveries(null);
     if (error) { toast.error('Erro ao carregar entregas.'); return; }
     setDeliveries(prev => ({ ...prev, [endpointId]: (data ?? []) as WebhookDelivery[] }));
@@ -109,11 +113,7 @@ export default function Webhooks() {
     if (!formUrl.startsWith('https://')) { toast.warning('Use uma URL HTTPS.'); return; }
     if (formEvents.length === 0) { toast.warning('Selecione ao menos um evento.'); return; }
     setCreating(true);
-    const { data, error } = await supabase.rpc('create_webhook_endpoint', {
-      p_url: formUrl.trim(),
-      p_events: formEvents,
-      p_description: formDesc.trim() || null,
-    });
+    const { data, error } = await createWebhookEndpoint(formUrl.trim(), formEvents, formDesc.trim() || null);
     setCreating(false);
     if (error) { toast.error(error.message); return; }
     const result = data as { id: string; secret: string };
@@ -125,10 +125,7 @@ export default function Webhooks() {
   }
 
   async function handleToggle(ep: WebhookEndpoint) {
-    const { error } = await supabase.rpc('update_webhook_endpoint', {
-      p_id: ep.id,
-      p_is_active: !ep.is_active,
-    });
+    const { error } = await updateWebhookEndpoint(ep.id, !ep.is_active);
     if (error) { toast.error(error.message); return; }
     toast.success(ep.is_active ? 'Webhook desativado.' : 'Webhook ativado.');
     load();
@@ -137,7 +134,7 @@ export default function Webhooks() {
   async function handleDelete() {
     if (!deleteTarget) return;
     setDeleting(true);
-    const { error } = await supabase.rpc('delete_webhook_endpoint', { p_id: deleteTarget.id });
+    const { error } = await deleteWebhookEndpoint(deleteTarget.id);
     setDeleting(false);
     setDeleteTarget(null);
     if (error) { toast.error(error.message); return; }
@@ -147,7 +144,7 @@ export default function Webhooks() {
 
   async function handleDispatch(endpointId: string) {
     setDispatching(endpointId);
-    const { data, error } = await supabase.functions.invoke('webhook-dispatcher', { body: {} });
+    const { data, error } = await dispatchWebhooks();
     setDispatching(null);
     if (error) { toast.error('Erro ao disparar entregas.'); return; }
     const json = data as { processed: number; succeeded: number; failed: number };
