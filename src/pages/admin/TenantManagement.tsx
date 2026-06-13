@@ -9,7 +9,13 @@ import {
   CheckCircle2, AlertTriangle, Pencil, Image as ImageIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/src/lib/supabase';
+import {
+  fetchPlatformTenants,
+  uploadTenantLogo,
+  provisionTenant,
+  updateTenantBranding,
+  runStorageBackfill,
+} from '@/src/services/tenantManagementService';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -60,20 +66,6 @@ interface TenantRow {
 
 const MAX_LOGO_SIZE = 2 * 1024 * 1024;
 const LOGO_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-
-async function uploadLogo(file: File, slug: string): Promise<string> {
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-  const path = `${slug}/logo.${ext}`;
-  const { error } = await supabase.storage
-    .from('tenant-assets')
-    .upload(path, file, { upsert: true, contentType: file.type });
-  if (error) throw new Error(`Erro ao fazer upload do logo: ${error.message}`);
-  const { data } = supabase.storage.from('tenant-assets').getPublicUrl(path);
-  // O path é reutilizado a cada upload (upsert no mesmo slug/ext), então a URL pública
-  // é idêntica entre trocas — sem o parâmetro de versão o browser/CDN serve a imagem
-  // antiga em cache. O timestamp força o refresh da nova logo.
-  return `${data.publicUrl}?v=${Date.now()}`;
-}
 
 function validateLogoFile(file: File): string | null {
   if (!LOGO_MIME_TYPES.includes(file.type)) return 'Use PNG, JPEG ou WebP.';
@@ -152,12 +144,7 @@ export default function TenantManagement() {
   const fetchTenants = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('tenants')
-        .select('id, name, slug, primary_color, logo_url, created_at, users!users_team_id_fkey(count)')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      setTenants((data ?? []) as TenantRow[]);
+      setTenants((await fetchPlatformTenants()) as TenantRow[]);
     } catch (err: any) {
       toast.error('Erro ao buscar tenants', { description: err.message });
     } finally {
@@ -220,19 +207,17 @@ export default function TenantManagement() {
     try {
       let logoUrl: string | null = null;
       if (createLogoFile) {
-        logoUrl = await uploadLogo(createLogoFile, data.tenant_slug);
+        logoUrl = await uploadTenantLogo(createLogoFile, data.tenant_slug);
       }
 
-      const { data: result, error } = await supabase.functions.invoke('admin-provision-tenant', {
-        body: {
-          tenant: {
-            name: data.tenant_name,
-            slug: data.tenant_slug,
-            primary_color: data.primary_color,
-            logo_url: logoUrl,
-          },
-          admin: { full_name: data.admin_name, email: data.admin_email, password: data.admin_password },
+      const { data: result, error } = await provisionTenant({
+        tenant: {
+          name: data.tenant_name,
+          slug: data.tenant_slug,
+          primary_color: data.primary_color,
+          logo_url: logoUrl,
         },
+        admin: { full_name: data.admin_name, email: data.admin_email, password: data.admin_password },
       });
 
       if (error) throw new Error(error.message);
@@ -259,18 +244,18 @@ export default function TenantManagement() {
     setIsEditSubmitting(true);
     try {
       const newLogoUrl = editLogoFile
-        ? await uploadLogo(editLogoFile, editingTenant.slug)
+        ? await uploadTenantLogo(editLogoFile, editingTenant.slug)
         : null;
 
       // UPDATE direto em `tenants` é bloqueado por RLS para o platform admin editando
       // outro tenant (0 linhas, sem erro → falha silenciosa). A edição cross-tenant passa
       // pela RPC SECURITY DEFINER, mesmo padrão de get_platform_tenants().
-      const { error } = await supabase.rpc('update_tenant_branding', {
-        p_tenant_id: editingTenant.id,
-        p_name: data.tenant_name,
-        p_primary_color: data.primary_color,
-        p_logo_url: newLogoUrl,
-      });
+      const { error } = await updateTenantBranding(
+        editingTenant.id,
+        data.tenant_name,
+        data.primary_color,
+        newLogoUrl,
+      );
 
       if (error) throw error;
 
@@ -290,7 +275,7 @@ export default function TenantManagement() {
     setShowBackfillConfirm(false);
     setIsBackfilling(true);
     try {
-      const { data: result, error } = await supabase.functions.invoke('storage-backfill-mopar');
+      const { data: result, error } = await runStorageBackfill();
       if (error) throw new Error(error.message);
       if (result?.error) throw new Error(result.error);
       setBackfillResult(result);
