@@ -1,10 +1,17 @@
-// api-gateway v2 — NextAI Public API
+// api-gateway v3 — NextAI Public API
 // Validates X-API-Key, rate-limits (1000 req/hr per key), logs access, routes to resource handlers.
 // Error format: RFC 7807 (application/problem+json)
 // Patch 2: field injection whitelist · input validation · composite cursor pagination ·
 //          direct team_id filter on reimbursements · consistent { data } envelope ·
 //          GET by ID for all resources · PATCH /clients · idempotency for POST /clients ·
 //          Content-Type validation (415) · updated_after delta sync on /orders.
+// Patch 3 (armadilha #60): fail-open rate limiter (Deno.openKv() throws in the Edge Runtime —
+//          lazy KV → in-memory Map → never throws) · outer try/catch around the whole handler so
+//          any failure still answers with CORS + RFC 7807 instead of a bare runtime 500 ·
+//          deployed with verify_jwt=false (auth is the X-API-Key, not a Supabase JWT) ·
+//          'authorization' added to CORS allow-headers ·
+//          clients endpoints fixed: the table has contato_email/contato_telefone, not
+//          email/phone — reads alias them back, writes map API field → real column.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -16,8 +23,9 @@ const API_RATE_WINDOW_MS = 3_600_000; // 1 hour
 
 const corsHeaders = {
   "Access-Control-Allow-Origin":  "*",
-  "Access-Control-Allow-Headers": "x-api-key, content-type, idempotency-key",
+  "Access-Control-Allow-Headers": "authorization, x-api-key, content-type, idempotency-key",
   "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
+  "Access-Control-Max-Age":       "86400",
 };
 
 // ── Field whitelists (Fix 1 — field injection: service_role bypasses RLS, so every
@@ -47,6 +55,15 @@ function rfc7807(status: number, code: string, detail: string, instance: string)
 function pick(obj: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> {
   return Object.fromEntries(keys.filter(k => k in obj).map(k => [k, obj[k]]));
 }
+
+// The public client contract uses email/phone, but the clients table stores them as
+// contato_email/contato_telefone. Map the API field names → real columns on writes;
+// reads alias them back (email:contato_email) in the select so the contract stays clean.
+const CLIENT_FIELD_MAP: Record<string, string> = { email: "contato_email", phone: "contato_telefone" };
+function mapClientCols(o: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(o).map(([k, v]) => [CLIENT_FIELD_MAP[k] ?? k, v]));
+}
+const CLIENT_SELECT = "id, name, cnpj, email:contato_email, phone:contato_telefone, cidade, estado, created_at";
 
 interface ValidationError { field: string; message: string }
 
@@ -113,18 +130,45 @@ function parseCursor(c: string): { id: string; created_at: string } | null {
   try { return JSON.parse(atob(c)); } catch { return null; }
 }
 
+// Rate limiting — fail-open (armadilha #60). Deno.openKv() is a Deno Deploy API; in the
+// Supabase Edge Runtime it throws. We try it once (lazy, module-cached), fall back to an
+// in-memory Map scoped to this isolate, and never throw: rate limiting is a cost guard,
+// it must not be able to take the whole API down. Same pattern as ai-proxy v11.
+let kvPromise: Promise<Deno.Kv | null> | null = null;
+function getKv(): Promise<Deno.Kv | null> {
+  kvPromise ??= (async () => {
+    try { return await Deno.openKv(); } catch { return null; }
+  })();
+  return kvPromise;
+}
+
+const memCounts = new Map<string, number>();
+
 async function checkRateLimit(
   keyId: string,
 ): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
-  const kv     = await Deno.openKv();
-  const window = Math.floor(Date.now() / API_RATE_WINDOW_MS);
-  const kvKey  = ["rl_api", keyId, window];
-  const entry  = await kv.get<number>(kvKey);
-  const count  = (entry.value ?? 0) + 1;
+  const window  = Math.floor(Date.now() / API_RATE_WINDOW_MS);
   const resetAt = (window + 1) * API_RATE_WINDOW_MS;
-  if (count > API_RATE_LIMIT) return { allowed: false, remaining: 0, resetAt };
-  await kv.set(kvKey, count, { expireIn: API_RATE_WINDOW_MS * 2 });
-  return { allowed: true, remaining: API_RATE_LIMIT - count, resetAt };
+  try {
+    const kv = await getKv();
+    if (kv) {
+      const kvKey = ["rl_api", keyId, window];
+      const entry = await kv.get<number>(kvKey);
+      const count = (entry.value ?? 0) + 1;
+      if (count > API_RATE_LIMIT) return { allowed: false, remaining: 0, resetAt };
+      await kv.set(kvKey, count, { expireIn: API_RATE_WINDOW_MS * 2 });
+      return { allowed: true, remaining: API_RATE_LIMIT - count, resetAt };
+    }
+    // In-memory fallback. Sweep stale windows first to keep the Map bounded.
+    const memKey = `${keyId}:${window}`;
+    for (const k of memCounts.keys()) if (!k.endsWith(`:${window}`)) memCounts.delete(k);
+    const count = (memCounts.get(memKey) ?? 0) + 1;
+    memCounts.set(memKey, count);
+    if (count > API_RATE_LIMIT) return { allowed: false, remaining: 0, resetAt };
+    return { allowed: true, remaining: API_RATE_LIMIT - count, resetAt };
+  } catch {
+    return { allowed: true, remaining: API_RATE_LIMIT, resetAt }; // fail-open
+  }
 }
 
 // ── Main handler ───────────────────────────────────────────────────────────────
@@ -138,6 +182,11 @@ Deno.serve(async (req: Request) => {
   const path     = rawPath.replace(/^\/api-gateway/, "").replace(/^\/api\/v1/, "");
   const instance = `/api/v1${path}`;
   const startMs  = Date.now();
+
+  // Outer guard (armadilha #60): anything that throws before the routing try/catch
+  // (key lookup, rate limit, idempotency read, body parse) still answers with CORS +
+  // RFC 7807 instead of the runtime's bare "Internal Server Error".
+  try {
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false },
@@ -361,7 +410,7 @@ Deno.serve(async (req: Request) => {
       const limit  = Math.min(Number(url.searchParams.get("limit") ?? "50"), 100);
       const cursor = url.searchParams.get("cursor");
       let q = admin.from("clients")
-        .select("id, name, cnpj, email, phone, cidade, estado, created_at")
+        .select(CLIENT_SELECT)
         .eq("team_id", apiKey.team_id)
         .order("created_at", { ascending: false })
         .order("id",         { ascending: false })
@@ -389,7 +438,7 @@ Deno.serve(async (req: Request) => {
       const err = needScope("clients:read"); if (err) return endRequest(err);
       const id = path.split("/")[2];
       const { data, error } = await admin.from("clients")
-        .select("id, name, cnpj, email, phone, cidade, estado, created_at")
+        .select(CLIENT_SELECT)
         .eq("id", id).eq("team_id", apiKey.team_id).maybeSingle();
       if (error) throw error;
       if (!data) {
@@ -408,7 +457,7 @@ Deno.serve(async (req: Request) => {
       if (errs.length > 0) return endRequest(validationResponse(errs, instance));
       const safe = pick(body as Record<string, unknown>, ALLOWED_CREATE_CLIENT);
       const { data, error } = await admin.from("clients")
-        .insert({ ...safe, team_id: apiKey.team_id }).select("id, name, created_at").single();
+        .insert({ ...mapClientCols(safe), team_id: apiKey.team_id }).select("id, name, created_at").single();
       if (error) throw error;
       statusCode   = 201;
       responseBody = { data };
@@ -424,7 +473,7 @@ Deno.serve(async (req: Request) => {
       if (errs.length > 0) return endRequest(validationResponse(errs, instance));
       const safe = pick(body as Record<string, unknown>, ALLOWED_PATCH_CLIENT);
       const { data, error } = await admin.from("clients")
-        .update(safe).eq("id", id).eq("team_id", apiKey.team_id)
+        .update(mapClientCols(safe)).eq("id", id).eq("team_id", apiKey.team_id)
         .select("id, name, created_at").maybeSingle();
       if (error) throw error;
       if (!data) {
@@ -509,6 +558,11 @@ Deno.serve(async (req: Request) => {
     status: statusCode,
     headers: { ...corsHeaders, ...rateHdrs, "Content-Type": "application/json", "X-Response-Time": `${duration}ms` },
   });
+
+  } catch (e) {
+    console.error("api-gateway fatal:", e);
+    return rfc7807(500, "internal_error", "An unexpected error occurred.", instance);
+  }
 });
 
 function endRequest(r: Response): Response { return r; }
