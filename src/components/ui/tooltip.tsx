@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/src/lib/utils"
 
 function TooltipProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>

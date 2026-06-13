@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Camera, XCircle, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/src/components/ui/button';
+import { Input } from '@/src/components/ui/input';
+import { Label } from '@/src/components/ui/label';
 
 interface Props {
   onResult: (url: string) => void;

@@ -3,10 +3,10 @@ import { Network, Plus, Edit, Trash2, Users, Loader2, ChevronRight, ChevronDown,
 import { toast } from 'sonner';
 import clsx from 'clsx';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/src/components/ui/button';
+import { Input } from '@/src/components/ui/input';
+import { Badge } from '@/src/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
 
 import {
   getDepartmentWithHeadcount, createDepartment, updateDepartment, deleteDepartment,

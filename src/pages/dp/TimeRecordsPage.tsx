@@ -2,15 +2,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Clock, Plus, Trash2, Loader2, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Button }   from '@/components/ui/button';
-import { Badge }    from '@/components/ui/badge';
-import { Input }    from '@/components/ui/input';
+import { Button }   from '@/src/components/ui/button';
+import { Badge }    from '@/src/components/ui/badge';
+import { Input }    from '@/src/components/ui/input';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+} from '@/src/components/ui/select';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog';
+} from '@/src/components/ui/dialog';
 
 import {
   getTimeRecords, upsertTimeRecord, deleteTimeRecord,

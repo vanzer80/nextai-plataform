@@ -1,6 +1,6 @@
 import { Trash2 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Input } from '@/src/components/ui/input';
+import { Button } from '@/src/components/ui/button';
 import type { Control, UseFormRegister, FieldErrors, UseFormWatch } from 'react-hook-form';
 import type { OrcamentoFormValues } from '../NovoOrcamento';
 

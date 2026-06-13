@@ -7,8 +7,8 @@ import {
   Stethoscope, ClipboardList, Camera, PenLine, History,
   CheckCircle2, XCircle, Loader2, FileDown, SquarePen, Send, Copy, RotateCcw, Receipt,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/src/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
 import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useTenant } from '@/src/contexts/TenantContext';
@@ -22,7 +22,7 @@ import { REPORT_STATUS_LABEL } from '@/src/types/reports';
 import { gerarPdfRelatorio } from '@/src/utils/gerarPdfRelatorio';
 import { resubmitReport, reopenReport } from '@/src/services/reportService';
 import { toast } from 'sonner';
-import { Textarea } from '@/components/ui/textarea';
+import { Textarea } from '@/src/components/ui/textarea';
 
 const REVIEWER_ROLES = ['Gestor', 'Supervisor', 'Admin', 'Master'] as const;
 

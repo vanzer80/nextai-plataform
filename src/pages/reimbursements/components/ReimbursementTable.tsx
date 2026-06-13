@@ -3,11 +3,11 @@ import { CheckCircle, RotateCcw, XCircle, Pencil, Paperclip, Eye, MoreHorizontal
 import { useNavigate } from 'react-router-dom';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
-} from '@/components/ui/table';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+} from '@/src/components/ui/table';
+import { Avatar, AvatarFallback } from '@/src/components/ui/avatar';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
+} from '@/src/components/ui/dropdown-menu';
 
 interface ReimbursementTableProps {
   data: any[];

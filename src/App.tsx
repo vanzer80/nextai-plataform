@@ -11,7 +11,7 @@ import ClientPortalLayout from '@/src/components/layout/ClientPortalLayout';
 import CsatPage from '@/src/pages/csat/CsatPage';
 const Login          = lazy(() => import('@/src/pages/auth/Login'));
 const PrivacyPolicy  = lazy(() => import('@/src/pages/PrivacyPolicy'));
-import { Toaster } from '@/components/ui/sonner';
+import { Toaster } from '@/src/components/ui/sonner';
 
 // All routes are lazy — only AppLayout is in the initial bundle
 const Dashboard          = lazy(() => import('@/src/pages/dashboard/Dashboard'));

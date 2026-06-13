@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { type UseFormReturn } from 'react-hook-form';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Label } from '@/src/components/ui/label';
+import { Textarea } from '@/src/components/ui/textarea';
 import { Stethoscope } from 'lucide-react';
 import AiDiagnosticAssistant from '../AiDiagnosticAssistant';
 import type { ReportFormValues } from '@/src/pages/reports/NewReport';

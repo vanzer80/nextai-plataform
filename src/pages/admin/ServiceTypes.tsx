@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Plus, ChevronUp, ChevronDown, Loader2, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/src/components/ui/button';
+import { Input } from '@/src/components/ui/input';
+import { Label } from '@/src/components/ui/label';
+import { Switch } from '@/src/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog';
-import { supabase } from '@/src/lib/supabase';
+} from '@/src/components/ui/dialog';
+import {
+  getServiceTypes,
+  setServiceTypeActive,
+  swapServiceTypeOrder,
+  createServiceType,
+} from '@/src/services/serviceTypeService';
 import { invalidateServiceTypesCache, type ServiceTypeRow } from '@/src/hooks/useServiceTypes';
 
 export default function ServiceTypes() {
@@ -23,21 +28,22 @@ export default function ServiceTypes() {
 
   async function load() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('service_types')
-      .select('id, value, label, sort_order, is_active')
-      .order('sort_order');
-    if (error) { toast.error('Erro ao carregar tipos.'); }
-    else { setTypes((data ?? []) as ServiceTypeRow[]); }
-    setLoading(false);
+    try {
+      setTypes(await getServiceTypes());
+    } catch {
+      toast.error('Erro ao carregar tipos.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleToggle(row: ServiceTypeRow) {
-    const { error } = await supabase
-      .from('service_types')
-      .update({ is_active: !row.is_active })
-      .eq('id', row.id);
-    if (error) { toast.error('Erro ao atualizar.'); return; }
+    try {
+      await setServiceTypeActive(row.id, !row.is_active);
+    } catch {
+      toast.error('Erro ao atualizar.');
+      return;
+    }
     setTypes(prev => prev.map(t => t.id === row.id ? { ...t, is_active: !t.is_active } : t));
     invalidateServiceTypesCache();
   }
@@ -55,10 +61,7 @@ export default function ServiceTypes() {
     newOrder.sort((x, y) => x.sort_order - y.sort_order);
     setTypes(newOrder);
 
-    await Promise.all([
-      supabase.from('service_types').update({ sort_order: b.sort_order }).eq('id', a.id),
-      supabase.from('service_types').update({ sort_order: a.sort_order }).eq('id', b.id),
-    ]);
+    await swapServiceTypeOrder(a.id, b.sort_order, b.id, a.sort_order);
     invalidateServiceTypesCache();
   }
 
@@ -69,11 +72,7 @@ export default function ServiceTypes() {
 
     setSaving(true);
     const maxOrder = types.reduce((m, t) => Math.max(m, t.sort_order), 0);
-    const { data, error } = await supabase
-      .from('service_types')
-      .insert({ value, label, sort_order: maxOrder + 1 })
-      .select('id, value, label, sort_order, is_active')
-      .single();
+    const { data, error } = await createServiceType(value, label, maxOrder + 1);
     setSaving(false);
 
     if (error) {

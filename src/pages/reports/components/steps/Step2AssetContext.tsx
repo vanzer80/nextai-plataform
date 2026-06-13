@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Input } from '@/src/components/ui/input';
+import { Label } from '@/src/components/ui/label';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+} from '@/src/components/ui/select';
 import { Building2, PencilLine } from 'lucide-react';
 import { supabase } from '@/src/lib/supabase';
 import { useClients } from '@/src/hooks/useClients';

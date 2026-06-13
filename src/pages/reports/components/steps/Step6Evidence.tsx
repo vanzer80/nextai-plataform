@@ -1,9 +1,9 @@
 import { useRef } from 'react';
 import { generateUUID } from '@/src/lib/uuid';
 import type { ChangeEvent } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Button } from '@/src/components/ui/button';
+import { Input } from '@/src/components/ui/input';
 import { Camera, X, Plus, ImageIcon } from 'lucide-react';
 import type { EvidenceFile } from '@/src/types/reports';
 

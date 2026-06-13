@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { TrendingUp, Loader2, AlertTriangle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
 import { getBudgetBurn } from '@/src/services/budgetService';
 import type { BudgetBurnRow } from '@/src/types/budget';
 import { PERIOD_LABELS } from '@/src/types/budget';

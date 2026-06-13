@@ -1,0 +1,27 @@
+export type PurchaseRequest = {
+  id: string;
+  request_number?: string;
+  tech_id: string;
+  item: string;
+  quantity: string;
+  status: string;
+  created_at: string;
+  cidade?: string;
+  loja?: string;
+  maintenance_type?: string;
+  prazo?: string;
+  especificacao_tecnica?: string;
+  foto_url?: string;
+  link_referencia?: string;
+  obs?: string;
+  comprador_response?: string;
+  comprador_id?: string;
+  processed_at?: string;
+  purchase_price?: number;
+  purchase_link?: string;
+  logistics_type?: 'retirada' | 'entrega' | null;
+  supplier_name?: string | null;
+  pickup_address?: string | null;
+  clients?: { name: string };
+  users?: { full_name: string };
+};

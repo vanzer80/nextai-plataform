@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Label } from '@/src/components/ui/label';
+import { Input } from '@/src/components/ui/input';
+import { Button } from '@/src/components/ui/button';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+} from '@/src/components/ui/select';
 import { Search, X } from 'lucide-react';
 import { REPORT_STATUS_LABEL } from '@/src/types/reports';
 import type { ReportStatus } from '@/src/types/reports';

@@ -3,9 +3,9 @@ import { ArrowRight } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Skeleton } from '@/src/components/ui/skeleton';
+import { Button } from '@/src/components/ui/button';
 import type { BarEntry } from '../useDashboardData';
 
 interface Props {

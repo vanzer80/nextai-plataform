@@ -10,11 +10,11 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-import { Button }  from '@/components/ui/button';
-import { Badge }   from '@/components/ui/badge';
-import { Input }   from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button }  from '@/src/components/ui/button';
+import { Badge }   from '@/src/components/ui/badge';
+import { Input }   from '@/src/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/src/components/ui/table';
 import { supabase } from '@/src/lib/supabase';
 
 import {

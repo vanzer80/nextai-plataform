@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Camera, Sparkles, Loader2, X, Plus, Mic, MicOff, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/src/components/ui/button';
 import { toast } from 'sonner';
 
 export interface CapturedImage {

@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { LogOut, Building2 } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/src/components/ui/skeleton';
+import { Button } from '@/src/components/ui/button';
 import { useTenant } from '@/src/contexts/TenantContext';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { NextAILogo } from '@/src/components/brand/NextAILogo';

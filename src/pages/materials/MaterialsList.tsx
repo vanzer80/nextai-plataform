@@ -7,14 +7,14 @@ import {
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 import { useAuth } from '@/src/contexts/AuthContext';
-import { supabase } from '@/src/lib/supabase';
-import { extractStoragePath, batchSignedUrls } from '@/src/lib/storage';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { fetchMaterialRequests, subscribeMaterialRequests } from '@/src/services/materialRequestService';
+import type { PurchaseRequest } from '@/src/types/materialRequest';
+import { Card, CardContent } from '@/src/components/ui/card';
+import { Button } from '@/src/components/ui/button';
+import { Badge } from '@/src/components/ui/badge';
+import { Input } from '@/src/components/ui/input';
 import clsx from 'clsx';
-import PurchaseDetailModal, { type PurchaseRequest } from './components/PurchaseDetailModal';
+import PurchaseDetailModal from './components/PurchaseDetailModal';
 
 const STATUS_BADGE: Record<string, string> = {
   'Pendente':   'bg-amber-100 text-amber-800 border-0',
@@ -40,16 +40,6 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-const QUERY_SELECT = `
-  id, request_number, tech_id, item, quantity, urgency, reason, status, created_at, updated_at,
-  cidade, client_id, loja, maintenance_type, prazo, especificacao_tecnica,
-  foto_url, link_referencia, obs,
-  comprador_response, comprador_id, processed_at, purchase_price, purchase_link,
-  logistics_type, supplier_name, pickup_address,
-  clients(name),
-  users:tech_id(full_name)
-`;
-
 export default function MaterialsList() {
   const { user } = useAuth();
   const navigate  = useNavigate();
@@ -74,30 +64,7 @@ export default function MaterialsList() {
     if (!userId || !userRole) return;
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('material_requests')
-        .select(QUERY_SELECT)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Resolve foto_url paths to signed URLs (handles full public URLs from legacy data and raw paths)
-      const rawItems = (data as PurchaseRequest[]) || [];
-      const fotoPaths = [...new Set(
-        rawItems
-          .filter(r => typeof r.foto_url === 'string')
-          .map(r => extractStoragePath(r.foto_url as string, 'materials_media'))
-          .filter(Boolean),
-      )];
-      const signedMap = fotoPaths.length > 0
-        ? await batchSignedUrls(fotoPaths, 'materials_media')
-        : {};
-      setRequests(rawItems.map(r => ({
-        ...r,
-        foto_url: r.foto_url
-          ? (signedMap[extractStoragePath(r.foto_url, 'materials_media')] || r.foto_url)
-          : r.foto_url,
-      })));
+      setRequests(await fetchMaterialRequests());
     } catch (err: any) {
       console.error('[MaterialsList] fetchRequests error:', err);
       toast.error('Erro ao buscar solicitações.');
@@ -119,18 +86,7 @@ export default function MaterialsList() {
   // Real-time — canal único por userId, sem filtro client-side (RLS resolve no banco)
   useEffect(() => {
     if (!userId) return;
-    const channel = supabase
-      .channel(`material_requests_${userId}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'material_requests',
-      }, () => {
-        fetchRequestsRef.current();
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+    return subscribeMaterialRequests(userId, () => fetchRequestsRef.current());
   }, [userId]);
 
   const kpis = useMemo(() => ({

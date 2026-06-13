@@ -11,12 +11,12 @@ import { toast } from 'sonner';
 import clsx from 'clsx';
 import { format, parseISO } from 'date-fns';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/src/components/ui/button';
+import { Input } from '@/src/components/ui/input';
+import { Badge } from '@/src/components/ui/badge';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+} from '@/src/components/ui/select';
 
 import { useAuth } from '@/src/contexts/AuthContext';
 import { createEmployee, updateEmployee, getEmployeeById } from '@/src/services/employeeService';

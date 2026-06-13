@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { PencilLine, MapPin, Phone, User, ChevronDown } from 'lucide-react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Label } from '@/src/components/ui/label';
+import { Input } from '@/src/components/ui/input';
+import { Skeleton } from '@/src/components/ui/skeleton';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/src/components/ui/select';
 import { useClientLocations } from '@/src/hooks/useClientLocations';
 import type { ClientLocation } from '@/src/types/client';
 

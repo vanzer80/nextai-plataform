@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { FileDown, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/src/components/ui/dialog';
+import { Badge } from '@/src/components/ui/badge';
+import { Button } from '@/src/components/ui/button';
 import { useTenant } from '@/src/contexts/TenantContext';
 import type { PurchaseOrder } from '@/src/types/purchaseOrder';
 import { PO_STATUS_LABEL, PO_STATUS_COLOR } from '@/src/types/purchaseOrder';

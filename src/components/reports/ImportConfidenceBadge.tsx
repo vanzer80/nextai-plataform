@@ -1,5 +1,5 @@
 import { AlertTriangle, Sparkles } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/src/components/ui/tooltip';
 
 interface Props {
   confidence: number; // 0.0 – 1.0
