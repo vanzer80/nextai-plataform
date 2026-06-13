@@ -40,7 +40,7 @@ Sem divergência porque cada fato tem um único dono.
 - [x] **5. Reescrever skill `iniciar-sessao`** — lê `docs/HISTORY.md` (WARM) + `docs/ROADMAP.md` + `git log`; abre `docs/sessions/*` só sob demanda. Dependência do vault removida.
 - [x] **6. Reescrever skill `fechar-sessao`** — cria arquivo de sessão COLD + 1 linha no índice WARM + edita `docs/ROADMAP.md` + commit/push. Passo Obsidian removido. `.claude/last-vault-sync` preservado (hook `Stop` intacto).
 - [x] **7. Ajustar `CLAUDE.md`** — linha 21 (vault) trocada por ponteiro à estrutura no repo.
-- [ ] **8. Commit** — registrar a migração no git (aguardando decisão do usuário sobre branch/push).
+- [x] **8. Commit + push** — `1f3a435` no master, push para origin (`b4352db..1f3a435`). 80 arquivos, +4706/-40. `.claude/last-vault-sync` atualizado.
 
 ---
 
