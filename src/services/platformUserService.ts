@@ -2,7 +2,8 @@ import { supabase } from '@/src/lib/supabase';
 
 // Service do SuperMaster (platform). Self-contained: embora reset/delete usem as
 // mesmas Edge Functions do admin, mantém-se separado para não acoplar platform a
-// admin. Funções retornam { data, error } bruto (callers checam inline).
+// admin. A maioria retorna o { data, error } bruto (callers checam inline);
+// exceção: fetchTenantOptions retorna o array `data` direto (erro ignorado, como o original).
 
 export function listPlatformUsers(tenantId: string | null) {
   return supabase.functions.invoke('platform-list-users', { body: { tenant_id: tenantId || null } });

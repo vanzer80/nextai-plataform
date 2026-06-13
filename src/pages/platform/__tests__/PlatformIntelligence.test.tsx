@@ -41,8 +41,8 @@ vi.mock('@/src/services/platformIntelligenceService', () => ({
   getAiRoutingStats: vi.fn().mockResolvedValue(null),
 }));
 
-vi.mock('@/src/lib/supabase', () => ({
-  supabase: { rpc: vi.fn() },
+vi.mock('@/src/services/platformTenantService', () => ({
+  getPlatformTenants: vi.fn(),
 }));
 
 vi.mock('sonner', () => ({
@@ -50,7 +50,7 @@ vi.mock('sonner', () => ({
 }));
 
 import * as service from '@/src/services/platformIntelligenceService';
-import { supabase } from '@/src/lib/supabase';
+import { getPlatformTenants } from '@/src/services/platformTenantService';
 import PlatformIntelligence from '../PlatformIntelligence';
 
 const STATS = {
@@ -63,7 +63,7 @@ const STATS = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(supabase.rpc).mockResolvedValue({ data: [], error: null });
+  vi.mocked(getPlatformTenants).mockResolvedValue({ data: [], error: null } as any);
   vi.mocked(service.getIntelligenceStats).mockResolvedValue(STATS);
   vi.mocked(service.getDiagnosticCorpus).mockResolvedValue([]);
   vi.mocked(service.getKbCorpus).mockResolvedValue([]);
