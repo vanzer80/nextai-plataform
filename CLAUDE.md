@@ -18,7 +18,7 @@
 - **Produção:** `https://nextai-plataform.vercel.app` (auto-deploy ao push no master)
 - **Supabase Project ID:** `sksursvmgvxqbbdsztcd`
 - **Dev server:** `npm run dev` (porta 3001)
-- **Obsidian vault:** `C:\cerebro\Mopar Engenharia\Projeto App Portal Mopar\`
+- **Memória do projeto (no repo):** histórico em `docs/HISTORY.md` (índice WARM) + `docs/sessions/*.md` (detalhe COLD, lido sob demanda); roadmap em `docs/ROADMAP.md`. O vault Obsidian foi **descontinuado em 2026-06-13** — concentramos tudo no repositório (fonte única, versionada, com backup no GitHub). O vault antigo permanece como cópia congelada, não mais mantida.
 
 ## Verificações obrigatórias após qualquer mudança
 

@@ -1,35 +1,27 @@
 ---
-description: Retomada de sessão — lê o vault Obsidian e o estado do repo para saber exatamente onde parou
+description: Retomada de sessão — lê o índice de histórico e o roadmap no repositório + estado do git para saber exatamente onde parou
 ---
 
-Você está iniciando uma sessão de trabalho no NextAI. Leia todos os arquivos abaixo antes de qualquer outra ação. Não resuma antes de terminar de ler tudo.
+Você está iniciando uma sessão de trabalho no NextAI. **Todo o contexto vive no repositório** — o vault Obsidian foi descontinuado em 2026-06-13. Siga os passos antes de qualquer outra ação.
 
-## Passo 1 — Ler histórico da última sessão
+## Passo 1 — Índice de sessões (WARM)
 
-Leia o arquivo:
-`C:\cerebro\Mopar Engenharia\Projeto App Portal Mopar\06 - Histórico de Sessões.md`
+Leia `docs/HISTORY.md` — índice de uma linha por sessão, mais recente no topo.
 
-Extraia da entrada mais recente:
-- Número e data da última sessão
-- O que foi implementado/resolvido
-- Pendências registradas para esta sessão
+Identifique as últimas 2–3 sessões: número, data, resumo (do título) e commit. **Não abra** os arquivos de `docs/sessions/` neste passo — são lidos sob demanda.
 
-## Passo 2 — Ler roadmap e estado das sprints
+## Passo 2 — Detalhe sob demanda (COLD) — só se necessário
 
-Leia o arquivo:
-`C:\cerebro\Mopar Engenharia\Projeto App Portal Mopar\Roadmap Técnico.md`
+Se precisar de contexto profundo sobre uma sessão específica (ex.: a anterior deixou uma pendência que vamos continuar), abra **apenas** o arquivo correspondente `docs/sessions/<arquivo>.md` indicado no índice. Nunca abra todos — é justamente o custo que essa arquitetura evita.
 
-Identifique:
+## Passo 3 — Roadmap e sprints
+
+Leia `docs/ROADMAP.md`. Identifique:
 - Sprint atual e seu objetivo
-- Tarefas concluídas vs pendentes na sprint em curso
+- Tarefas concluídas vs pendentes
 - Próximas sprints no backlog
 
-## Passo 3 — Ler referência rápida
-
-Leia o arquivo:
-`C:\cerebro\Mopar Engenharia\Projeto App Portal Mopar\00 - Quick Reference Portal Mopar.md`
-
-Use como base para decisões arquiteturais e convenções do projeto durante a sessão.
+(Convenções, arquitetura e armadilhas já vêm do `CLAUDE.md`, carregado automaticamente — não precisa reler.)
 
 ## Passo 4 — Verificar estado do repositório
 
