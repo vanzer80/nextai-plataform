@@ -169,9 +169,11 @@ Labels usam `text-sidebar-foreground/40` (nunca `text-muted-foreground` — fica
 
 ## Camada de Service (SoC)
 
-Regra dura: páginas/componentes **nunca** acessam o Supabase direto (`.from/.rpc/.storage/.channel`) — todo acesso a dados passa por `src/services/*` (e por um `hook` quando há estado). Os módulos com service já estavam limpos; **reimbursement, materialRequest, serviceType e maintenancePlan** foram extraídos no PR #4 (lift verbatim).
+Regra dura: páginas/componentes **nunca** acessam o Supabase direto (`.from/.rpc/.storage/.channel/.functions.invoke`) — todo acesso a dados passa por `src/services/*` (e por um `hook` quando há estado).
 
-Ainda **sem service** (extração pendente — fazer COM review, pois tocam Edge Functions de ciclo de vida de usuário/tenant, irreversíveis): `admin/UserManagement`, `admin/Webhooks`, `admin/ApiKeys`, `admin/TenantManagement`, `platform/*`.
+**Extração concluída (PRs #4/#5/#6, todos mergeados em prod — 2026-06-13):** reimbursement, materialRequest, serviceType, maintenancePlan (#4); webhook, apiKey, tenantManagement, userManagement (#5); platformUser, platformTenant (#6). Nenhuma tela `admin/*` ou `platform/*` acessa supabase direto.
+
+**Fora do escopo deste sprint** (têm service mas com acesso inline parcial; nunca prometidos — candidatos a sprint futuro): `orcamentos/*`, `reports/*`, `agenda`, `portal/ClientPortal`. `auth/Login` usa `supabase.auth` legítimo. `dashboard/useDashboardData.ts` + `dashboardPreferencesService.ts` são a própria camada de dados (colocados sob `pages/`).
 
 Técnica: **lift verbatim** — recorta o acesso a dados, cola no service, não reescreve lógica → comportamento preservado por construção. Preservar caso a caso `withTimeout`, injeção manual de `team_id` (nem toda tabela tem `DEFAULT get_caller_team_id()`) e a semântica de erro do caller (armadilha #71).
 
