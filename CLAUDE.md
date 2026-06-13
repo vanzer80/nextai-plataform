@@ -159,12 +159,23 @@ Labels usam `text-sidebar-foreground/40` (nunca `text-muted-foreground` — fica
 
 - Nenhum comentário óbvio — só comentar WHY não-óbvio
 - Nenhum `any` explícito — `tsc --noEmit` deve ser EXIT:0
-- Services: async/await com throw em erro, sem `.eq('team_id', teamId)` nos reads
+- Services: async/await com throw em erro, sem `.eq('team_id', teamId)` nos reads. **UI nunca chama `supabase.from/rpc/storage/channel` direto** — todo acesso a dados passa por um `service` (e por um `hook` quando há estado). Ver § "Camada de Service (SoC)".
+- **Estrutura shadcn:** primitivos shadcn vivem em `src/components/ui/*` e o `cn` em `src/lib/utils.ts`. O alias `@` aponta para a **raiz** (tsconfig/vite), então imports de app usam `@/src/...` e o shadcn `@/src/components/ui`. `components.json` aponta os aliases para `@/src/*`. (Dualidade raiz↔src unificada no PR #4.)
 - Lazy loading: toda rota em `App.tsx` deve ser `React.lazy()` — sem exceção (inclui Login; AppLayout é o único componente síncrono no initial bundle)
 - Bundle alvo: chunk principal ≤ 100 kB gzip
 - Novo módulo: migration → types → service → hook → componente → página → rota + nav + **onboarding tour** (ver seção abaixo)
 - **Adicionar item ao sidebar:** incluir em `NAV_GROUPS` (AppLayout.tsx) no grupo funcional correto. Nunca adicionar fora de um grupo existente — se necessário, criar novo `NavGroup`. `authorizedLinks` é derivado via `flatMap` automático.
 - Responder sempre em português do Brasil
+
+## Camada de Service (SoC)
+
+Regra dura: páginas/componentes **nunca** acessam o Supabase direto (`.from/.rpc/.storage/.channel`) — todo acesso a dados passa por `src/services/*` (e por um `hook` quando há estado). Os módulos com service já estavam limpos; **reimbursement, materialRequest, serviceType e maintenancePlan** foram extraídos no PR #4 (lift verbatim).
+
+Ainda **sem service** (extração pendente — fazer COM review, pois tocam Edge Functions de ciclo de vida de usuário/tenant, irreversíveis): `admin/UserManagement`, `admin/Webhooks`, `admin/ApiKeys`, `admin/TenantManagement`, `platform/*`.
+
+Técnica: **lift verbatim** — recorta o acesso a dados, cola no service, não reescreve lógica → comportamento preservado por construção. Preservar caso a caso `withTimeout`, injeção manual de `team_id` (nem toda tabela tem `DEFAULT get_caller_team_id()`) e a semântica de erro do caller (armadilha #71).
+
+71. **Extração para service muda a semântica de erro se trocar `throw error` (bruto) por `throw new Error(msg)`** → callers fazem `e instanceof Error ? e.message : <genérico>` ou inspecionam `error.code` (ex.: `23505` = duplicado). `PostgrestError` **não** é `instanceof Error`. No lift verbatim, lance o erro **bruto** (ou retorne `{ data, error }` cru) quando o caller inspeciona `.code`/usa `instanceof`; só use `new Error(msg)` se o caller já tratava a `.message`. Padronizar o contrato de erro é behavior change — fora do escopo de um lift.
 
 ## Edge Functions deployadas
 
