@@ -15,7 +15,7 @@ import { Badge }   from '@/src/components/ui/badge';
 import { Input }   from '@/src/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/src/components/ui/table';
-import { supabase } from '@/src/lib/supabase';
+import { getPlatformTenants } from '@/src/services/platformTenantService';
 
 import {
   getIntelligenceStats,
@@ -346,7 +346,7 @@ export default function PlatformIntelligence() {
   }, []);
 
   useEffect(() => {
-    supabase.rpc('get_platform_tenants').then(({ data }) => {
+    getPlatformTenants().then(({ data }) => {
       setTenants(((data ?? []) as TenantOption[]).map((t: TenantOption) => ({ id: t.id, name: t.name, slug: t.slug })));
     });
   }, []);

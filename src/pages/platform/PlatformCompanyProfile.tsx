@@ -7,7 +7,11 @@ import {
   Mail, MapPin, FileText, ChevronDown, Palette, Image as ImageIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/src/lib/supabase';
+import {
+  getPlatformTenants,
+  getTenantCommercialDetail,
+  updateTenantCommercial,
+} from '@/src/services/platformTenantService';
 
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
@@ -105,7 +109,7 @@ export default function PlatformCompanyProfile() {
     const load = async () => {
       setLoadingTenants(true);
       try {
-        const { data, error } = await supabase.rpc('get_platform_tenants');
+        const { data, error } = await getPlatformTenants();
         if (error) throw error;
         const list = (data ?? []) as TenantOption[];
         setTenants(list);
@@ -128,12 +132,7 @@ export default function PlatformCompanyProfile() {
     const load = async () => {
       setLoadingData(true);
       try {
-        const { data, error } = await supabase
-          .from('tenants')
-          .select('name, primary_color, razao_social, cnpj, ie, email_contato, phone, website, sector, address_zip, address_street, address_number, address_complement, address_neighborhood, address_city, address_state, address_country')
-          .eq('id', selectedId)
-          .single();
-        if (error) throw error;
+        const data = await getTenantCommercialDetail(selectedId);
         form.reset({
           tenant_name:          data.name            ?? '',
           primary_color:        data.primary_color   ?? '#0066CC',
@@ -186,7 +185,7 @@ export default function PlatformCompanyProfile() {
     setSubmitting(true);
     try {
       // update_tenant_commercial: SECURITY DEFINER, verifica is_platform_master() internamente
-      const { error } = await supabase.rpc('update_tenant_commercial', {
+      const { error } = await updateTenantCommercial({
         p_tenant_id:            selectedId,
         p_name:                 data.tenant_name,
         p_primary_color:        data.primary_color,

@@ -10,7 +10,16 @@ import {
   Trash2, RotateCcw, Eye, EyeOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/src/lib/supabase';
+import {
+  uploadTenantLogo,
+  getPlatformTenants,
+  provisionTenant,
+  updateTenantCommercial,
+  updateTenant,
+  softDeleteTenant,
+  hardDeleteTenant,
+  restoreTenant,
+} from '@/src/services/platformTenantService';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -110,16 +119,6 @@ const LOGO_MIME = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-async function uploadLogo(file: File, slug: string): Promise<string> {
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-  const path = `${slug}/logo.${ext}`;
-  const { error } = await supabase.storage
-    .from('tenant-assets')
-    .upload(path, file, { upsert: true, contentType: file.type });
-  if (error) throw new Error(`Erro ao fazer upload do logo: ${error.message}`);
-  const { data } = supabase.storage.from('tenant-assets').getPublicUrl(path);
-  return `${data.publicUrl}?t=${Date.now()}`;
-}
 
 function validateLogoFile(file: File): string | null {
   if (!LOGO_MIME.includes(file.type)) return 'Use PNG, JPEG ou WebP.';
@@ -237,9 +236,7 @@ export default function PlatformTenants() {
   const fetchTenants = async (includeDeleted = showDeleted) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.rpc('get_platform_tenants', {
-        p_include_deleted: includeDeleted,
-      });
+      const { data, error } = await getPlatformTenants(includeDeleted);
       if (error) throw error;
       setTenants((data ?? []) as TenantRow[]);
     } catch (err: unknown) {
@@ -348,13 +345,11 @@ export default function PlatformTenants() {
     setIsSubmitting(true);
     try {
       let logoUrl: string | null = null;
-      if (createLogoFile) logoUrl = await uploadLogo(createLogoFile, data.tenant_slug);
+      if (createLogoFile) logoUrl = await uploadTenantLogo(createLogoFile, data.tenant_slug);
 
-      const { data: result, error } = await supabase.functions.invoke('admin-provision-tenant', {
-        body: {
-          tenant: { name: data.tenant_name, slug: data.tenant_slug, primary_color: data.primary_color, logo_url: logoUrl },
-          admin:  { full_name: data.admin_name, email: data.admin_email, password: data.admin_password },
-        },
+      const { data: result, error } = await provisionTenant({
+        tenant: { name: data.tenant_name, slug: data.tenant_slug, primary_color: data.primary_color, logo_url: logoUrl },
+        admin:  { full_name: data.admin_name, email: data.admin_email, password: data.admin_password },
       });
 
       if (error) throw new Error(error.message);
@@ -379,11 +374,11 @@ export default function PlatformTenants() {
     setIsEditSubmitting(true);
     try {
       let newLogoUrl: string | null = null;
-      if (editLogoFile) newLogoUrl = await uploadLogo(editLogoFile, editingTenant.slug);
+      if (editLogoFile) newLogoUrl = await uploadTenantLogo(editLogoFile, editingTenant.slug);
 
       // UPDATE direto cross-tenant é bloqueado silenciosamente pelo RLS.
       // Usar RPC SECURITY DEFINER update_tenant_commercial.
-      const { error } = await supabase.rpc('update_tenant_commercial', {
+      const { error } = await updateTenantCommercial({
         p_tenant_id:            editingTenant.id,
         p_name:                 data.tenant_name,
         p_primary_color:        data.primary_color,
@@ -424,7 +419,7 @@ export default function PlatformTenants() {
     setTogglingId(target.id);
     setToggleTarget(null);
     try {
-      const { error } = await supabase.from('tenants').update({ is_active: newValue }).eq('id', target.id);
+      const { error } = await updateTenant(target.id, { is_active: newValue });
       if (error) throw error;
       setTenants(prev => prev.map(t => t.id === target.id ? { ...t, is_active: newValue } : t));
       toast.success(newValue ? `"${target.name}" ativada.` : `"${target.name}" suspensa.`);
@@ -451,7 +446,7 @@ export default function PlatformTenants() {
     if (!deleteTarget) return;
     setIsDeleting(true);
     try {
-      const { error } = await supabase.rpc('soft_delete_tenant', { p_tenant_id: deleteTarget.id });
+      const { error } = await softDeleteTenant(deleteTarget.id);
       if (error) throw error;
       toast.success(`"${deleteTarget.name}" removida do sistema.`, {
         description: 'Os dados foram preservados. Use "Mostrar removidas" para restaurar.',
@@ -469,9 +464,7 @@ export default function PlatformTenants() {
     if (!deleteTarget || confirmSlugInput !== deleteTarget.slug) return;
     setIsDeleting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('admin-delete-tenant', {
-        body: { tenantId: deleteTarget.id, confirmSlug: deleteTarget.slug },
-      });
+      const { data, error } = await hardDeleteTenant(deleteTarget.id, deleteTarget.slug);
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
       toast.success(`"${deleteTarget.name}" deletada permanentemente.`, {
@@ -490,7 +483,7 @@ export default function PlatformTenants() {
     if (isRestoringRef.current) return;
     isRestoringRef.current = true;
     try {
-      const { error } = await supabase.rpc('restore_tenant', { p_tenant_id: t.id });
+      const { error } = await restoreTenant(t.id);
       if (error) throw error;
       toast.success(`"${t.name}" restaurada com sucesso.`);
       await fetchTenants();
