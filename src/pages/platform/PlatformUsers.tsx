@@ -5,7 +5,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Plus, MoreHorizontal, Trash2, Loader2, Users as UsersIcon, Search, Edit, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/src/lib/supabase';
+import {
+  listPlatformUsers,
+  fetchTenantOptions,
+  platformCreateUser,
+  platformUpdateUser,
+  platformResetPassword,
+  platformDeleteUser,
+} from '@/src/services/platformUserService';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/src/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/src/components/ui/dialog';
@@ -148,9 +155,7 @@ export default function PlatformUsers() {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('platform-list-users', {
-        body: { tenant_id: tenantFilter || null },
-      });
+      const { data, error } = await listPlatformUsers(tenantFilter);
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
       setUsers(data?.users ?? []);
@@ -162,10 +167,7 @@ export default function PlatformUsers() {
   }, [tenantFilter]);
 
   const fetchTenants = async () => {
-    const { data } = await supabase
-      .from('tenants')
-      .select('id, name, slug')
-      .order('name', { ascending: true });
+    const data = await fetchTenantOptions();
     if (data) setTenants(data as TenantOption[]);
   };
 
@@ -195,14 +197,12 @@ export default function PlatformUsers() {
   const onCreateSubmit = async (data: CreateFormValues) => {
     setIsCreateSubmitting(true);
     try {
-      const { data: result, error } = await supabase.functions.invoke('admin-create-user', {
-        body: {
-          email: data.email,
-          password: data.password,
-          full_name: data.full_name,
-          role: data.role,
-          team_id: data.team_id,
-        },
+      const { data: result, error } = await platformCreateUser({
+        email: data.email,
+        password: data.password,
+        full_name: data.full_name,
+        role: data.role,
+        team_id: data.team_id,
       });
       if (error) throw new Error(error.message);
       if (result?.error) throw new Error(result.error);
@@ -223,9 +223,7 @@ export default function PlatformUsers() {
     if (!editingUser) return;
     setIsEditSubmitting(true);
     try {
-      const { data: result, error } = await supabase.functions.invoke('platform-update-user', {
-        body: { userId: editingUser.id, full_name: data.full_name, role: data.role },
-      });
+      const { data: result, error } = await platformUpdateUser(editingUser.id, data.full_name, data.role);
       if (error) throw new Error(error.message);
       if (result?.error) throw new Error(result.error);
       toast.success('Colaborador atualizado!');
@@ -243,9 +241,7 @@ export default function PlatformUsers() {
     if (!resetPwdUser) return;
     setIsResetSubmitting(true);
     try {
-      const { data: result, error } = await supabase.functions.invoke('admin-reset-password', {
-        body: { userId: resetPwdUser.id, new_password: data.new_password },
-      });
+      const { data: result, error } = await platformResetPassword(resetPwdUser.id, data.new_password);
       if (error) throw new Error(error.message);
       if (result?.error) throw new Error(result.error);
       toast.success(`Senha de ${resetPwdUser.name} redefinida.`);
@@ -264,9 +260,7 @@ export default function PlatformUsers() {
     setDeletingId(id);
     setConfirmDelete(null);
     try {
-      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
-        body: { userId: id },
-      });
+      const { data, error } = await platformDeleteUser(id);
       if (error) {
         const msg = (data as any)?.error ?? error.message;
         throw new Error(msg);
