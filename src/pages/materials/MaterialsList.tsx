@@ -393,7 +393,7 @@ export default function MaterialsList() {
   const TECH_TABS = ['Todos', 'Pendente', 'Em Análise', 'Comprado', 'Entregue', 'Cancelado'];
 
   return (
-    <div className="flex flex-col gap-5 h-full w-full pb-6 animate-in fade-in duration-300">
+    <div className="flex flex-col gap-5 min-h-full w-full pb-6 animate-in fade-in duration-300">
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
