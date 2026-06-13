@@ -9,7 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/ca
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/src/components/ui/dialog';
-import { supabase } from '@/src/lib/supabase';
+import {
+  getServiceTypes,
+  setServiceTypeActive,
+  swapServiceTypeOrder,
+  createServiceType,
+} from '@/src/services/serviceTypeService';
 import { invalidateServiceTypesCache, type ServiceTypeRow } from '@/src/hooks/useServiceTypes';
 
 export default function ServiceTypes() {
@@ -23,21 +28,22 @@ export default function ServiceTypes() {
 
   async function load() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('service_types')
-      .select('id, value, label, sort_order, is_active')
-      .order('sort_order');
-    if (error) { toast.error('Erro ao carregar tipos.'); }
-    else { setTypes((data ?? []) as ServiceTypeRow[]); }
-    setLoading(false);
+    try {
+      setTypes(await getServiceTypes());
+    } catch {
+      toast.error('Erro ao carregar tipos.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleToggle(row: ServiceTypeRow) {
-    const { error } = await supabase
-      .from('service_types')
-      .update({ is_active: !row.is_active })
-      .eq('id', row.id);
-    if (error) { toast.error('Erro ao atualizar.'); return; }
+    try {
+      await setServiceTypeActive(row.id, !row.is_active);
+    } catch {
+      toast.error('Erro ao atualizar.');
+      return;
+    }
     setTypes(prev => prev.map(t => t.id === row.id ? { ...t, is_active: !t.is_active } : t));
     invalidateServiceTypesCache();
   }
@@ -55,10 +61,7 @@ export default function ServiceTypes() {
     newOrder.sort((x, y) => x.sort_order - y.sort_order);
     setTypes(newOrder);
 
-    await Promise.all([
-      supabase.from('service_types').update({ sort_order: b.sort_order }).eq('id', a.id),
-      supabase.from('service_types').update({ sort_order: a.sort_order }).eq('id', b.id),
-    ]);
+    await swapServiceTypeOrder(a.id, b.sort_order, b.id, a.sort_order);
     invalidateServiceTypesCache();
   }
 
@@ -69,11 +72,7 @@ export default function ServiceTypes() {
 
     setSaving(true);
     const maxOrder = types.reduce((m, t) => Math.max(m, t.sort_order), 0);
-    const { data, error } = await supabase
-      .from('service_types')
-      .insert({ value, label, sort_order: maxOrder + 1 })
-      .select('id, value, label, sort_order, is_active')
-      .single();
+    const { data, error } = await createServiceType(value, label, maxOrder + 1);
     setSaving(false);
 
     if (error) {
