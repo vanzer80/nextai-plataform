@@ -1,0 +1,57 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev: servidor Vite (porta 3001)",
+      "type": "npm",
+      "script": "dev",
+      "isBackground": true,
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "panel": "dedicated", "reveal": "always" }
+    },
+    {
+      "label": "build: produção",
+      "type": "npm",
+      "script": "build",
+      "problemMatcher": ["$tsc"],
+      "group": "build"
+    },
+    {
+      "label": "lint: tsc --noEmit",
+      "type": "npm",
+      "script": "lint",
+      "problemMatcher": ["$tsc"],
+      "group": "test"
+    },
+    {
+      "label": "test: unit (Vitest)",
+      "type": "npm",
+      "script": "test",
+      "problemMatcher": [],
+      "group": { "kind": "test", "isDefault": true }
+    },
+    {
+      "label": "test: unit watch (Vitest)",
+      "type": "npm",
+      "script": "test:watch",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "test: E2E (Playwright)",
+      "type": "shell",
+      "command": "npx playwright test",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "preview: build local",
+      "type": "npm",
+      "script": "preview",
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

@@ -19,3 +19,16 @@ supabase/.temp/
 
 # Configuração local pessoal do Claude Code — nunca versionar
 .claude/settings.local.json
+
+# Marcador de sync do harness Codex — local only (paridade com .claude/last-vault-sync)
+.codex/last-vault-sync
+
+# Link de projeto do Vercel CLI — nunca versionar (projectId/orgId por-ambiente)
+.vercel
+
+# VS Code — versiona só os arquivos de projeto compartilháveis; ignora o resto (caches/per-dev)
+/.vscode/*
+!/.vscode/settings.json
+!/.vscode/extensions.json
+!/.vscode/tasks.json
+!/.vscode/launch.json

@@ -1,10 +1,12 @@
 # Verifica se o HEAD do repositório está registrado no histórico de sessões (docs/).
-# Executado automaticamente pelo hook Stop do Claude Code após cada resposta.
+# Executado automaticamente pelo hook Stop do Claude Code / Codex após cada resposta.
 # Nome do arquivo de sync (last-vault-sync) é legado — hoje "sync" = histórico no repo.
 param()
 
-$repoPath = "C:\dev\portal-mopar"
-$syncFile = "$repoPath\.claude\last-vault-sync"
+# Auto-localizável: deriva o repo a partir da própria posição do script
+# (.claude/scripts/ -> raiz do repo). Sem caminho de máquina hardcoded → portável.
+$repoPath = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+$syncFile = Join-Path $repoPath ".claude\last-vault-sync"
 
 $head = git -C $repoPath rev-parse HEAD 2>$null
 if (-not $head) { exit 0 }

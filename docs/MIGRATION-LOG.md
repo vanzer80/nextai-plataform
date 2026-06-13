@@ -84,4 +84,17 @@ Revisão adversarial encontrou dependências do vault que a 1ª passada **esquec
 - **Pendência consciente (não corrigida):** `CLAUDE.md:1379` aponta para a pasta `Sprints\` do vault (specs read-only de planejamento). Não é parte do ritual de sessão — decisão do usuário se migra ou não.
 
 ### 2026-06-13 — Commits
-- `1f3a435` — migração (80 arquivos). `e317c7e` — fecha log passo 8. (+ commit desta revisão a seguir.)
+- `1f3a435` — migração (80 arquivos). `e317c7e` — fecha log passo 8. `b9c4787` — revisão pós-execução (nova-sprint, hook, dívida técnica).
+
+### 2026-06-13 — Resolução das 2 decisões pendentes (via workflow de 4 agentes, ultracode)
+Workflow `resolve-vault-loose-ends`: inventário paralelo (specs do vault + classificação dos untracked) → verificação adversarial (gate de segredos + desafio de melhores práticas). 4 agentes, ~352k tokens.
+
+**Decisão 1 — pasta `Sprints\` do vault (CLAUDE.md:1379):** migrada → `docs/sprints/` (8 specs, 1999 linhas, verbatim, camada COLD) + `docs/sprints/README.md` (índice WARM com tabela Sprint→commit→sessão). 7/8 obsoletos (histórico); só `Prompts Claude Code — NextAI 2026.md` tem itens vivos (PROMPTs 4–7). CLAUDE.md:1379 repontado para `docs/sprints/`. Removida a última referência viva ao vault.
+
+**Decisão 2 — artefatos untracked (política de versionamento):**
+- **TRACK** (config-as-code, secret-scan `all_clear` nos 11 arquivos): `.agents/skills/*/SKILL.md` (4), `.codex/hooks.json`, `.vscode/{settings,extensions,tasks,launch}.json`, `AGENTS.md`, `.claude/launch.json`. Precedente: `.claude` já versiona settings/scripts/skills.
+- **GITIGNORE** (estado por-máquina): `.codex/last-vault-sync` (paridade com `.claude/last-vault-sync`), `.vercel` (projectId/orgId confirmados dentro — nunca versionar).
+- **`.vscode/` via allowlist** (`/.vscode/*` + `!` nos 4 arquivos) em vez de versionar a pasta inteira — refinamento do desafio adversarial: impede arquivos per-dev/caches futuros de vazarem pro git.
+- **DELETE/no-op:** `scratch-seed-equip.ts` já não existia no disco (snapshot inicial stale).
+
+**Portabilidade (refinamento do desafio):** path absoluto `C:\dev\portal-mopar` estava hardcoded no hook (`.claude/settings.json` + `.codex/hooks.json`) e dentro do `check-vault-sync.ps1`. Corrigido: script agora auto-localizável via `$PSScriptRoot` (deriva o repo da própria posição); invocações relativizadas para `.claude/scripts/check-vault-sync.ps1`. Config versionada agora é portável.

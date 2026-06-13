@@ -1,0 +1,26 @@
+{
+  "recommendations": [
+    // Claude Code integrado ao VS Code
+    "anthropic.claude-code",
+    // Tailwind CSS 4 IntelliSense (autocomplete de classes)
+    "bradlc.vscode-tailwindcss",
+    // Git avançado (blame, histórico, comparações)
+    "eamodio.gitlens",
+    // Pull Requests e Issues do GitHub dentro do VS Code
+    "github.vscode-pull-request-github",
+    // Rodar/depurar testes E2E Playwright pela UI
+    "ms-playwright.playwright",
+    // Rodar/depurar unit tests Vitest pela UI
+    "vitest.explorer",
+    // Deno para as Edge Functions do Supabase
+    "denoland.vscode-deno",
+    // Erros TypeScript inline na própria linha
+    "usernamehw.errorlens",
+    // Ícones de arquivos
+    "pkief.material-icon-theme",
+    // Autocomplete de caminhos de import
+    "christian-kohler.path-intellisense",
+    // Syntax highlight para arquivos .env
+    "mikestead.dotenv"
+  ]
+}

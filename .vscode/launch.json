@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Depurar no Chrome (Vite :3001)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:3001",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "dev: servidor Vite (porta 3001)"
+    },
+    {
+      "name": "Anexar ao Chrome já aberto",
+      "type": "chrome",
+      "request": "attach",
+      "port": 9222,
+      "url": "http://localhost:3001",
+      "webRoot": "${workspaceFolder}"
+    }
+  ]
+}

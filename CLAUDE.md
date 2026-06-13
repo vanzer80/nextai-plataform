@@ -1376,7 +1376,7 @@ CREATE TABLE public.receivable_payments (
 
 ## Próximas sprints disponíveis
 
-Arquivos completos em `C:\cerebro\Mopar Engenharia\Projeto App Portal Mopar\Sprints\`
+Specs arquivadas (migradas do vault descontinuado) em [`docs/sprints/`](docs/sprints/README.md) — valor histórico. Fonte viva do roadmap: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 - **Sprint D** — CPQ: ✅ Assinatura eletrônica + Versionamento + **OS↔Orçamento linkage (concluído 2026-05-30)**
 - **Sprint E** — OCR comprovantes + Budget + Base KB + Lifecycle de ativo (concluída)

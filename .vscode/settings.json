@@ -1,0 +1,65 @@
+{
+  // ── TypeScript ──────────────────────────────────────────────
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+
+  // ── Editor ──────────────────────────────────────────────────
+  "editor.tabSize": 2,
+  "editor.formatOnSave": false,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "never"
+  },
+  "editor.quickSuggestions": {
+    "strings": "on"
+  },
+  "files.eol": "\n",
+  "files.trimTrailingWhitespace": true,
+
+  // ── Git (commit, push, sync direto pela IDE) ────────────────
+  "git.enabled": true,
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
+  "git.postCommitCommand": "none",
+  "git.branchProtection": ["master"],
+  "git.branchProtectionPrompt": "alwaysPrompt",
+  "githubPullRequests.pullBranch": "never",
+
+  // ── Tailwind CSS 4 ──────────────────────────────────────────
+  "tailwindCSS.experimental.classRegex": [
+    ["cva\\(((?:[^()]|\\([^()]*\\))*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+    ["cx\\(((?:[^()]|\\([^()]*\\))*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"],
+    ["cn\\(((?:[^()]|\\([^()]*\\))*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
+  ],
+  "tailwindCSS.classAttributes": ["class", "className", "ngClass"],
+
+  // ── Deno apenas nas Edge Functions do Supabase ──────────────
+  "deno.enable": false,
+  "deno.enablePaths": ["supabase/functions"],
+  "deno.lint": true,
+  "deno.unstable": true,
+
+  // ── Vitest ──────────────────────────────────────────────────
+  "vitest.maximumConfigs": 5,
+
+  // ── Performance: excluir pastas pesadas de busca/watch ──────
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/playwright-report": true,
+    "**/test-results": true,
+    "**/package-lock.json": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/playwright-report/**": true,
+    "**/test-results/**": true
+  },
+
+  // ── Terminal (Claude Code roda aqui) ────────────────────────
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.scrollback": 10000
+}
