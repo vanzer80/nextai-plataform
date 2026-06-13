@@ -10,19 +10,14 @@ import { Button } from '@/src/components/ui/button';
 import { Badge } from '@/src/components/ui/badge';
 import { Textarea } from '@/src/components/ui/textarea';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/src/lib/supabase';
+import {
+  getReimbursementHistory,
+  getReimbursementAmountsForAnomaly,
+  type ReimbursementHistoryItem,
+} from '@/src/services/reimbursementService';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-interface HistoryItem {
-  id: string;
-  old_status: string;
-  new_status: string;
-  reason: string;
-  created_at: string;
-  changed_by: string;
-}
 
 interface ReimbursementDetailModalProps {
   isOpen: boolean;
@@ -50,7 +45,7 @@ export default function ReimbursementDetailModal({
   const [isReturning, setIsReturning] = useState(false);
   const [returnReason, setReturnReason] = useState("");
   const [copiedPix, setCopiedPix] = useState(false);
-  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [history, setHistory] = useState<ReimbursementHistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [anomaly, setAnomaly] = useState<{ avg: number; count: number; pct: number } | null>(null);
 
@@ -70,16 +65,8 @@ export default function ReimbursementDetailModal({
 
   const checkAnomaly = async () => {
     try {
-      const { data } = await supabase
-        .from('reimbursements')
-        .select('amount')
-        .eq('user_id', item.user_id)
-        .eq('category', item.category)
-        .neq('status', 'Rejeitado')
-        .neq('id', item.id);
-
-      if (!data || data.length < 3) return;
-      const amounts = data.map(r => Number(r.amount));
+      const amounts = await getReimbursementAmountsForAnomaly(item.user_id, item.category, item.id);
+      if (amounts.length < 3) return;
       const avg = amounts.reduce((a, b) => a + b, 0) / amounts.length;
       const pct = ((Number(item.amount) / avg) - 1) * 100;
       if (pct > 50) setAnomaly({ avg, count: amounts.length, pct });
@@ -89,14 +76,8 @@ export default function ReimbursementDetailModal({
   const fetchHistory = async () => {
     try {
       setLoadingHistory(true);
-      const { data, error } = await supabase
-        .from('reimbursement_history')
-        .select('*')
-        .eq('reimbursement_id', item.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      setHistory(data || []);
+      const data = await getReimbursementHistory(item.id);
+      setHistory(data);
     } catch (err) {
       console.error("Erro ao buscar histórico:", err);
     } finally {

@@ -7,12 +7,17 @@ import { Loader2, ArrowLeft, Receipt, Upload, Sparkles, CheckCircle, AlertTriang
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useTenant } from '@/src/contexts/TenantContext';
 import { toast } from 'sonner';
-import { supabase } from '@/src/lib/supabase';
 import { checkBudget } from '@/src/services/budgetService';
 import { extractReceiptFromImages, extractReceiptFromVoice } from '@/src/services/aiService';
+import {
+  getReimbursementById,
+  findReimbursementByReceiptHash,
+  uploadReceipt,
+  createReimbursement,
+  updateReimbursement,
+} from '@/src/services/reimbursementService';
 import type { CapturedImage } from '@/src/components/capture/CaptureStep';
 import CaptureStep from '@/src/components/capture/CaptureStep';
-import { withTimeout } from '@/src/lib/withTimeout';
 import { useClients } from '@/src/hooks/useClients';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
@@ -87,13 +92,7 @@ export default function NewReimbursement() {
     const fetchReimbursement = async () => {
       setIsLoadingForm(true);
       try {
-        const { data, error } = await supabase
-          .from('reimbursements')
-          .select('*')
-          .eq('id', id)
-          .single();
-
-        if (error) throw error;
+        const data = await getReimbursementById(id);
 
         const knownCategories = ['Alimentação', 'Transporte', 'Hospedagem'];
         const isCustomCategory = !knownCategories.includes(data.category);
@@ -253,11 +252,7 @@ export default function NewReimbursement() {
         pendingHashRef.current = Array.from(new Uint8Array(digest))
           .map(b => b.toString(16).padStart(2, '0')).join('');
       }
-      const { data: dup } = await supabase
-        .from('reimbursements')
-        .select('id, created_at')
-        .eq('receipt_hash', pendingHashRef.current)
-        .maybeSingle();
+      const dup = await findReimbursementByReceiptHash(pendingHashRef.current);
       if (dup) {
         setDuplicateWarning({ id: dup.id, createdAt: dup.created_at });
         return;
@@ -301,11 +296,7 @@ export default function NewReimbursement() {
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
         const filePath = `${tenant?.id ?? user.id}/reimbursements/${user.id}/${fileName}`;
 
-        const { error: uploadError } = await withTimeout(
-          supabase.storage.from('reimbursements_media').upload(filePath, file),
-          30000
-        ) as { data: unknown; error: { message: string } | null };
-        if (uploadError) throw new Error('Falha no upload: ' + uploadError.message);
+        await uploadReceipt(filePath, file);
 
         receiptUrl = filePath;
       }
@@ -334,17 +325,9 @@ export default function NewReimbursement() {
       };
 
       if (isEditMode) {
-        const { error: dbError } = await withTimeout(
-          supabase.from('reimbursements').update(payload).eq('id', id),
-          30000
-        ) as { data: unknown; error: { message: string } | null };
-        if (dbError) throw new Error(dbError.message);
+        await updateReimbursement(id!, payload);
       } else {
-        const { error: dbError } = await withTimeout(
-          supabase.from('reimbursements').insert(payload),
-          30000
-        ) as { data: unknown; error: { message: string } | null };
-        if (dbError) throw new Error(dbError.message);
+        await createReimbursement(payload);
       }
 
       toast.success(isEditMode ? "Reembolso atualizado!" : "Reembolso solicitado!", {

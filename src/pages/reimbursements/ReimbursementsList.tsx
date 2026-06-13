@@ -4,8 +4,11 @@ import { Plus, Download, FileText, Loader2 } from 'lucide-react';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useTenant } from '@/src/contexts/TenantContext';
 import { toast } from 'sonner';
-import { supabase } from '@/src/lib/supabase';
-import { extractStoragePath, batchSignedUrls } from '@/src/lib/storage';
+import {
+  fetchReimbursements as fetchReimbursementsApi,
+  processReimbursementAction,
+  subscribeReimbursements,
+} from '@/src/services/reimbursementService';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -51,54 +54,18 @@ export default function ReimbursementsList() {
   const fetchReimbursements = async () => {
     try {
       setLoading(true);
-      let query = supabase
-        .from('reimbursements')
-        .select(`
-          id, created_at, category, amount, status, receipt_url,
-          user_id, description, maintenance_type, client_id, branch, budget,
-          favorecido, pix_key, rejection_reason, revision_reason,
-          paid_at, paid_by,
-          clients(name),
-          users:user_id(full_name)
-        `)
-        .order('created_at', { ascending: false })
-        .range(page * itemsPerPage, (page + 1) * itemsPerPage - 1);
-
-      if (!isManager) {
-        query = query.eq('user_id', user?.id);
+      const { items, hasMore } = await fetchReimbursementsApi({
+        page,
+        itemsPerPage,
+        isManager,
+        userId: user?.id,
+      });
+      if (page === 0) {
+        setData(items);
+      } else {
+        setData(prev => [...prev, ...items]);
       }
-
-      const { data: result, error } = await query;
-      if (error) throw error;
-
-      if (result) {
-        const rawItems = result.map(item => ({
-          ...item,
-          users: Array.isArray(item.users) ? item.users[0] : item.users,
-        }));
-
-        // Batch-resolve signed URLs for all receipt_url values (handles both old full URLs and new paths)
-        const uniquePaths: string[] = [...new Set<string>(
-          rawItems
-            .filter(item => typeof item.receipt_url === 'string')
-            .map(item => extractStoragePath(item.receipt_url as string, 'reimbursements_media'))
-        )];
-        const signedMap = await batchSignedUrls(uniquePaths, 'reimbursements_media');
-
-        const processed = rawItems.map(item => ({
-          ...item,
-          receipt_url: item.receipt_url
-            ? (signedMap[extractStoragePath(item.receipt_url, 'reimbursements_media')] || item.receipt_url)
-            : null,
-        }));
-
-        if (page === 0) {
-          setData(processed);
-        } else {
-          setData(prev => [...prev, ...processed]);
-        }
-        setHasMore(result.length === itemsPerPage);
-      }
+      setHasMore(hasMore);
     } catch (err: any) {
       toast.error('Erro ao listar reembolsos.');
       console.error(err);
@@ -113,27 +80,25 @@ export default function ReimbursementsList() {
   useEffect(() => {
     if (!user?.id) return;
 
-    const channel = supabase.channel('realtime_reimbursements')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reimbursements' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          if (isManager || payload.new.user_id === user?.id) {
-            setPage(0);
-            fetchReimbursementsRef.current();
-            if (isManager) toast.info('Nova solicitação de reembolso recebida!');
-          }
-        } else if (payload.eventType === 'UPDATE') {
-          setData(prev => prev.map(item => item.id === payload.new.id ? { ...item, ...payload.new } : item));
-          setSelectedItem((prev: any) => prev?.id === payload.new.id ? { ...prev, ...payload.new } : prev);
-          if (payload.new.user_id === user?.id && payload.old.status !== payload.new.status) {
-            toast.info(`Status do reembolso alterado para: ${payload.new.status}`);
-          }
-        } else if (payload.eventType === 'DELETE') {
-          setData(prev => prev.filter(item => item.id !== payload.old.id));
+    return subscribeReimbursements({
+      onInsert: (row) => {
+        if (isManager || row.user_id === user?.id) {
+          setPage(0);
+          fetchReimbursementsRef.current();
+          if (isManager) toast.info('Nova solicitação de reembolso recebida!');
         }
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+      },
+      onUpdate: (newRow, oldRow) => {
+        setData(prev => prev.map(item => item.id === newRow.id ? { ...item, ...newRow } : item));
+        setSelectedItem((prev: any) => prev?.id === newRow.id ? { ...prev, ...newRow } : prev);
+        if (newRow.user_id === user?.id && oldRow.status !== newRow.status) {
+          toast.info(`Status do reembolso alterado para: ${newRow.status}`);
+        }
+      },
+      onDelete: (oldRow) => {
+        setData(prev => prev.filter(item => item.id !== oldRow.id));
+      },
+    });
   }, [user?.id, isManager]);
 
   // Fetch — reage à troca de página
@@ -158,14 +123,7 @@ export default function ReimbursementsList() {
 
   const handleAction = async (id: string, action: 'Aprovado' | 'Rejeitado' | 'Revisao' | 'Pago', reason?: string) => {
     try {
-      const { data: rpcResult, error: rpcError } = await supabase.rpc(
-        'process_reimbursement_action',
-        {
-          p_reimbursement_id: id,
-          p_action: action,
-          p_reason: reason || null,
-        }
-      );
+      const { data: rpcResult, error: rpcError } = await processReimbursementAction(id, action, reason || null);
 
       if (rpcError) throw new Error(rpcError.message);
       if (rpcResult && rpcResult.success === false) throw new Error(rpcResult.error);
@@ -191,13 +149,7 @@ export default function ReimbursementsList() {
       const toastId = toast.loading(`Processando ${selectedIds.length} reembolsos...`);
       
       const results = await Promise.all(
-        selectedIds.map(id => 
-          supabase.rpc('process_reimbursement_action', {
-            p_reimbursement_id: id,
-            p_action: action,
-            p_reason: null
-          })
-        )
+        selectedIds.map(id => processReimbursementAction(id, action, null))
       );
 
       const errors = results.filter(r => r.error);
