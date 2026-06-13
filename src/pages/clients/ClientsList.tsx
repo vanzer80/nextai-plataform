@@ -36,7 +36,7 @@ export default function ClientsList() {
   const openDetail = (c: ClientWithLocations) => { setSelected(c); setDetailOpen(true); };
 
   return (
-    <div className="flex flex-col gap-6 min-h-full w-full pb-6 animate-in fade-in duration-300">
+    <div className="flex flex-col gap-6 w-full pb-6 animate-in fade-in duration-300">
 
       {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
