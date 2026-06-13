@@ -6,12 +6,12 @@ import { z } from 'zod';
 import { ArrowLeft, Save, Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Button }   from '@/components/ui/button';
-import { Input }    from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Button }   from '@/src/components/ui/button';
+import { Input }    from '@/src/components/ui/input';
+import { Textarea } from '@/src/components/ui/textarea';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+} from '@/src/components/ui/select';
 
 import { createPayable, updatePayable, getPayable, submitPayable } from '@/src/services/payableService';
 import { getSuppliers } from '@/src/services/supplierService';

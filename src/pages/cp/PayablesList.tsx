@@ -6,12 +6,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Button }   from '@/components/ui/button';
-import { Badge }    from '@/components/ui/badge';
-import { Input }    from '@/components/ui/input';
+import { Button }   from '@/src/components/ui/button';
+import { Badge }    from '@/src/components/ui/badge';
+import { Input }    from '@/src/components/ui/input';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+} from '@/src/components/ui/select';
 
 import {
   getPayables, getPayableKPIs, type PayableFilters,

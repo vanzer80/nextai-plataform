@@ -3,7 +3,7 @@ import { Navigate, Link } from 'react-router-dom';
 import { Settings2 } from 'lucide-react';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useTenant } from '@/src/contexts/TenantContext';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/src/components/ui/button';
 import { useDashboardData } from './useDashboardData';
 import { useDashboardPrefs } from './useDashboardPrefs';
 import { DashboardCustomizer } from './DashboardCustomizer';

@@ -6,13 +6,13 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Button }   from '@/components/ui/button';
-import { Badge }    from '@/components/ui/badge';
-import { Input }    from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Button }   from '@/src/components/ui/button';
+import { Badge }    from '@/src/components/ui/badge';
+import { Input }    from '@/src/components/ui/input';
+import { Textarea } from '@/src/components/ui/textarea';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog';
+} from '@/src/components/ui/dialog';
 
 import {
   getPayable, submitPayable, approvePayable, rejectPayable,

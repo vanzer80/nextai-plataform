@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Label } from '@/src/components/ui/label';
+import { Textarea } from '@/src/components/ui/textarea';
+import { Input } from '@/src/components/ui/input';
 import { Wrench } from 'lucide-react';
 import AiExecutionAssistant from '../AiExecutionAssistant';
 import type { ReportFormValues } from '@/src/pages/reports/NewReport';

@@ -3,10 +3,10 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Building2, Users, Settings, Brain, Menu, LogOut, Loader2, Sun, Moon, Laptop, FileText } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/src/contexts/AuthContext';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Avatar, AvatarFallback } from '@/src/components/ui/avatar';
+import { Badge } from '@/src/components/ui/badge';
+import { Button } from '@/src/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/src/components/ui/sheet';
 import clsx from 'clsx';
 import { NextAILogo } from '@/src/components/brand/NextAILogo';
 

@@ -1,19 +1,19 @@
 import { useState } from 'react';
 import { Plus, Wrench, Loader2, Pencil, Trash2, Eye, AlertTriangle, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/src/components/ui/button';
+import { Input } from '@/src/components/ui/input';
+import { Label } from '@/src/components/ui/label';
+import { Badge } from '@/src/components/ui/badge';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog';
+} from '@/src/components/ui/dialog';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+} from '@/src/components/ui/select';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
+} from '@/src/components/ui/table';
 import { useEquipments } from '@/src/hooks/useEquipments';
 import { useClients } from '@/src/hooks/useClients';
 import { createEquipment, updateEquipment, deleteEquipment } from '@/src/services/equipmentService';

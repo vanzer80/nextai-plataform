@@ -5,10 +5,10 @@ import {
 } from 'lucide-react';
 import { 
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle 
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
+} from '@/src/components/ui/dialog';
+import { Button } from '@/src/components/ui/button';
+import { Badge } from '@/src/components/ui/badge';
+import { Textarea } from '@/src/components/ui/textarea';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/src/lib/supabase';
 import clsx from 'clsx';

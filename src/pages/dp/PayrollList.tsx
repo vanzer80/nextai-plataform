@@ -6,12 +6,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Button }   from '@/components/ui/button';
-import { Badge }    from '@/components/ui/badge';
+import { Button }   from '@/src/components/ui/button';
+import { Badge }    from '@/src/components/ui/badge';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog';
-import { Input }    from '@/components/ui/input';
+} from '@/src/components/ui/dialog';
+import { Input }    from '@/src/components/ui/input';
 
 import {
   getPayrollPeriods, createPayrollPeriod, calculatePeriod,

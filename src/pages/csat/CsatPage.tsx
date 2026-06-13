@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Star, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/src/components/ui/button';
+import { Textarea } from '@/src/components/ui/textarea';
 import { getCsatByToken, submitCsat } from '@/src/services/csatService';
 import type { CsatTokenData } from '@/src/types/csat';
 

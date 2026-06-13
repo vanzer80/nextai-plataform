@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react';
 import { Loader2, PenLine, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/src/components/ui/button';
+import { Input } from '@/src/components/ui/input';
+import { Label } from '@/src/components/ui/label';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog';
+} from '@/src/components/ui/dialog';
 import SignatureCanvas from '@/src/pages/reports/components/SignatureCanvas';
 import { assinarOrcamento } from '@/src/services/orcamentoService';
 

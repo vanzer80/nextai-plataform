@@ -8,11 +8,11 @@ import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useTenant } from '@/src/contexts/TenantContext';
 import { applyTenantBrand } from '@/src/lib/color';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/src/components/ui/button';
+import { Input } from '@/src/components/ui/input';
+import { Label } from '@/src/components/ui/label';
+import { Avatar, AvatarFallback } from '@/src/components/ui/avatar';
+import { Badge } from '@/src/components/ui/badge';
 
 const profileSchema = z.object({
   name:          z.string().min(2, 'Nome deve ter no mínimo 2 caracteres').max(100),

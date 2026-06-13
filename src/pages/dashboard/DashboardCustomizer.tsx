@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Settings2, RotateCcw, Check, ChevronUp, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/src/components/ui/button';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog';
-import { Switch } from '@/components/ui/switch';
+} from '@/src/components/ui/dialog';
+import { Switch } from '@/src/components/ui/switch';
 import { WIDGET_DEFINITIONS } from './widgetRegistry';
 import type { WidgetId } from './widgetRegistry';
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/src/components/ui/dialog';
 import { ImageIcon, ZoomIn } from 'lucide-react';
 import type { ReportAttachment } from '@/src/types/reports';
 

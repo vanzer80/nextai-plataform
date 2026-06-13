@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Laptop, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { cn } from '@/lib/utils';
+import { cn } from '@/src/lib/utils';
 
 import {
   DropdownMenu,
@@ -10,7 +10,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/src/components/ui/dropdown-menu';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 

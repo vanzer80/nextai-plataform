@@ -4,7 +4,7 @@ import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
 import { Plus, ClipboardList, AlertCircle, Loader2, Wifi, WifiOff, FileSpreadsheet, UploadCloud } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/src/lib/supabase';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/src/components/ui/button';
 import { exportarOsExcel } from '@/src/utils/exportarOsExcel';
 import type { ServiceReport } from '@/src/types/reports';
 import { useReports } from '@/src/hooks/useReports';

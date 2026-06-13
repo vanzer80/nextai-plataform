@@ -15,17 +15,17 @@ import CaptureStep from '@/src/components/capture/CaptureStep';
 import { withTimeout } from '@/src/lib/withTimeout';
 import { useClients } from '@/src/hooks/useClients';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Button } from '@/src/components/ui/button';
+import { Input } from '@/src/components/ui/input';
+import { Label } from '@/src/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/src/components/ui/select";
 
 const reimbursementSchema = z.object({
   category: z.string().min(1, "Obrigatório selecionar a categoria"),

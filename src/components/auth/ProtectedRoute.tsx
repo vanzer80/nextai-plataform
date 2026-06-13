@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { AlertTriangle, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/src/components/ui/button';
 import { NextAILogo } from '@/src/components/brand/NextAILogo';
 import { supabaseUrl, supabaseAnonKey } from '@/src/lib/supabase';
 

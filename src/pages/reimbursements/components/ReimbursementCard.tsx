@@ -1,6 +1,6 @@
 import React from 'react';
 import { Receipt, Pencil, Timer } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/src/components/ui/card';
 import { Link } from 'react-router-dom';
 import { getAgingInfo, AGING_CLASSES } from '@/src/lib/aging';
 

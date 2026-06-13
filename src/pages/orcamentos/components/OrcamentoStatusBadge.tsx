@@ -1,4 +1,4 @@
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/src/components/ui/badge';
 import { ORCAMENTO_STATUS_COLOR, ORCAMENTO_STATUS_LABEL } from '@/src/types/orcamento';
 import type { OrcamentoStatus } from '@/src/types/orcamento';
 

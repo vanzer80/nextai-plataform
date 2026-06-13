@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Plus, ChevronUp, ChevronDown, Loader2, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/src/components/ui/button';
+import { Input } from '@/src/components/ui/input';
+import { Label } from '@/src/components/ui/label';
+import { Switch } from '@/src/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog';
+} from '@/src/components/ui/dialog';
 import { supabase } from '@/src/lib/supabase';
 import { invalidateServiceTypesCache, type ServiceTypeRow } from '@/src/hooks/useServiceTypes';
 

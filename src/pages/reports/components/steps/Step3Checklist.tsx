@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
 import { CheckSquare, Loader2, ListTodo } from 'lucide-react';
 import ChecklistRenderer from '../ChecklistRenderer';
 import type { ChecklistTemplate, ReportChecklistItem, ServiceType } from '@/src/types/reports';

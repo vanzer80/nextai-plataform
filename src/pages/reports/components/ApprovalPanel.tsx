@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { CheckCircle2, XCircle, RotateCcw, Loader2, ChevronDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/src/components/ui/button';
+import { Textarea } from '@/src/components/ui/textarea';
 import { toast } from 'sonner';
 import { processReportAction } from '@/src/services/reportService';
 import type { ReportAction } from '@/src/services/reportService';

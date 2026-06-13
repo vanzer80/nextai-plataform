@@ -2,7 +2,7 @@ import { useState, useEffect, Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, FileText, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/src/lib/supabase';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/src/components/ui/button';
 import { useOrcamentos } from '@/src/hooks/useOrcamentos';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { OrcamentoCard } from './components/OrcamentoCard';

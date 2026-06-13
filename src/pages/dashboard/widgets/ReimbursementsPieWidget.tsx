@@ -1,7 +1,7 @@
 import { Briefcase } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Skeleton } from '@/src/components/ui/skeleton';
 import type { PieEntry } from '../useDashboardData';
 
 interface Props {

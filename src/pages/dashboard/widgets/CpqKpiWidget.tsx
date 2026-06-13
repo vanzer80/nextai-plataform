@@ -1,6 +1,6 @@
 import { FileText, TrendingUp, TrendingDown } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Skeleton } from '@/src/components/ui/skeleton';
 import type { CpqKpis } from '../useDashboardData';
 
 interface Props {

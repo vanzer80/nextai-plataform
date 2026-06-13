@@ -9,10 +9,10 @@ import { toast } from 'sonner';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { supabase } from '@/src/lib/supabase';
 import { extractStoragePath, batchSignedUrls } from '@/src/lib/storage';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/src/components/ui/card';
+import { Button } from '@/src/components/ui/button';
+import { Badge } from '@/src/components/ui/badge';
+import { Input } from '@/src/components/ui/input';
 import clsx from 'clsx';
 import PurchaseDetailModal, { type PurchaseRequest } from './components/PurchaseDetailModal';
 

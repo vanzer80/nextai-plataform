@@ -1,7 +1,7 @@
 import type { UseFormReturn } from 'react-hook-form';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import { Label } from '@/src/components/ui/label';
+import { Input } from '@/src/components/ui/input';
 import { PenLine, ClipboardList } from 'lucide-react';
 import SignatureCanvas from '../SignatureCanvas';
 import type { ReportFormValues } from '@/src/pages/reports/NewReport';

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { MapPin, Loader2, X, Navigation } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/src/components/ui/button';
 import { useGeolocation } from '@/src/hooks/useGeolocation';
 import type { GeolocationData } from '@/src/hooks/useGeolocation';
 
