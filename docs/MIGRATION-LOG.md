@@ -73,3 +73,15 @@ Sem divergência porque cada fato tem um único dono.
 - `.claude/skills/fechar-sessao/SKILL.md` reescrita: grava sessão no repo (COLD + linha no WARM + ROADMAP.md) e commita junto ao código; `.claude/last-vault-sync` mantido para não mexer no hook `Stop` de `settings.json`.
 - `CLAUDE.md` linha 21 atualizada. Linha 1379 (pasta `Sprints\` do vault, specs read-only) deixada como ponteiro externo — fora do escopo do ritual.
 - Pendente: gate `npx tsc --noEmit` (sanidade — não houve mudança de código TS, só docs/skills) + commit.
+
+### 2026-06-13 — Revisão pós-execução (auditoria do próprio trabalho, a pedido do usuário)
+Revisão adversarial encontrou dependências do vault que a 1ª passada **esqueceu** — corrigidas:
+- **skill `nova-sprint` (`.claude`)** ainda lia 3 arquivos do vault (Roadmap, Quick Reference, Problemas e Dívida Técnica). Reescrita → `docs/ROADMAP.md` + `docs/DIVIDA-TECNICA.md` + `CLAUDE.md`.
+- **`Problemas e Dívida Técnica.md`** (3º arquivo vivo do vault) migrado → `docs/DIVIDA-TECNICA.md` (cp, 102 linhas).
+- **hook `.claude/scripts/check-vault-sync.ps1`** dizia "não documentado no Obsidian" → atualizado para "não registrado em docs/HISTORY".
+- **Harness Codex (`.agents/skills/` + `.codex/`)** — conjunto paralelo de skills (gitignored) também apontava para o vault. Os 3 skills reescritos; o `fechar-sessao` do Codex preserva `.codex\last-vault-sync` + "hook Stop do Codex". `.codex/hooks.json` já aponta para o script compartilhado `.claude/scripts/check-vault-sync.ps1` (corrigido) — sem hook próprio com texto stale.
+- **Integridade COLD:** `wc -l` nos 73 arquivos → menor = 13 linhas (s66, íntegro); nenhum vazio/truncado. Casos difíceis conferidos: sem-título (s1), duplicata (s60), encoding do ROADMAP.
+- **Pendência consciente (não corrigida):** `CLAUDE.md:1379` aponta para a pasta `Sprints\` do vault (specs read-only de planejamento). Não é parte do ritual de sessão — decisão do usuário se migra ou não.
+
+### 2026-06-13 — Commits
+- `1f3a435` — migração (80 arquivos). `e317c7e` — fecha log passo 8. (+ commit desta revisão a seguir.)

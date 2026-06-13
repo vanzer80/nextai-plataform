@@ -1,5 +1,6 @@
-# Verifica se o HEAD do repositório está sincronizado com o vault Obsidian.
+# Verifica se o HEAD do repositório está registrado no histórico de sessões (docs/).
 # Executado automaticamente pelo hook Stop do Claude Code após cada resposta.
+# Nome do arquivo de sync (last-vault-sync) é legado — hoje "sync" = histórico no repo.
 param()
 
 $repoPath = "C:\dev\portal-mopar"
@@ -15,9 +16,9 @@ if ($head -ne $synced) {
     $short = $head.Substring(0, 7)
     Write-Host ""
     Write-Host "┌──────────────────────────────────────────────────────┐"
-    Write-Host "│  ⚠️  VAULT OBSIDIAN DESATUALIZADO                     │"
-    Write-Host "│  Commit $short nao esta documentado no Obsidian.      │"
-    Write-Host "│  Execute /fechar-sessao para sincronizar antes        │"
+    Write-Host "│  ⚠️  HISTORICO DE SESSOES DESATUALIZADO               │"
+    Write-Host "│  Commit $short ainda nao registrado em docs/HISTORY.  │"
+    Write-Host "│  Execute /fechar-sessao para registrar antes          │"
     Write-Host "│  de encerrar a sessao.                                │"
     Write-Host "└──────────────────────────────────────────────────────┘"
 }
