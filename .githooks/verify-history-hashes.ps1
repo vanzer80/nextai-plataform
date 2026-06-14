@@ -9,8 +9,11 @@
 # os dois erros no exato momento do commit, em qualquer ferramenta.
 #
 # Silencioso em sucesso; imprime um aviso emoldurado em qualquer divergencia.
-# NUNCA falha o commit — governanca informativa, exit 0 sempre.
-param()
+#
+# Dois modos (mesma logica, fonte unica):
+#   - sem -Strict (hook post-commit local): informativo, exit 0 sempre — nunca derruba o fluxo.
+#   - com -Strict (GitHub Actions / CI):     exit 1 em qualquer problema — reprova o check.
+param([switch]$Strict)
 
 $ErrorActionPreference = 'Stop'
 try {
@@ -58,9 +61,12 @@ try {
     Write-Host '|  Corrija o HISTORY.md com o dado real e faca um commit de      |'
     Write-Host '|  correcao. (Para auditoria completa: /verificar-delegacao)     |'
     Write-Host '+----------------------------------------------------------------+'
+    if ($Strict) { exit 1 }
     exit 0
 }
 catch {
-    # Um hook de governanca jamais pode derrubar o fluxo de commit.
+    # No hook local (advisory) jamais derruba o fluxo. No CI (-Strict) um erro
+    # inesperado deve reprovar — falha silenciosa no servidor mascara o problema.
+    if ($Strict) { Write-Host "verify-history-hashes: erro inesperado -> $_"; exit 1 }
     exit 0
 }

@@ -15,11 +15,23 @@ pwsh -File .githooks/install.ps1
 
 Verifica: `git config --get core.hooksPath` deve retornar `.githooks`.
 
+## Duas camadas (mesmo script, sem duplicação)
+
+| Camada | Onde roda | Bloqueia? | Cobre |
+|--------|-----------|-----------|-------|
+| `post-commit` (local) | máquina de quem commita | não (advisory) | commits locais de máquinas com `install.ps1` rodado |
+| GitHub Actions `history-integrity.yml` (servidor) | servidores do GitHub, todo push/PR | **sim** (check vermelho) | **qualquer** commit que chegue ao GitHub — inclusive de máquina não configurada ou da web/API |
+
+A camada local dá feedback imediato (<1s) no momento do commit; a camada servidor é a
+autoridade — roda `verify-history-hashes.ps1 -Strict` (exit 1 em divergência) independente
+de setup local. O git hook **não** roda no GitHub (hooks são sempre client-side); por isso
+as duas camadas são complementares, não redundantes.
+
 ## O que roda
 
 | Hook | Quando | O que faz |
 |------|--------|-----------|
-| `post-commit` | após todo commit | valida `docs/HISTORY.md` via `verify-history-hashes.ps1` |
+| `post-commit` | após todo commit local | valida `docs/HISTORY.md` via `verify-history-hashes.ps1` (advisory) |
 
 `verify-history-hashes.ps1` checa, nas 5 entradas mais recentes do índice:
 1. o hash em `` `...` `` resolve para um commit real (`git rev-parse`);

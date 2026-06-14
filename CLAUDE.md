@@ -34,11 +34,17 @@ Após migrations: rodar `get_advisors(type='security')` via MCP Supabase → zer
 
 O projeto é tocado por mais de um harness de IA (Claude Code, Codex, Gemini). Para barrar erros
 recorrentes de agentes delegados — **hash inventado** no índice ou **arquivo de sessão alegado mas
-inexistente** — há um git hook versionado em `.githooks/post-commit` que valida as 5 entradas mais
-recentes de `docs/HISTORY.md` após **todo** commit, em qualquer ferramenta. Setup 1× por clone:
-`pwsh -File .githooks/install.ps1` (seta `core.hooksPath=.githooks`). O hook é informativo (não
-bloqueia); auditoria completa de handoff (hashes + arquivos + `tsc` + `vitest`) é a skill
-`/verificar-delegacao`. Detalhes em [`.githooks/README.md`](.githooks/README.md).
+inexistente** — a integridade das 5 entradas mais recentes de `docs/HISTORY.md` é validada em **duas
+camadas**, ambas pelo mesmo script `verify-history-hashes.ps1`:
+
+1. **Local** — git hook `.githooks/post-commit`, após todo commit, em qualquer ferramenta. Advisory
+   (não bloqueia). Setup 1× por clone: `pwsh -File .githooks/install.ps1` (seta `core.hooksPath`).
+2. **Servidor** — GitHub Actions `.github/workflows/history-integrity.yml`, a cada push/PR, roda o
+   script com `-Strict` (exit 1 → check vermelho). Cobre commits de máquinas não configuradas e da
+   web/API do GitHub, que nenhum hook local alcança (hooks git são sempre client-side).
+
+Auditoria completa de handoff (hashes + arquivos + `tsc` + `vitest`) é a skill `/verificar-delegacao`.
+Detalhes em [`.githooks/README.md`](.githooks/README.md).
 
 ## Stack técnica
 

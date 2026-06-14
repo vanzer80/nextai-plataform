@@ -1,0 +1,35 @@
+name: HISTORY.md integrity
+
+# Camada SERVIDOR da governanca de commit (complementa o git hook local
+# .githooks/post-commit). Roda nos servidores do GitHub a cada push/PR,
+# independente de qual maquina ou harness criou o commit — inclusive commits
+# feitos pela web/API do GitHub, que nenhum hook local alcanca.
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: history-integrity-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verifica hashes e arquivos do HISTORY.md
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout (historico completo)
+        uses: actions/checkout@v4
+        with:
+          # fetch-depth: 0 e obrigatorio — um clone raso nao tem os commits
+          # referenciados no HISTORY.md, gerando falso-positivo no rev-parse.
+          fetch-depth: 0
+
+      - name: Verificar integridade (modo strict — reprova em divergencia)
+        shell: bash
+        run: pwsh -NoProfile -File .githooks/verify-history-hashes.ps1 -Strict
