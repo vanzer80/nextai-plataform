@@ -49,3 +49,43 @@ export function updateTenantBranding(
 export function runStorageBackfill() {
   return supabase.functions.invoke('storage-backfill-mopar');
 }
+
+// Read do próprio tenant (Master/Admin) para popular o Perfil Comercial. Lança o erro bruto.
+export async function fetchOwnTenantCommercial(tenantId: string): Promise<{
+  name: string | null; razao_social: string | null; cnpj: string | null; ie: string | null;
+  email_contato: string | null; phone: string | null; website: string | null; sector: string | null;
+  address_zip: string | null; address_street: string | null; address_number: string | null;
+  address_complement: string | null; address_neighborhood: string | null; address_city: string | null;
+  address_state: string | null; address_country: string | null;
+}> {
+  const { data, error } = await supabase
+    .from('tenants')
+    .select('name, razao_social, cnpj, ie, email_contato, phone, website, sector, address_zip, address_street, address_number, address_complement, address_neighborhood, address_city, address_state, address_country')
+    .eq('id', tenantId)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// Master/Admin edita a PRÓPRIA empresa via RPC SECURITY DEFINER (UPDATE direto bloqueado por RLS;
+// a RPC restringe internamente as colunas — nunca name/slug/primary_color/logo_url/is_platform/is_active).
+// Retorna { data, error } bruto: o caller mantém o `if (error) throw error` (contrato de erro preservado).
+export function updateOwnTenantCommercial(params: {
+  p_razao_social: string | null;
+  p_cnpj: string | null;
+  p_ie: string | null;
+  p_email_contato: string | null;
+  p_phone: string | null;
+  p_website: string | null;
+  p_sector: string | null;
+  p_address_zip: string | null;
+  p_address_street: string | null;
+  p_address_number: string | null;
+  p_address_complement: string | null;
+  p_address_neighborhood: string | null;
+  p_address_city: string | null;
+  p_address_state: string | null;
+  p_address_country: string | null;
+}) {
+  return supabase.rpc('update_own_tenant_commercial', params);
+}

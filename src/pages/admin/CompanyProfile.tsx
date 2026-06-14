@@ -7,7 +7,7 @@ import {
   Mail, MapPin, FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/src/lib/supabase';
+import { fetchOwnTenantCommercial, updateOwnTenantCommercial } from '@/src/services/tenantManagementService';
 import { useTenant } from '@/src/contexts/TenantContext';
 
 import { Button } from '@/src/components/ui/button';
@@ -94,12 +94,7 @@ export default function CompanyProfile() {
     const load = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('tenants')
-          .select('name, razao_social, cnpj, ie, email_contato, phone, website, sector, address_zip, address_street, address_number, address_complement, address_neighborhood, address_city, address_state, address_country')
-          .eq('id', tenant.id)
-          .single();
-        if (error) throw error;
+        const data = await fetchOwnTenantCommercial(tenant.id);
 
         setTenantName(data.name ?? '');
         form.reset({
@@ -154,7 +149,7 @@ export default function CompanyProfile() {
     try {
       // UPDATE direto em tenants não tem policy para usuário comum — usa RPC SECURITY DEFINER
       // que restringe internamente quais colunas podem ser alteradas (nunca name/slug/is_platform).
-      const { error } = await supabase.rpc('update_own_tenant_commercial', {
+      const { error } = await updateOwnTenantCommercial({
         p_razao_social:         data.razao_social         || null,
         p_cnpj:                 data.cnpj                 || null,
         p_ie:                   data.ie                   || null,

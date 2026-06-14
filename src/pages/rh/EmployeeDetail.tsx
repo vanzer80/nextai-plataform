@@ -18,6 +18,7 @@ import { useAuth } from '@/src/contexts/AuthContext';
 import {
   getEmployeeById, updateEmployeeStatus, addCertification, deleteCertification,
   uploadEmployeeDocument, deleteEmployeeDocument, getDocumentSignedUrl,
+  uploadCertificationFile, getEmployeeReports,
 } from '@/src/services/employeeService';
 import type { EmployeeWithRelations, EmployeeStatus, MotivoDesligamento, CreateCertificationDTO } from '@/src/types/employee';
 import { CERT_STATUS_LABEL, CERT_STATUS_CLASS, computeCertStatus } from '@/src/utils/certUtils';
@@ -111,11 +112,7 @@ export default function EmployeeDetail({ employeeId, onClose, onUpdated }: Props
     try {
       let certUrl: string | undefined;
       if (certFile && user) {
-        const ext = certFile.name.split('.').pop();
-        const path = `certs/${emp.id}/${Date.now()}.${ext}`;
-        const { error } = await (await import('@/src/lib/supabase')).supabase.storage
-          .from('employee_documents').upload(path, certFile);
-        if (!error) certUrl = path;
+        certUrl = (await uploadCertificationFile(emp.id, certFile)) ?? undefined;
       }
       await addCertification({
         employee_id: emp.id,
@@ -585,14 +582,8 @@ function OSRealizadas({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    import('@/src/lib/supabase').then(({ supabase }) =>
-      supabase.from('service_reports')
-        .select('id, os_number, service_type, status, service_date, created_at')
-        .eq('technician_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(50)
-    ).then(({ data }) => {
-      setReports(data ?? []);
+    getEmployeeReports(userId).then(rows => {
+      setReports(rows);
       setLoading(false);
     });
   }, [userId]);

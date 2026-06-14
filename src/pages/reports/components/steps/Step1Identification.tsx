@@ -10,7 +10,7 @@ import { ClipboardList, BookOpen, Hash, RefreshCw, Loader2 } from 'lucide-react'
 import { useServiceTypes } from '@/src/hooks/useServiceTypes';
 import { getSuggestionsForServiceType } from '@/src/services/kbService';
 import { useAuth } from '@/src/contexts/AuthContext';
-import { supabase } from '@/src/lib/supabase';
+import { reserveOsNumber } from '@/src/services/reportService';
 import type { ReportFormValues } from '@/src/pages/reports/NewReport';
 import type { KbArticle } from '@/src/types/kb';
 
@@ -57,10 +57,9 @@ export default function Step1Identification({ form }: Step1Props) {
     setGenerating(true);
     setOsError(false);
     try {
-      const { data, error } = await supabase.rpc('reserve_os_number', { p_team_id: teamId });
+      const reserved = await reserveOsNumber(teamId);
       if (myGen !== generationRef.current) return; // resposta obsoleta — descarta
-      if (error) throw error;
-      setValue('os_number', data as string, { shouldDirty: true });
+      setValue('os_number', reserved, { shouldDirty: true });
     } catch {
       if (myGen !== generationRef.current) return;
       setOsError(true);

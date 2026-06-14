@@ -227,3 +227,33 @@ export async function getDocumentSignedUrl(storagePath: string): Promise<string>
   if (error) throw new Error(error.message);
   return data.signedUrl;
 }
+
+// ── OS do técnico / Certificações (storage) ─────────────────────────────────────
+
+export interface EmployeeReportRow {
+  id: string;
+  os_number: string | null;
+  service_type: string | null;
+  status: string;
+  service_date: string | null;
+  created_at: string;
+}
+
+// Upload de certificado. Falha é NÃO-FATAL (cert criada sem arquivo): retorna o path ou null, nunca lança.
+export async function uploadCertificationFile(employeeId: string, file: File): Promise<string | null> {
+  const ext = file.name.split('.').pop();
+  const path = `certs/${employeeId}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from('employee_documents').upload(path, file);
+  return error ? null : path;
+}
+
+// OS realizadas por um técnico. O caller ignora erro → retorna data ?? [] sem lançar.
+export async function getEmployeeReports(userId: string): Promise<EmployeeReportRow[]> {
+  const { data } = await supabase
+    .from('service_reports')
+    .select('id, os_number, service_type, status, service_date, created_at')
+    .eq('technician_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  return (data ?? []) as EmployeeReportRow[];
+}

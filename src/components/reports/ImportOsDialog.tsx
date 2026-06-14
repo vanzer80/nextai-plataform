@@ -3,7 +3,7 @@ import { extractTextFromPdf } from '@/src/lib/pdf-text-extractor';
 import { useNavigate } from 'react-router-dom';
 import { UploadCloud, FileText, X, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/src/lib/supabase';
+import { importOs } from '@/src/services/osImportService';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/src/components/ui/dialog';
@@ -132,9 +132,7 @@ export default function ImportOsDialog({ open, onClose, onImported }: Props) {
         };
       }
 
-      const { data, error } = await supabase.functions.invoke('os-import-processor', {
-        body: payload,
-      });
+      const { data, error } = await importOs(payload);
 
       if (error) {
         let detail = error.message;

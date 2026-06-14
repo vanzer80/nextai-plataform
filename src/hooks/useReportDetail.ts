@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/src/lib/supabase';
+import { fetchReportDetail } from '@/src/services/reportService';
 import type {
   ServiceReport,
   ReportStatusHistory,
@@ -17,14 +17,6 @@ export interface ReportDetailData {
   loading: boolean;
   error: string | null;
   refresh: () => void;
-}
-
-async function signedUrls(paths: string[]): Promise<string[]> {
-  if (paths.length === 0) return [];
-  const { data } = await supabase.storage
-    .from('reports_media')
-    .createSignedUrls(paths, 3600);
-  return (data ?? []).map(d => d.signedUrl ?? '');
 }
 
 export function useReportDetail(id: string | undefined): ReportDetailData {
@@ -56,52 +48,13 @@ export function useReportDetail(id: string | undefined): ReportDetailData {
       setError(null);
 
       try {
-        const [reportRes, historyRes, attachmentsRes, signaturesRes, checklistRes] =
-          await Promise.all([
-            supabase
-              .from('service_reports')
-              .select('*, clients(name), users:technician_id(full_name), equipments(name)')
-              .eq('id', id)
-              .single(),
-            supabase
-              .from('report_status_history')
-              .select('*')
-              .eq('report_id', id)
-              .order('created_at', { ascending: true }),
-            supabase
-              .from('report_attachments')
-              .select('*')
-              .eq('report_id', id),
-            supabase
-              .from('report_signatures')
-              .select('*')
-              .eq('report_id', id),
-            supabase
-              .from('report_checklist_items')
-              .select('*')
-              .eq('report_id', id)
-              .order('created_at', { ascending: true }),
-          ]);
-
+        const result = await fetchReportDetail(id!);
         if (cancelled) return;
-        if (reportRes.error) throw reportRes.error;
-
-        const rawAttachments = (attachmentsRes.data ?? []) as ReportAttachment[];
-        const rawSignatures = (signaturesRes.data ?? []) as ReportSignature[];
-
-        // Generate signed URLs in parallel
-        const [attUrls, sigUrls] = await Promise.all([
-          signedUrls(rawAttachments.map(a => a.url)),
-          signedUrls(rawSignatures.map(s => s.image_url)),
-        ]);
-
-        if (cancelled) return;
-
-        setReport(reportRes.data as ServiceReport);
-        setHistory((historyRes.data ?? []) as ReportStatusHistory[]);
-        setAttachments(rawAttachments.map((a, i) => ({ ...a, url: attUrls[i] || a.url })));
-        setSignatures(rawSignatures.map((s, i) => ({ ...s, image_url: sigUrls[i] || s.image_url })));
-        setChecklistItems((checklistRes.data ?? []) as ReportChecklistItem[]);
+        setReport(result.report);
+        setHistory(result.history);
+        setAttachments(result.attachments);
+        setSignatures(result.signatures);
+        setChecklistItems(result.checklistItems);
       } catch (err) {
         if (!cancelled) {
           setError('Erro ao carregar o relatório.');

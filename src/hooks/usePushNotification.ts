@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useState } from 'react';
-import { supabase } from '@/src/lib/supabase';
+import * as notificationService from '@/src/services/notificationService';
 import { useAuth } from '@/src/contexts/AuthContext';
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY ?? '';
@@ -38,10 +38,9 @@ export function usePushNotification() {
       });
 
       const ua = navigator.userAgent.slice(0, 200);
-      await supabase.from('push_subscriptions').upsert(
-        { user_id: user.id, subscription: sub.toJSON(), user_agent: ua },
-        { onConflict: 'user_id,user_agent' }
-      );
+      await notificationService.upsertPushSubscription({
+        userId: user.id, subscription: sub.toJSON(), userAgent: ua,
+      });
 
       setIsSubscribed(true);
     } catch (err) {

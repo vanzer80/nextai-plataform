@@ -1,6 +1,9 @@
 import { supabase } from '@/src/lib/supabase';
 import type { ReportFormValues } from '@/src/pages/reports/NewReport';
-import type { EvidenceFile, ReportChecklistItem } from '@/src/types/reports';
+import type {
+  EvidenceFile, ReportChecklistItem,
+  ServiceReport, ReportStatusHistory, ReportAttachment, ReportSignature,
+} from '@/src/types/reports';
 import { generateUUID } from '@/src/lib/uuid';
 
 export interface SubmitReportPayload {
@@ -220,4 +223,74 @@ async function uploadAttachments(
     mime_type: attachments[i].file.type,
     caption: attachments[i].caption || null,
   }));
+}
+
+// Reserva atômica do número da OS (variante authenticated — recebe p_team_id).
+export async function reserveOsNumber(teamId: string): Promise<string> {
+  const { data, error } = await supabase.rpc('reserve_os_number', { p_team_id: teamId });
+  if (error) throw error;
+  return data as string;
+}
+
+// Assina URLs do bucket reports_media (alinhadas por índice; '' para falha — caller faz fallback).
+export async function signReportMediaUrls(paths: string[]): Promise<string[]> {
+  if (paths.length === 0) return [];
+  const { data } = await supabase.storage
+    .from('reports_media')
+    .createSignedUrls(paths, 3600);
+  return (data ?? []).map(d => d.signedUrl ?? '');
+}
+
+// Detalhe completo da OS: 5 reads em paralelo + assinatura de URLs. Lança apenas se o report falhar.
+export async function fetchReportDetail(id: string): Promise<{
+  report: ServiceReport;
+  history: ReportStatusHistory[];
+  attachments: ReportAttachment[];
+  signatures: ReportSignature[];
+  checklistItems: ReportChecklistItem[];
+}> {
+  const [reportRes, historyRes, attachmentsRes, signaturesRes, checklistRes] =
+    await Promise.all([
+      supabase
+        .from('service_reports')
+        .select('*, clients(name), users:technician_id(full_name), equipments(name)')
+        .eq('id', id)
+        .single(),
+      supabase
+        .from('report_status_history')
+        .select('*')
+        .eq('report_id', id)
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('report_attachments')
+        .select('*')
+        .eq('report_id', id),
+      supabase
+        .from('report_signatures')
+        .select('*')
+        .eq('report_id', id),
+      supabase
+        .from('report_checklist_items')
+        .select('*')
+        .eq('report_id', id)
+        .order('created_at', { ascending: true }),
+    ]);
+
+  if (reportRes.error) throw reportRes.error;
+
+  const rawAttachments = (attachmentsRes.data ?? []) as ReportAttachment[];
+  const rawSignatures = (signaturesRes.data ?? []) as ReportSignature[];
+
+  const [attUrls, sigUrls] = await Promise.all([
+    signReportMediaUrls(rawAttachments.map(a => a.url)),
+    signReportMediaUrls(rawSignatures.map(s => s.image_url)),
+  ]);
+
+  return {
+    report: reportRes.data as ServiceReport,
+    history: (historyRes.data ?? []) as ReportStatusHistory[],
+    attachments: rawAttachments.map((a, i) => ({ ...a, url: attUrls[i] || a.url })),
+    signatures: rawSignatures.map((s, i) => ({ ...s, image_url: sigUrls[i] || s.image_url })),
+    checklistItems: (checklistRes.data ?? []) as ReportChecklistItem[],
+  };
 }

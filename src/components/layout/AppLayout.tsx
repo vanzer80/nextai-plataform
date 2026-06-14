@@ -39,7 +39,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
-import { supabase } from '@/src/lib/supabase';
+import * as notificationService from '@/src/services/notificationService';
 import { useAuth, type AuthUser } from '@/src/contexts/AuthContext';
 import { usePushNotification } from '@/src/hooks/usePushNotification';
 import { invalidateClientsCache } from '@/src/hooks/useClients';
@@ -444,41 +444,36 @@ export default function AppLayout() {
   React.useEffect(() => {
     if (!user?.id) return;
 
+    const uid = user.id;
+
     // Subscribe first — notifications that arrive during fetch are captured
-    const channel = supabase.channel('realtime_app_notifications')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
+    const unsubscribe = notificationService.subscribeUserNotifications(uid, {
+      onInsert: (row) => {
         setNotifications(prev => {
-          if (prev.some(n => n.id === payload.new.id)) return prev;
-          return [payload.new, ...prev].slice(0, 10);
+          if (prev.some(n => n.id === row.id)) return prev;
+          return [row, ...prev].slice(0, 10);
         });
         // Toast em tempo real: aparece mesmo com o app em background na aba
-        toast.info(payload.new.title as string, {
-          description: payload.new.message as string,
+        toast.info(row.title as string, {
+          description: row.message as string,
           duration: 6000,
         });
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
-        setNotifications(prev => prev.map(n => n.id === payload.new.id ? payload.new : n));
-      })
-      .subscribe();
+      },
+      onUpdate: (row) => {
+        setNotifications(prev => prev.map(n => n.id === row.id ? row : n));
+      },
+    });
 
-    const fetchNotifs = async () => {
-      const { data } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
+    notificationService.fetchUserNotifications(uid).then(data => {
       if (data) setNotifications(data);
-    };
-    fetchNotifs();
+    });
 
-    return () => { supabase.removeChannel(channel); };
+    return unsubscribe;
   }, [user?.id]);
 
   const markAsRead = async (id: string, is_read: boolean) => {
     if (is_read) return;
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    await notificationService.markNotificationRead(id);
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
   };
 
