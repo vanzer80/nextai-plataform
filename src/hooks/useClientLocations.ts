@@ -26,7 +26,6 @@ export function useClientLocations(clientId: string | undefined): {
     getLocationsByClient(clientId)
       .then(data => {
         if (!cancelled) {
-          console.log('[useClientLocations] clientId:', clientId, '→', data.length, 'filiais');
           setLocations(data);
         }
       })
