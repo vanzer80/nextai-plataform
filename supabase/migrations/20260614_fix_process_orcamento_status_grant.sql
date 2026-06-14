@@ -112,14 +112,16 @@ BEGIN
     RETURN json_build_object('success', false, 'error', 'Transição de status inválida.');
   END IF;
 
-  -- 5. Atualizar status
+  -- 5. Atualizar status (filtro explícito de team_id como segunda camada de
+  --    isolamento — defense in depth; não depende apenas do guard do passo 3)
   UPDATE public.orcamentos
      SET status           = p_new_status,
          rejection_reason = CASE
                               WHEN p_new_status = 'rejeitado' THEN p_comment
                               ELSE NULL
                             END
-   WHERE id = p_orcamento_id;
+   WHERE id      = p_orcamento_id
+     AND team_id = v_orcamento.team_id;
 
   -- 6. Auditoria
   INSERT INTO public.orcamento_history
