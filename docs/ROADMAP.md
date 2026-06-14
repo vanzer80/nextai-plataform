@@ -50,6 +50,7 @@
 | s68 | ✅ Completo | SuperMaster edita perfil comercial + 6 testes E2E Platform |
 | s69 | ✅ Completo | Correção de rolagem de tabelas e responsividade (min-h-full e overflow-x-auto) |
 | s67-OS (Permissões) | ✅ Completo | Correção de RLS para carregar Clientes/Equipamentos no Técnico + Fixes testes smoke Playwright |
+| Sessão 68 — Mem/SoC/a11y | ✅ Completo | Vault Obsidian → repo (docs/ HOT/WARM/COLD); SoC fase 2 (UI 100% via service); fecha 4 violações Axe a11y |
 | **Background Sync** | **⏳ Pendente** | **Offline-first completo: sync automático ao reconectar** |
 | Notificações externas | ⏳ Pendente | Email (Resend) + WhatsApp (Evolution API) |
 | Fase 6 SaaS | ⏳ Pendente | Subdomain routing + billing + pentest |
