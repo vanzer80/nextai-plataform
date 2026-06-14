@@ -329,6 +329,7 @@ Bundle inicial −84% (516 kB → 84 kB gzip):
 | Error Boundary global no App.tsx | 🟢 Baixa |
 | Criação de orçamento atômica (RPC) | 🟡 Média |
 | ESLint (`@typescript-eslint` + react-hooks + jsx-a11y) | 🟡 Média |
+| A11y: 10 violações Axe app-wide (button-name em 9 telas + label em /reimbursements) — sweep de aria-label; ver CLAUDE.md Pendências | 🟡 Média |
 | Fase 6 SaaS: subdomain routing + billing + pentest | 🟡 Estratégico |
 | RAG Analytics (pgvector + linguagem natural) | 🟡 Estratégico |
 | GPS Dispatching Map | 🟡 Estratégico |

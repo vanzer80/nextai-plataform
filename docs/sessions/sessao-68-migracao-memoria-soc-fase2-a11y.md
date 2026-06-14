@@ -33,7 +33,7 @@ Extraído o acesso `supabase` inline restante da UI (lift verbatim, contrato de 
 - Verificação: tsc EXIT:0 + varredura estática. **CI Axe (audita produção) confirma pós-deploy.**
 
 ## Pendências para a próxima sessão
-- **A11y CI:** confirmar verde no CI Axe pós-deploy do `168ef23` (verificação foi estática, não axe-local — rotas admin exigem auth).
+- **A11y CI — CONFIRMADO VERMELHO (não verde):** o `workflow_dispatch` do a11y-audit (run `27499196069`, contra produção `83f0b0c`) revelou **10 violações pré-existentes app-wide**, não as 4 documentadas. O harness de auditoria foi corrigido (`waitForAppReady` vs `waitForTimeout(3000)`) e desmascarou a dívida real. `/agenda` + `/admin/checklist-templates` ficaram limpos por esta sessão; restam `button-name` em 9 páginas (17 nós) + `label` em `/reimbursements` (2 nós). **Decisão do usuário: deixar como pendência** → sprint dedicado de a11y (detalhe na seção Pendências do `CLAUDE.md`).
 - **Notificações externas** (🔴 roadmap): Email Resend + WhatsApp Evolution API.
 - **CR — Contas a Receber** (Sprint H).
 - **Dual-harness:** Claude Code (`.claude`) + Codex (`.agents`/`.codex`) commitam no mesmo `master` — esperar commits-surpresa. Esta sessão = 68; o Codex registrou a 67 em paralelo.
