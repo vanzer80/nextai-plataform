@@ -46,6 +46,25 @@ camadas**, ambas pelo mesmo script `verify-history-hashes.ps1`:
 Auditoria completa de handoff (hashes + arquivos + `tsc` + `vitest`) é a skill `/verificar-delegacao`.
 Detalhes em [`.githooks/README.md`](.githooks/README.md).
 
+### Governança de segurança (mesmo padrão de 2 camadas)
+
+Código gerado por IA é tratado como **não confiável por padrão**. Os checks mecânicos de segurança
+têm fonte única em `.claude/scripts/security-scan.ps1` (portável — qualquer harness roda direto),
+com disciplina de precisão: `[BLOCK]` = zero-falso-positivo (segredo hard-coded, tabela
+`team_members` inexistente) → **reprova**; `[WARN]` = heurística (SECURITY DEFINER sem
+`search_path`/`REVOKE`, `getPublicUrl`, `...body` spread, `auth.uid()` cru) → impresso, nunca bloqueia.
+
+1. **Local** — git hook `.githooks/pre-commit` (`-Staged -Strict`): bloqueia o commit em `[BLOCK]`,
+   impedindo que um segredo entre no histórico git. Mesmo setup 1× (`install.ps1`).
+2. **Servidor** — GitHub Actions `.github/workflows/security-scan.yml` (`-Full -Strict`): autoridade,
+   cobre todo push/PR inclusive web/API e máquinas não configuradas.
+
+**Instrução permanente (todo agente):** antes de commitar mudança que toque **SQL/migration, Edge
+Function, `service_role`, RLS, Storage ou auth/roles**, rode `pwsh -File .claude/scripts/security-scan.ps1`
+e resolva os `[BLOCK]`. Auditoria de domínio completa (authz, RLS, validação de input, SECURITY
+DEFINER) é a skill `/revisar-seguranca` — camada de julgamento por cima do mesmo script, que
+complementa (não substitui) o `/security-review` genérico.
+
 ## Stack técnica
 
 React 19 + TypeScript + Vite (SPA com lazy loading por módulo)  

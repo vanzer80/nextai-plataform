@@ -1,4 +1,5 @@
 # Git hooks DEVEM ter EOL LF — um shebang com CRLF (#!/bin/sh\r) quebra sob sh
 # ("bad interpreter") em qualquer clone Unix. Trava o EOL independente do core.autocrlf local.
 .githooks/post-commit   text eol=lf
+.githooks/pre-commit    text eol=lf
 *.sh                    text eol=lf

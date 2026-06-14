@@ -31,6 +31,7 @@ as duas camadas são complementares, não redundantes.
 
 | Hook | Quando | O que faz |
 |------|--------|-----------|
+| `pre-commit` | antes de todo commit local | roda `.claude/scripts/security-scan.ps1 -Staged -Strict` — **bloqueia** o commit em `[BLOCK]` (segredo hard-coded, tabela inexistente); `[WARN]` é impresso sem bloquear |
 | `post-commit` | após todo commit local | valida `docs/HISTORY.md` via `verify-history-hashes.ps1` (advisory) |
 
 `verify-history-hashes.ps1` checa, nas 5 entradas mais recentes do índice:
@@ -41,8 +42,27 @@ Silencioso em sucesso. Em divergência, imprime um aviso — **não bloqueia** o
 (post-commit é informativo; o hash só existe depois do commit). Para auditoria completa
 (hashes + arquivos + `tsc` + `vitest`), use a skill `/verificar-delegacao` no handoff.
 
-## Por que post-commit e não pre-commit
+## Governança de segurança (pre-commit + CI)
 
-O erro alvo é um hash **do próprio commit** registrado no HISTORY.md. Esse hash só
+Segunda preocupação de governança, mesmo padrão de duas camadas, **mesmo script como
+fonte única** (`.claude/scripts/security-scan.ps1` — qualquer harness o roda direto):
+
+| Camada | Onde roda | Bloqueia? | Cobre |
+|--------|-----------|-----------|-------|
+| `pre-commit` (local) | máquina de quem commita | **sim, só em `[BLOCK]`** | impede segredo zero-FP de entrar no histórico git, antes do commit |
+| GitHub Actions `security-scan.yml` (servidor) | servidores do GitHub, todo push/PR | **sim** (`-Full -Strict`) | **qualquer** commit que chegue ao GitHub, incluindo web/API e máquina não configurada |
+
+Disciplina de precisão: só `[BLOCK]` (segredo hard-coded, tabela `team_members` inexistente)
+reprova — são padrões **zero-falso-positivo**, então bloquear nunca barra trabalho legítimo.
+`[WARN]` (heurística: SECURITY DEFINER sem `search_path`/`REVOKE`, `getPublicUrl`, spread de
+body, `auth.uid()` cru) é impresso para revisão mas **nunca** bloqueia. A auditoria de domínio
+completa (authz, RLS, validação de input) é a skill `/revisar-seguranca`, camada de julgamento
+do LLM por cima do mesmo script.
+
+## Por que o HISTORY.md usa post-commit (e a segurança, pre-commit)
+
+O erro alvo do HISTORY.md é um hash **do próprio commit** registrado no índice. Esse hash só
 passa a existir *depois* que o commit é criado — logo a verificação é inerentemente
-pós-commit. O agente vê o aviso no terminal e faz um commit de correção.
+pós-commit. O agente vê o aviso no terminal e faz um commit de correção. Já um segredo
+existe **antes** do commit: barrá-lo no `pre-commit` evita que entre no histórico git (de
+onde não sai sem reescrever história) — por isso a camada de segurança é pré-commit.

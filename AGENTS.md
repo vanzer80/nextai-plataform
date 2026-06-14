@@ -23,6 +23,16 @@ npx vitest run       # todos os testes passando
 
 Dev server: `npm run dev` (porta 3001).
 
+## Segurança — antes de commitar (não pular)
+
+Código de IA = **não confiável por padrão**. Antes de commitar mudança que toque SQL/migration, Edge Function, `service_role`, RLS, Storage ou auth/roles:
+
+```bash
+pwsh -File .claude/scripts/security-scan.ps1   # resolva todo [BLOCK] (segredo, team_members); [WARN] = revisar
+```
+
+O mesmo script roda no hook `.githooks/pre-commit` (bloqueia em BLOCK) e no CI `security-scan.yml` (autoridade). Auditoria de domínio completa (RLS, authz, SECURITY DEFINER, field injection): skill `/revisar-seguranca`, complementa o `/security-review` genérico.
+
 ## Regras críticas de banco (não violar)
 
 - `team_id` vem de `public.users` (NUNCA `team_members` — não existe). Padrão `getTeamId()` no CLAUDE.md.
