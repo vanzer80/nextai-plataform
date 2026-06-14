@@ -10,7 +10,7 @@
 
 - [Sessão 69 — 14/06/2026 — Correção de Acessibilidade (Axe WCAG)](sessions/sessao-69-correcoes-a11y-axe-wcag.md) — `100884a`
 - [Sessão 68 — 13/06/2026 — Migração da memória (Obsidian→repo) + SoC fase 2 + fecha a11y](sessions/sessao-68-migracao-memoria-soc-fase2-a11y.md) — `168ef23`
-- [Sessão 67 — 13/06/2026 — Correção de Permissões de Técnico e Testes Smoke](sessions/sessao-67-correcao-permissao-tecnico-os.md) — `90b59d3`
+- [Sessão 67 — 13/06/2026 — Correção de Permissões de Técnico e Testes Smoke](sessions/sessao-67-correcao-permissao-tecnico-os.md) — `b4a1fb6`
 - [Sessão 66 — 13/06/2026 — Correção de Rolagem de Tabela e Responsividade](sessions/sessao-66-correcao-de-rolagem-de-tabela-e-responsividade.md) — `76ff605`
 - [Sessão 65 — 03/06/2026 — Testes E2E Playwright para módulos RH, DP e CP](sessions/sessao-65-testes-e2e-playwright-para-modulos-rh-dp-e-cp.md) — `78ef868`
 - [Sessão 64 — 31/05/2026 — Race condition CPQ + OS Vinculada PDF + Fix logo sobreposição](sessions/sessao-64-race-condition-cpq-os-vinculada-pdf-fix-logo-sobreposicao.md) — `bd528f2`

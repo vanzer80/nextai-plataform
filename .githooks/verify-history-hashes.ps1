@@ -1,7 +1,8 @@
 # Valida a integridade de docs/HISTORY.md apos cada commit (agnostico de harness).
 #
 # Verifica as 5 entradas mais recentes do indice:
-#   1. O hash referenciado em `...` resolve para um commit real (git rev-parse).
+#   1. O hash referenciado em `...` e um commit ALCANCAVEL a partir do HEAD
+#      (git merge-base --is-ancestor) — pega hash inventado E commit dangling local.
 #   2. O arquivo de sessao linkado (sessions/*.md) existe no disco.
 #
 # Motivacao: agentes delegados (Gemini, Codex) ja registraram hashes inventados
@@ -34,9 +35,13 @@ try {
         $hashMatch = [regex]::Match($entry, '`([0-9a-f]{7,40})`')
         if ($hashMatch.Success) {
             $h = $hashMatch.Groups[1].Value
-            & git -C $repo rev-parse --verify --quiet "$h^{commit}" 2>&1 | Out-Null
+            # Reachability (is-ancestor de HEAD), nao mera existencia do objeto.
+            # rev-parse resolveria um commit dangling que sobrou no object store local
+            # (amend/reset) mas que nunca chegou ao master — falso-negativo. is-ancestor
+            # so passa para commits realmente alcancaveis, igualando local e servidor.
+            & git -C $repo merge-base --is-ancestor $h HEAD 2>$null
             if ($LASTEXITCODE -ne 0) {
-                $problems.Add("hash '$h' nao resolve para um commit real")
+                $problems.Add("hash '$h' nao e commit alcancavel a partir do HEAD (inexistente ou dangling)")
             }
         }
 
