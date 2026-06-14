@@ -10,6 +10,17 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -File .claude/scripts/verify-history-hashes.ps1"
+          }
+        ]
+      }
     ]
   }
 }
