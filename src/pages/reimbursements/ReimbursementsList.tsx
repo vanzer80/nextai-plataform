@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, Fragment } from 'react';
+import React, { useState, useEffect, useRef, Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Download, FileText, Loader2 } from 'lucide-react';
 import { useAuth } from '@/src/contexts/AuthContext';
@@ -420,9 +420,9 @@ export default function ReimbursementsList() {
 
       <div className="flex flex-col sm:flex-row gap-3 bg-card p-4 rounded-xl border border-border shadow-sm">
         <div className="flex-1">
-          <label className="text-xs font-semibold text-slate-500 uppercase mb-1 block">Status</label>
+          <label htmlFor="filter-status" className="text-xs font-semibold text-slate-500 uppercase mb-1 block">Status</label>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-10 rounded-lg"><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectTrigger id="filter-status" className="h-10 rounded-lg" aria-label="Filtrar por status"><SelectValue placeholder="Todos" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="Pendente">Pendente</SelectItem>
@@ -434,12 +434,12 @@ export default function ReimbursementsList() {
           </Select>
         </div>
         <div className="flex-1">
-          <label className="text-xs font-semibold text-slate-500 uppercase mb-1 block">Início</label>
-          <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-10 rounded-lg" />
+          <label htmlFor="filter-date-from" className="text-xs font-semibold text-slate-500 uppercase mb-1 block">Início</label>
+          <Input id="filter-date-from" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-10 rounded-lg" />
         </div>
         <div className="flex-1">
-          <label className="text-xs font-semibold text-slate-500 uppercase mb-1 block">Fim</label>
-          <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-10 rounded-lg" />
+          <label htmlFor="filter-date-to" className="text-xs font-semibold text-slate-500 uppercase mb-1 block">Fim</label>
+          <Input id="filter-date-to" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-10 rounded-lg" />
         </div>
       </div>
 

@@ -291,7 +291,7 @@ export default function KnowledgeBase() {
         </div>
 
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px]" aria-label="Filtrar por tipo de serviço">
             <SelectValue placeholder="Tipo de serviço" />
           </SelectTrigger>
           <SelectContent>
@@ -304,7 +304,7 @@ export default function KnowledgeBase() {
 
         {allTags.length > 0 && (
           <Select value={filterTag} onValueChange={setFilterTag}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[140px]" aria-label="Filtrar por tag">
               <SelectValue placeholder="Tag" />
             </SelectTrigger>
             <SelectContent>
@@ -388,13 +388,14 @@ export default function KnowledgeBase() {
                     className="flex items-center gap-1 shrink-0"
                     onClick={e => e.stopPropagation()}
                   >
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(a)}>
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(a)} aria-label="Editar artigo">
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost" size="icon"
                       className="text-destructive hover:text-destructive"
                       onClick={() => handleDelete(a)}
+                      aria-label="Excluir artigo"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

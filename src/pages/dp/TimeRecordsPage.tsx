@@ -246,7 +246,7 @@ export default function TimeRecordsPage() {
       {/* ── Filters ── */}
       <div data-onboarding="dp-ponto-filtros" className="flex flex-wrap gap-3 items-center">
         <Select value={selectedEmp} onValueChange={setSelectedEmp}>
-          <SelectTrigger className="w-72">
+          <SelectTrigger className="w-72" aria-label="Selecionar colaborador">
             <SelectValue placeholder="Selecione o colaborador..." />
           </SelectTrigger>
           <SelectContent>
@@ -259,11 +259,11 @@ export default function TimeRecordsPage() {
         </Select>
 
         <div className="flex items-center gap-1">
-          <Button variant="outline" size="sm" className="h-9 w-9 p-0" onClick={() => navigateMonth(-1)}>
+          <Button variant="outline" size="sm" className="h-9 w-9 p-0" onClick={() => navigateMonth(-1)} aria-label="Mês anterior">
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <div className="min-w-[160px] text-center font-medium text-sm">{formatMonth(month)}</div>
-          <Button variant="outline" size="sm" className="h-9 w-9 p-0" onClick={() => navigateMonth(1)}>
+          <Button variant="outline" size="sm" className="h-9 w-9 p-0" onClick={() => navigateMonth(1)} aria-label="Próximo mês">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -345,6 +345,7 @@ export default function TimeRecordsPage() {
                               className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 text-rose-500"
                               onClick={() => handleDelete(r.id)}
                               disabled={deletingId === r.id}
+                              aria-label="Remover registro de ponto"
                             >
                               {deletingId === r.id
                                 ? <Loader2 className="h-3 w-3 animate-spin" />

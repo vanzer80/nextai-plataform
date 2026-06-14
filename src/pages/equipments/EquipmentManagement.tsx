@@ -241,7 +241,7 @@ export default function EquipmentManagement() {
           {/* Filtros */}
           <div className="flex flex-wrap items-center gap-2">
             <Select value={filterClient} onValueChange={handleClientFilter}>
-              <SelectTrigger className="h-10 rounded-xl w-auto min-w-[160px]">
+              <SelectTrigger className="h-10 rounded-xl w-auto min-w-[160px]" aria-label="Filtrar por cliente">
                 <SelectValue placeholder="Cliente" />
               </SelectTrigger>
               <SelectContent>
@@ -253,7 +253,7 @@ export default function EquipmentManagement() {
             </Select>
 
             <Select value={filterStatus} onValueChange={handleStatusFilter}>
-              <SelectTrigger className="h-10 rounded-xl w-auto min-w-[140px]">
+              <SelectTrigger className="h-10 rounded-xl w-auto min-w-[140px]" aria-label="Filtrar por status">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -265,7 +265,7 @@ export default function EquipmentManagement() {
             </Select>
 
             <Select value={filterMaint} onValueChange={handleMaintFilter}>
-              <SelectTrigger className="h-10 rounded-xl w-auto min-w-[160px]">
+              <SelectTrigger className="h-10 rounded-xl w-auto min-w-[160px]" aria-label="Filtrar por preventiva">
                 <SelectValue placeholder="Preventiva" />
               </SelectTrigger>
               <SelectContent>
@@ -362,13 +362,13 @@ export default function EquipmentManagement() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(eq)} data-onboarding={eq === equipments[0] ? 'eq-detalhe-btn' : undefined}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(eq)} data-onboarding={eq === equipments[0] ? 'eq-detalhe-btn' : undefined} aria-label="Ver detalhes">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(eq)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(eq)} aria-label="Editar equipamento">
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary/70 hover:text-primary" title="Gerar Etiqueta QR"
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary/70 hover:text-primary" title="Gerar Etiqueta QR" aria-label="Gerar etiqueta QR"
                             onClick={async () => {
                               try {
                                 const { exportarEtiquetaQR } = await import('@/src/utils/gerarEtiquetaQR');
@@ -377,7 +377,7 @@ export default function EquipmentManagement() {
                             }}>
                             <QrCode className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => openDelete(eq)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => openDelete(eq)} aria-label="Excluir equipamento">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -396,7 +396,7 @@ export default function EquipmentManagement() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Exibir</span>
               <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
-                <SelectTrigger className="h-8 w-[70px] rounded-lg text-xs">
+                <SelectTrigger className="h-8 w-[70px] rounded-lg text-xs" aria-label="Exibir quantidade por página">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -415,6 +415,7 @@ export default function EquipmentManagement() {
                 disabled={safePage <= 1}
                 onClick={() => setPage(1)}
                 title="Primeira página"
+                aria-label="Primeira página"
               >
                 <ChevronsLeft className="h-4 w-4" />
               </Button>
@@ -424,6 +425,7 @@ export default function EquipmentManagement() {
                 disabled={safePage <= 1}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 title="Página anterior"
+                aria-label="Página anterior"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -438,6 +440,7 @@ export default function EquipmentManagement() {
                 disabled={safePage >= totalPages}
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 title="Próxima página"
+                aria-label="Próxima página"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -447,6 +450,7 @@ export default function EquipmentManagement() {
                 disabled={safePage >= totalPages}
                 onClick={() => setPage(totalPages)}
                 title="Última página"
+                aria-label="Última página"
               >
                 <ChevronsRight className="h-4 w-4" />
               </Button>

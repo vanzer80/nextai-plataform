@@ -53,6 +53,7 @@ export default function ReimbursementTable({
                   className="rounded border-input w-4 h-4"
                   checked={allSelected}
                   onChange={(e) => onSelectAll(e.target.checked)}
+                  aria-label="Selecionar todos os reembolsos"
                 />
               </TableHead>
             )}
@@ -81,6 +82,7 @@ export default function ReimbursementTable({
                     checked={selectedIds.includes(item.id)}
                     onChange={(e) => onSelectOne(item.id, e.target.checked)}
                     onClick={(e) => e.stopPropagation()}
+                    aria-label="Selecionar reembolso"
                   />
                 </TableCell>
               )}
@@ -137,7 +139,7 @@ export default function ReimbursementTable({
 
               <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
-                  <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <DropdownMenuTrigger className="inline-flex items-center justify-center h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Ações do reembolso">
                     <MoreHorizontal className="h-4 w-4" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-44 rounded-xl">

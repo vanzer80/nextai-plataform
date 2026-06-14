@@ -136,7 +136,7 @@ export default function OsImports() {
       {/* Filtros */}
       <div className="flex flex-wrap gap-3 items-center" data-onboarding="os-imports-filters">
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-40 h-9">
+          <SelectTrigger className="w-40 h-9" aria-label="Filtrar por status">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -149,7 +149,7 @@ export default function OsImports() {
         </Select>
 
         <Select value={filterSource} onValueChange={setFilterSource}>
-          <SelectTrigger className="w-40 h-9">
+          <SelectTrigger className="w-40 h-9" aria-label="Filtrar por sistema">
             <SelectValue placeholder="Sistema" />
           </SelectTrigger>
           <SelectContent>

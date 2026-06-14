@@ -160,7 +160,7 @@ export default function PayablesList() {
           <Input className="pl-9" placeholder="Buscar descrição, fornecedor, NF..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-36">
+          <SelectTrigger className="w-36" aria-label="Filtrar por status">
             <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -172,7 +172,7 @@ export default function PayablesList() {
           </SelectContent>
         </Select>
         <Select value={filterTipo} onValueChange={setFilterTipo}>
-          <SelectTrigger className="w-36">
+          <SelectTrigger className="w-36" aria-label="Filtrar por tipo">
             <SelectValue placeholder="Tipo" />
           </SelectTrigger>
           <SelectContent>

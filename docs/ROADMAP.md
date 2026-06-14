@@ -1,6 +1,6 @@
 # Roadmap Técnico — NextAI
 
-> Última atualização: 2026-06-13 (Sessão 67 - Permissões OS)  
+> Última atualização: 2026-06-14 (Sessão 69 - A11y Axe WCAG)  
 > Ver também: [[11 - Auditoria 2026-04-25]], [[Problemas e Dívida Técnica]], [[Segurança — Checklist]], [[14 - Auditoria de Performance 2026-05-02]]
 
 ---
@@ -51,6 +51,7 @@
 | s69 | ✅ Completo | Correção de rolagem de tabelas e responsividade (min-h-full e overflow-x-auto) |
 | s67-OS (Permissões) | ✅ Completo | Correção de RLS para carregar Clientes/Equipamentos no Técnico + Fixes testes smoke Playwright |
 | Sessão 68 — Mem/SoC/a11y | ✅ Completo | Vault Obsidian → repo (docs/ HOT/WARM/COLD); SoC fase 2 (UI 100% via service); fecha 4 violações Axe a11y |
+| Sessão 69 — A11y Axe WCAG | ✅ Completo | Corrige as 10 violações de Axe de a11y (17 botões/triggers + 2 inputs) app-wide |
 | **Background Sync** | **⏳ Pendente** | **Offline-first completo: sync automático ao reconectar** |
 | Notificações externas | ⏳ Pendente | Email (Resend) + WhatsApp (Evolution API) |
 | Fase 6 SaaS | ⏳ Pendente | Subdomain routing + billing + pentest |
@@ -329,7 +330,7 @@ Bundle inicial −84% (516 kB → 84 kB gzip):
 | Error Boundary global no App.tsx | 🟢 Baixa |
 | Criação de orçamento atômica (RPC) | 🟡 Média |
 | ESLint (`@typescript-eslint` + react-hooks + jsx-a11y) | 🟡 Média |
-| A11y: 10 violações Axe app-wide (button-name em 9 telas + label em /reimbursements) — sweep de aria-label; ver CLAUDE.md Pendências | 🟡 Média |
+| A11y: 10 violações Axe app-wide (button-name em 9 telas + label em /reimbursements) — sweep de aria-label; ver CLAUDE.md Pendências | ✅ Concluído (Sessão 69) |
 | Fase 6 SaaS: subdomain routing + billing + pentest | 🟡 Estratégico |
 | RAG Analytics (pgvector + linguagem natural) | 🟡 Estratégico |
 | GPS Dispatching Map | 🟡 Estratégico |

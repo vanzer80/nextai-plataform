@@ -27,7 +27,7 @@ export function OrcamentoFilters({ filter, onChange, onClear }: Props) {
           onChange({ ...filter, status: v === ALL_SENTINEL ? '' : (v as OrcamentoStatus) })
         }
       >
-        <SelectTrigger className="h-9 w-[150px] text-sm">
+        <SelectTrigger className="h-9 w-[150px] text-sm" aria-label="Filtrar por status">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
@@ -44,7 +44,7 @@ export function OrcamentoFilters({ filter, onChange, onClear }: Props) {
           onChange({ ...filter, client_id: v === ALL_SENTINEL ? '' : v })
         }
       >
-        <SelectTrigger className="h-9 w-[180px] text-sm">
+        <SelectTrigger className="h-9 w-[180px] text-sm" aria-label="Filtrar por cliente">
           <SelectValue placeholder="Cliente" />
         </SelectTrigger>
         <SelectContent>

@@ -177,7 +177,7 @@ export default function EmployeesList() {
           />
         </div>
         <Select value={statusFilter ?? 'all'} onValueChange={v => setStatusFilter(v === 'all' ? 'all' : v as EmployeeStatus)}>
-          <SelectTrigger className="h-10 w-40 rounded-lg"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="h-10 w-40 rounded-lg" aria-label="Filtrar por status"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             {(Object.entries(STATUS_LABEL) as [EmployeeStatus, string][]).map(([k, v]) => (
@@ -186,7 +186,7 @@ export default function EmployeesList() {
           </SelectContent>
         </Select>
         <Select value={deptFilter} onValueChange={setDeptFilter}>
-          <SelectTrigger className="h-10 w-44 rounded-lg"><SelectValue placeholder="Departamento" /></SelectTrigger>
+          <SelectTrigger className="h-10 w-44 rounded-lg" aria-label="Filtrar por departamento"><SelectValue placeholder="Departamento" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             {departments.map(d => (

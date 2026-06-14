@@ -288,7 +288,7 @@ export default function VacationSchedulePage() {
           <Input className="pl-9" placeholder="Buscar colaborador..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-40" aria-label="Filtrar por status">
             <SelectValue placeholder="Todos status" />
           </SelectTrigger>
           <SelectContent>
@@ -395,6 +395,7 @@ export default function VacationSchedulePage() {
                             className="h-7 w-7 p-0 text-rose-500 hover:bg-rose-50"
                             onClick={() => handleStatusChange(v.id, 'cancelada')}
                             disabled={isLoading}
+                            aria-label="Cancelar férias"
                           >
                             <XCircle className="h-3.5 w-3.5" />
                           </Button>

@@ -6,8 +6,9 @@
 >
 > Migrado 1× do vault Obsidian em 2026-06-13. Daqui em diante o histórico é mantido aqui no repo.
 
-**75 sessões registradas.**
+**76 sessões registradas.**
 
+- [Sessão 69 — 14/06/2026 — Correção de Acessibilidade (Axe WCAG)](sessions/sessao-69-correcoes-a11y-axe-wcag.md) — `de5fab0`
 - [Sessão 68 — 13/06/2026 — Migração da memória (Obsidian→repo) + SoC fase 2 + fecha a11y](sessions/sessao-68-migracao-memoria-soc-fase2-a11y.md) — `168ef23`
 - [Sessão 67 — 13/06/2026 — Correção de Permissões de Técnico e Testes Smoke](sessions/sessao-67-correcao-permissao-tecnico-os.md) — `90b59d3`
 - [Sessão 66 — 13/06/2026 — Correção de Rolagem de Tabela e Responsividade](sessions/sessao-66-correcao-de-rolagem-de-tabela-e-responsividade.md) — `76ff605`

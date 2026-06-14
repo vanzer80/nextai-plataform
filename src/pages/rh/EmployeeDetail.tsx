@@ -232,7 +232,7 @@ export default function EmployeeDetail({ employeeId, onClose, onUpdated }: Props
                 <ShieldAlert className="h-3.5 w-3.5" /> Desligar
               </Button>
             )}
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted transition-colors">
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted transition-colors" aria-label="Fechar">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -382,12 +382,12 @@ export default function EmployeeDetail({ employeeId, onClose, onUpdated }: Props
                         <div className="flex gap-1 shrink-0">
                           {c.certificate_url && (
                             <Button size="sm" variant="outline" className="h-8 w-8 p-0"
-                              onClick={() => handleOpenDoc(c.certificate_url!)}>
+                              onClick={() => handleOpenDoc(c.certificate_url!)} aria-label="Baixar certificado">
                               <Download className="h-3.5 w-3.5" />
                             </Button>
                           )}
                           <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-rose-600 hover:bg-rose-50"
-                            onClick={() => handleDeleteCert(c.id)}>
+                            onClick={() => handleDeleteCert(c.id)} aria-label="Excluir certificação">
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -438,11 +438,11 @@ export default function EmployeeDetail({ employeeId, onClose, onUpdated }: Props
                         <p className="text-xs text-muted-foreground">{d.filename} · {format(parseISO(d.uploaded_at), 'dd/MM/yyyy')}</p>
                       </div>
                       <div className="flex gap-1">
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => handleOpenDoc(d.storage_path)}>
+                        <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => handleOpenDoc(d.storage_path)} aria-label="Baixar documento">
                           <Download className="h-3.5 w-3.5" />
                         </Button>
                         <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-rose-600 hover:bg-rose-50"
-                          onClick={() => handleDeleteDoc(d.id, d.storage_path)}>
+                          onClick={() => handleDeleteDoc(d.id, d.storage_path)} aria-label="Excluir documento">
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
