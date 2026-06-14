@@ -1,0 +1,14 @@
+#!/bin/sh
+# Governanca de repositorio — agnostica de harness (Claude Code, Codex, Gemini, manual).
+# Git executa este hook apos TODO commit, independente de qual ferramenta o criou.
+# Delega a logica para o script PowerShell; nunca aborta o fluxo (post-commit e informativo).
+root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+script="$root/.githooks/verify-history-hashes.ps1"
+[ -f "$script" ] || exit 0
+
+if command -v pwsh >/dev/null 2>&1; then
+  pwsh -NoProfile -File "$script"
+elif command -v powershell >/dev/null 2>&1; then
+  powershell -NoProfile -File "$script"
+fi
+exit 0

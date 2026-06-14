@@ -30,6 +30,16 @@ npx vitest run            # 117+ testes passando
 
 Após migrations: rodar `get_advisors(type='security')` via MCP Supabase → zero novos alertas.
 
+## Governança de commit multi-agente
+
+O projeto é tocado por mais de um harness de IA (Claude Code, Codex, Gemini). Para barrar erros
+recorrentes de agentes delegados — **hash inventado** no índice ou **arquivo de sessão alegado mas
+inexistente** — há um git hook versionado em `.githooks/post-commit` que valida as 5 entradas mais
+recentes de `docs/HISTORY.md` após **todo** commit, em qualquer ferramenta. Setup 1× por clone:
+`pwsh -File .githooks/install.ps1` (seta `core.hooksPath=.githooks`). O hook é informativo (não
+bloqueia); auditoria completa de handoff (hashes + arquivos + `tsc` + `vitest`) é a skill
+`/verificar-delegacao`. Detalhes em [`.githooks/README.md`](.githooks/README.md).
+
 ## Stack técnica
 
 React 19 + TypeScript + Vite (SPA com lazy loading por módulo)  

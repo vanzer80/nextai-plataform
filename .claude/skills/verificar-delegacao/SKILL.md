@@ -5,6 +5,10 @@ description: Verifica integridade do trabalho entregue por agente delegado (Gemi
 Você recebeu o relatório de um agente delegado. Verifique se o que ele afirmou ter feito é verdade.
 Execute os passos abaixo na ordem. **Não resuma sem ter executado cada verificação.**
 
+> Os passos 2 e 3 (hashes e arquivos do HISTORY.md) também rodam automaticamente via git hook
+> `.githooks/post-commit` em todo commit, de qualquer harness. Esta skill é a auditoria **completa**
+> de handoff: adiciona os gates pesados (`tsc`, `vitest`) que o hook não roda por custo.
+
 O hash/commit reportado pelo agente pode vir nos `args` da skill ou no contexto da conversa. Se não vier, use `HEAD`.
 
 ---
