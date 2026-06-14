@@ -1,162 +1,140 @@
 -- ===========================================================================
 -- Migration: fix_process_orcamento_status_grant
--- Recria a tabela orcamento_history (se não existir) e a função
--- process_orcamento_status com todos os guards de segurança corretos:
--- SECURITY DEFINER + SET search_path + REVOKE/GRANT.
---
--- Contexto: a função + tabela foram criadas em 2026-05-24 diretamente no
--- banco sem migration rastreada. Por isso a função ficou sem REVOKE FROM
--- PUBLIC/anon, causando HTTP 403 ao chamar
---   supabase.rpc('process_orcamento_status')
--- via anon key com JWT de usuário autenticado.
---
--- Resolve: erro 403 no endpoint /rest/v1/rpc/process_orcamento_status ao
--- clicar em "Enviar para aprovação" / "Aprovar" / "Rejeitar" em
--- OrcamentoDetail.tsx (atualizarStatus → process_orcamento_status).
+-- Root cause: orcamento_history tem RLS com apenas policy RESTRICTIVE
+-- (sem nenhuma PERMISSIVE) → INSERT pelo authenticated falha com
+-- 42501 permission_denied → PostgREST devolve HTTP 403.
+-- Fix: SECURITY DEFINER (roda como postgres/BYPASSRLS).
+-- Mantém TEXT no parâmetro (não cria overload).
+-- Usa from_status/to_status = nomes reais das colunas da tabela.
 -- ===========================================================================
 
--- ---------------------------------------------------------------------------
--- 1. Tabela de auditoria (idempotente)
--- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.orcamento_history (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  orcamento_id  UUID NOT NULL REFERENCES public.orcamentos(id) ON DELETE CASCADE,
-  team_id       UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  changed_by    UUID REFERENCES public.users(id) ON DELETE SET NULL,
-  old_status    TEXT NOT NULL,
-  new_status    TEXT NOT NULL,
-  comment       TEXT,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_orcamento_history_orcamento_id ON public.orcamento_history (orcamento_id);
-CREATE INDEX IF NOT EXISTS idx_orcamento_history_team_id      ON public.orcamento_history (team_id);
-
--- RLS: team_isolation RESTRICTIVE (padrão de todas as novas tabelas)
-ALTER TABLE public.orcamento_history ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS team_isolation ON public.orcamento_history;
-CREATE POLICY team_isolation ON public.orcamento_history
-  AS RESTRICTIVE
-  FOR ALL
-  TO authenticated
-  USING (team_id = (SELECT team_id FROM public.users WHERE id = (SELECT auth.uid())));
-
--- ---------------------------------------------------------------------------
--- 2. Função RPC (CREATE OR REPLACE — idempotente)
--- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.process_orcamento_status(
-  p_orcamento_id  UUID,
-  p_new_status    public.orcamento_status,
-  p_comment       TEXT DEFAULT NULL
+  p_orcamento_id UUID,
+  p_new_status   TEXT,
+  p_comment      TEXT DEFAULT NULL
 )
-RETURNS JSON
+RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = 'public'
 AS $$
 DECLARE
-  v_caller_id   UUID := (SELECT auth.uid());
-  v_role        public.user_role;
-  v_orcamento   RECORD;
-  v_old_status  public.orcamento_status;
-  v_notif_title   TEXT;
-  v_notif_message TEXT;
+  v_caller_id    UUID   := (SELECT auth.uid());
+  v_orcamento    RECORD;
+  v_caller       RECORD;
+  v_title        TEXT;
+  v_message      TEXT;
+  v_target_roles TEXT[];
+  v_old_status   TEXT;
 BEGIN
-  -- 1. Autenticação obrigatória
+  -- 1. Auth guard
   IF v_caller_id IS NULL THEN
-    RETURN json_build_object('success', false, 'error', 'Não autenticado.');
+    RETURN jsonb_build_object('success', false, 'error', 'Não autenticado.');
   END IF;
 
-  -- 2. Role do chamador
-  SELECT role INTO v_role
+  -- 2. Buscar orçamento com isolamento de tenant
+  SELECT o.*, c.name AS client_name
+    INTO v_orcamento
+    FROM public.orcamentos o
+    LEFT JOIN public.clients c ON c.id = o.client_id
+   WHERE o.id      = p_orcamento_id
+     AND o.team_id = get_caller_team_id();
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Orçamento não encontrado.');
+  END IF;
+
+  v_old_status := v_orcamento.status::TEXT;
+
+  IF v_old_status = p_new_status THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Status já é ' || p_new_status);
+  END IF;
+
+  -- 3. Dados do chamador
+  SELECT id, full_name, role, team_id
+    INTO v_caller
     FROM public.users
    WHERE id = v_caller_id;
 
-  -- 3. Buscar orçamento com isolamento de tenant
-  SELECT id, team_id, technician_id, status, titulo
-    INTO v_orcamento
-    FROM public.orcamentos
-   WHERE id = p_orcamento_id
-     AND team_id = get_caller_team_id();
+  -- 4. RBAC + transições permitidas
+  CASE p_new_status
+    WHEN 'enviado' THEN
+      IF NOT (
+        v_orcamento.technician_id = v_caller_id
+        OR v_caller.role::TEXT = ANY(ARRAY['Gestor', 'Admin', 'Master', 'Supervisor'])
+      ) THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Permissão negada.');
+      END IF;
+      IF v_old_status <> 'rascunho' THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Apenas orçamentos em rascunho podem ser enviados.');
+      END IF;
+      v_title        := 'Orçamento enviado para aprovação';
+      v_message      := 'Orçamento para ' || COALESCE(v_orcamento.client_name, 'cliente') ||
+                        ' foi enviado por ' || COALESCE(v_caller.full_name, 'usuário') ||
+                        ' e aguarda aprovação.' ||
+                        CASE WHEN p_comment IS NOT NULL THEN ' Obs: ' || p_comment ELSE '' END;
+      v_target_roles := ARRAY['Gestor', 'Admin', 'Master'];
 
-  IF NOT FOUND THEN
-    RETURN json_build_object('success', false, 'error', 'Orçamento não encontrado.');
-  END IF;
+    WHEN 'aprovado' THEN
+      IF v_caller.role::TEXT NOT IN ('Gestor', 'Admin', 'Master', 'Supervisor') THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Permissão negada.');
+      END IF;
+      IF v_old_status <> 'enviado' THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Apenas orçamentos enviados podem ser aprovados.');
+      END IF;
+      v_title        := 'Orçamento aprovado';
+      v_message      := 'Orçamento para ' || COALESCE(v_orcamento.client_name, 'cliente') ||
+                        ' foi aprovado por ' || COALESCE(v_caller.full_name, 'usuário') || '.' ||
+                        CASE WHEN p_comment IS NOT NULL THEN ' Obs: ' || p_comment ELSE '' END;
+      v_target_roles := ARRAY['Técnico', 'Supervisor', 'Gestor', 'Admin', 'Master'];
 
-  v_old_status := v_orcamento.status;
+    WHEN 'rejeitado' THEN
+      IF v_caller.role::TEXT NOT IN ('Gestor', 'Admin', 'Master', 'Supervisor') THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Permissão negada.');
+      END IF;
+      IF v_old_status <> 'enviado' THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Apenas orçamentos enviados podem ser rejeitados.');
+      END IF;
+      v_title        := 'Orçamento rejeitado';
+      v_message      := 'Orçamento para ' || COALESCE(v_orcamento.client_name, 'cliente') ||
+                        ' foi rejeitado por ' || COALESCE(v_caller.full_name, 'usuário') || '.' ||
+                        CASE WHEN p_comment IS NOT NULL THEN ' Motivo: ' || p_comment ELSE '' END;
+      v_target_roles := ARRAY['Técnico', 'Supervisor'];
 
-  -- 4. RBAC — transições permitidas por papel
-  IF p_new_status = 'enviado' THEN
-    -- Técnico dono OU gestor/admin/master/supervisor pode enviar
-    IF NOT (
-      v_orcamento.technician_id = v_caller_id
-      OR v_role IN ('Gestor', 'Admin', 'Master', 'Supervisor')
-    ) THEN
-      RETURN json_build_object('success', false, 'error', 'Permissão negada.');
-    END IF;
-    IF v_old_status <> 'rascunho' THEN
-      RETURN json_build_object('success', false, 'error', 'Apenas orçamentos em rascunho podem ser enviados.');
-    END IF;
+    ELSE
+      RETURN jsonb_build_object('success', false, 'error', 'Status inválido: ' || p_new_status);
+  END CASE;
 
-  ELSIF p_new_status IN ('aprovado', 'rejeitado') THEN
-    -- Apenas gestores/admins/master/supervisor podem aprovar ou rejeitar
-    IF v_role NOT IN ('Gestor', 'Admin', 'Master', 'Supervisor') THEN
-      RETURN json_build_object('success', false, 'error', 'Permissão negada.');
-    END IF;
-    IF v_old_status <> 'enviado' THEN
-      RETURN json_build_object('success', false, 'error', 'Apenas orçamentos enviados podem ser aprovados ou rejeitados.');
-    END IF;
-
-  ELSE
-    RETURN json_build_object('success', false, 'error', 'Transição de status inválida.');
-  END IF;
-
-  -- 5. Atualizar status (filtro explícito de team_id como segunda camada de
-  --    isolamento — defense in depth; não depende apenas do guard do passo 3)
+  -- 5. Atualizar status (SECURITY DEFINER bypassa RLS — isolamento garantido pelo guard do passo 2)
   UPDATE public.orcamentos
-     SET status           = p_new_status,
-         rejection_reason = CASE
-                              WHEN p_new_status = 'rejeitado' THEN p_comment
-                              ELSE NULL
-                            END
+     SET status     = p_new_status::public.orcamento_status,
+         updated_at = now()
    WHERE id      = p_orcamento_id
      AND team_id = v_orcamento.team_id;
 
-  -- 6. Auditoria
+  -- 6. Auditoria (from_status/to_status = nomes reais das colunas da tabela)
   INSERT INTO public.orcamento_history
-    (orcamento_id, team_id, changed_by, old_status, new_status, comment)
+    (orcamento_id, team_id, changed_by, from_status, to_status, comment)
   VALUES
     (p_orcamento_id, v_orcamento.team_id, v_caller_id,
-     v_old_status::TEXT, p_new_status::TEXT, p_comment);
+     v_old_status, p_new_status, p_comment);
 
-  -- 7. Notificação ao técnico dono
-  IF p_new_status = 'aprovado' THEN
-    v_notif_title   := 'Orçamento Aprovado';
-    v_notif_message := 'Seu orçamento "' || COALESCE(v_orcamento.titulo, 'sem título') || '" foi aprovado!';
-  ELSIF p_new_status = 'rejeitado' THEN
-    v_notif_title   := 'Orçamento Rejeitado';
-    v_notif_message := 'Seu orçamento "' || COALESCE(v_orcamento.titulo, 'sem título')
-                       || '" foi rejeitado. Motivo: ' || COALESCE(p_comment, 'Não informado.');
-  ELSE -- enviado
-    v_notif_title   := 'Orçamento Enviado para Aprovação';
-    v_notif_message := 'O orçamento "' || COALESCE(v_orcamento.titulo, 'sem título')
-                       || '" foi enviado para aprovação.';
-  END IF;
+  -- 7. Notificações para os roles relevantes
+  INSERT INTO public.notifications (user_id, title, message, is_read, team_id)
+  SELECT u.id, v_title, v_message, false, v_caller.team_id
+    FROM public.users u
+   WHERE u.team_id    = v_caller.team_id
+     AND u.role::TEXT = ANY(v_target_roles)
+     AND u.id        <> v_caller_id;
 
-  INSERT INTO public.notifications (user_id, title, message, is_read)
-  VALUES (v_orcamento.technician_id, v_notif_title, v_notif_message, false);
-
-  RETURN json_build_object('success', true, 'new_status', p_new_status::TEXT);
+  RETURN jsonb_build_object('success', true, 'orcamento_id', p_orcamento_id, 'new_status', p_new_status);
 
 EXCEPTION WHEN OTHERS THEN
-  RETURN json_build_object('success', false, 'error', SQLERRM);
+  RETURN jsonb_build_object('success', false, 'error', SQLERRM);
 END;
 $$;
 
--- ---------------------------------------------------------------------------
--- 3. Segurança da função — fechar acesso anônimo
--- ---------------------------------------------------------------------------
-REVOKE EXECUTE ON FUNCTION public.process_orcamento_status(UUID, public.orcamento_status, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.process_orcamento_status(UUID, public.orcamento_status, TEXT) FROM anon;
-GRANT  EXECUTE ON FUNCTION public.process_orcamento_status(UUID, public.orcamento_status, TEXT) TO authenticated;
+-- Fechar acesso anônimo (armadilha #48: REVOKE FROM PUBLIC + FROM anon)
+REVOKE EXECUTE ON FUNCTION public.process_orcamento_status(UUID, TEXT, TEXT) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.process_orcamento_status(UUID, TEXT, TEXT) FROM anon;
+GRANT  EXECUTE ON FUNCTION public.process_orcamento_status(UUID, TEXT, TEXT) TO authenticated;
