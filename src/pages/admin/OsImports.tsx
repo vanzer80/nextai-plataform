@@ -211,19 +211,24 @@ export default function OsImports() {
             return (
               <div key={entry.id} className="border-b border-border last:border-0">
                 {/* Linha principal */}
-                <button
-                  type="button"
+                <div
                   onClick={() => toggleExpand(entry.id)}
-                  className="w-full text-left px-4 py-3 hover:bg-muted/30 transition-colors"
+                  className="w-full text-left px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
                 >
                   <div className="grid md:grid-cols-[auto_1fr_1fr_1fr_1fr_1fr_1fr_auto] grid-cols-1 gap-x-3 gap-y-1 items-center">
-                    {/* Expand icon */}
-                    <span className="hidden md:block text-muted-foreground">
+                    {/* Expand toggle */}
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); toggleExpand(entry.id); }}
+                      aria-expanded={isExpanded}
+                      aria-label={isExpanded ? 'Recolher detalhes' : 'Expandir detalhes'}
+                      className="hidden md:flex items-center justify-center text-muted-foreground"
+                    >
                       {isExpanded
-                        ? <ChevronDown className="h-3.5 w-3.5" />
-                        : <ChevronRight className="h-3.5 w-3.5" />
+                        ? <ChevronDown className="h-3.5 w-3.5" aria-hidden />
+                        : <ChevronRight className="h-3.5 w-3.5" aria-hidden />
                       }
-                    </span>
+                    </button>
 
                     {/* Data/Hora */}
                     <span className="text-xs text-foreground font-mono">
@@ -275,7 +280,7 @@ export default function OsImports() {
                       {entry.import_mode}
                     </span>
                   </div>
-                </button>
+                </div>
 
                 {/* Linha expandida */}
                 {isExpanded && (

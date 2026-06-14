@@ -84,10 +84,8 @@ export default function ChecklistTemplates() {
             Gerencie os modelos de checklist por tipo de serviço
           </p>
         </div>
-        <Button asChild data-onboarding="admin-templates-novo" className="h-10 rounded-xl bg-primary hover:bg-primary/90 gap-2 font-semibold shrink-0">
-          <Link to="/admin/checklist-templates/new">
-            <Plus className="h-4 w-4" /> Novo
-          </Link>
+        <Button render={<Link to="/admin/checklist-templates/new" />} data-onboarding="admin-templates-novo" className="h-10 rounded-xl bg-primary hover:bg-primary/90 gap-2 font-semibold shrink-0">
+          <Plus className="h-4 w-4" /> Novo
         </Button>
       </div>
 
@@ -150,6 +148,7 @@ export default function ChecklistTemplates() {
                 <Switch
                   checked={tmpl.is_active}
                   onCheckedChange={() => handleToggle(tmpl)}
+                  aria-label={`${tmpl.is_active ? 'Desativar' : 'Ativar'} template ${tmpl.name}`}
                   className="shrink-0 mt-0.5"
                 />
               </div>
@@ -157,14 +156,12 @@ export default function ChecklistTemplates() {
               {/* Ações */}
               <div className="flex gap-2 mt-3 pt-3 border-t border-border">
                 <Button
-                  asChild
+                  render={<Link to={`/admin/checklist-templates/${tmpl.id}/edit`} />}
                   variant="outline"
                   size="sm"
                   className="flex-1 h-8 rounded-lg text-xs gap-1.5 border-border"
                 >
-                  <Link to={`/admin/checklist-templates/${tmpl.id}/edit`}>
-                    <Pencil className="h-3.5 w-3.5" /> Editar
-                  </Link>
+                  <Pencil className="h-3.5 w-3.5" /> Editar
                 </Button>
                 <Button
                   variant="ghost"

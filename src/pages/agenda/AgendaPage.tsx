@@ -193,14 +193,14 @@ export default function AgendaPage() {
           )}
 
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl" onClick={() => setWeekStart(d => subWeeks(d, 1))}>
-              <ChevronLeft className="h-4 w-4" />
+            <Button variant="outline" size="icon" aria-label="Semana anterior" className="h-10 w-10 rounded-xl" onClick={() => setWeekStart(d => subWeeks(d, 1))}>
+              <ChevronLeft className="h-4 w-4" aria-hidden />
             </Button>
             <Button variant="outline" size="sm" className="h-10 rounded-xl px-3 text-xs" onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}>
               Hoje
             </Button>
-            <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl" onClick={() => setWeekStart(d => addWeeks(d, 1))}>
-              <ChevronRight className="h-4 w-4" />
+            <Button variant="outline" size="icon" aria-label="Próxima semana" className="h-10 w-10 rounded-xl" onClick={() => setWeekStart(d => addWeeks(d, 1))}>
+              <ChevronRight className="h-4 w-4" aria-hidden />
             </Button>
           </div>
         </div>
