@@ -166,7 +166,11 @@ export default function Step2AssetContext({ form }: Step2Props) {
           {!showClientPrompt && !loadingEquipments && equipments.length > 0 && (
             <Select value={selectValue} onValueChange={handleSelectChange}>
               <SelectTrigger className="min-h-[3rem] h-auto py-2 text-base rounded-xl bg-muted border-border focus:ring-ring [&_[data-slot=select-value]]:whitespace-normal [&_[data-slot=select-value]]:line-clamp-none">
-                <SelectValue placeholder="Selecione o equipamento" />
+                <SelectValue placeholder="Selecione o equipamento">
+                  {selectValue === MANUAL_SENTINEL 
+                    ? <span className="flex items-center gap-2"><PencilLine className="h-4 w-4" /> Digitar manualmente</span>
+                    : equipments.find(eq => eq.id === selectValue)?.name}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {equipments.map(eq => (

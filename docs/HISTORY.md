@@ -6,8 +6,9 @@
 >
 > Migrado 1× do vault Obsidian em 2026-06-13. Daqui em diante o histórico é mantido aqui no repo.
 
-**78 sessões registradas.**
+**79 sessões registradas.**
 
+- [Sessão 72 — 14/06/2026 — Correção do SelectValue (Fallback para ID)](sessions/sessao-72-fix-selectvalue-fallback.md) — `dbe07fb`
 - [Sessão 71 — 14/06/2026 — Fix de Truncamento de Texto no Select (OS)](sessions/sessao-71-fix-truncamento-texto-select.md) — `05b111c`
 - [Sessão 70 — 14/06/2026 — Governança de verificação de trabalho delegado (multi-agente)](sessions/sessao-70-governanca-verificacao-delegacao.md) — `8e32366`
 - [Sessão 69 — 14/06/2026 — Correção de Acessibilidade (Axe WCAG)](sessions/sessao-69-correcoes-a11y-axe-wcag.md) — `100884a`
