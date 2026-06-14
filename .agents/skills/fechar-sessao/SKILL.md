@@ -29,6 +29,8 @@ Slug: minúsculas, sem acento, palavras separadas por hífen (ex.: `sessao-67-mi
 - [Sessão <N> — <data> — <título>](sessions/<arquivo>.md) — `<commit>`
 ```
 
+> ⚠️ **`<commit>` NUNCA é o hash do commit de registro desta etapa** — esse hash ainda não existe quando você escreve a linha; chutá-lo fabrica um hash inválido (foi exatamente a origem do bug `de5fab0` da Sessão 69). Use o hash do **último commit substantivo já feito** desta sessão — obtenha com `git log --oneline` (o commit de trabalho mais recente, já existente). O commit `docs(session)` do Passo 4 fica **fora** do índice (não é auto-referenciado). O hook `.githooks/post-commit` e a CI `history-integrity.yml` reprovam se a linha apontar para um hash não alcançável.
+
 Incremente a contagem em `**N sessões registradas.**`.
 
 ## Passo 3 — Atualizar roadmap (repo)

@@ -1,6 +1,6 @@
 # Roadmap Técnico — NextAI
 
-> Última atualização: 2026-06-14 (Sessão 69 - A11y Axe WCAG)  
+> Última atualização: 2026-06-14 (Sessão 70 - Governança de verificação de delegação)  
 > Ver também: [[11 - Auditoria 2026-04-25]], [[Problemas e Dívida Técnica]], [[Segurança — Checklist]], [[14 - Auditoria de Performance 2026-05-02]]
 
 ---
@@ -52,6 +52,7 @@
 | s67-OS (Permissões) | ✅ Completo | Correção de RLS para carregar Clientes/Equipamentos no Técnico + Fixes testes smoke Playwright |
 | Sessão 68 — Mem/SoC/a11y | ✅ Completo | Vault Obsidian → repo (docs/ HOT/WARM/COLD); SoC fase 2 (UI 100% via service); fecha 4 violações Axe a11y |
 | Sessão 69 — A11y Axe WCAG | ✅ Completo | Corrige as 10 violações de Axe de a11y (17 botões/triggers + 2 inputs) app-wide |
+| Sessão 70 — Governança verif. delegação | ✅ Completo | Skill `verificar-delegacao` + script portável + git hook `post-commit` + CI `history-integrity` (local advisory + servidor bloqueante); corrige causa-raiz da fabricação de hash no `/fechar-sessao` |
 | **Background Sync** | **⏳ Pendente** | **Offline-first completo: sync automático ao reconectar** |
 | Notificações externas | ⏳ Pendente | Email (Resend) + WhatsApp (Evolution API) |
 | Fase 6 SaaS | ⏳ Pendente | Subdomain routing + billing + pentest |
