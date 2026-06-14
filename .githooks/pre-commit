@@ -1,0 +1,30 @@
+#!/bin/sh
+# Governanca de seguranca — camada LOCAL (espelha .githooks/post-commit na delegacao a pwsh).
+# Git executa este hook ANTES de todo commit, em qualquer ferramenta (Claude Code, Codex,
+# Gemini, git manual). Roda o scanner mecanico sobre o que esta em STAGE.
+#
+# Bloqueia o commit APENAS em [BLOCK] (segredo hard-coded, tabela inexistente) — padroes
+# zero-falso-positivo, entao bloquear e seguro e impede que um segredo entre no historico
+# git (de onde nao sai facil). Os [WARN] heuristicos sao impressos mas NAO bloqueiam.
+# Sem PowerShell instalado: degrada gracioso (nao bloqueia). Autoridade final: o CI.
+# Bypass de emergencia (use so se for falso-positivo, e reporte): git commit --no-verify
+root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+script="$root/.claude/scripts/security-scan.ps1"
+[ -f "$script" ] || exit 0
+
+if command -v pwsh >/dev/null 2>&1; then
+  pwsh -NoProfile -File "$script" -Staged -Strict
+  code=$?
+elif command -v powershell >/dev/null 2>&1; then
+  powershell -NoProfile -File "$script" -Staged -Strict
+  code=$?
+else
+  exit 0
+fi
+
+if [ "$code" -ne 0 ]; then
+  echo ""
+  echo "Commit BLOQUEADO: padrao critico de seguranca em stage (ver [BLOCK] acima)."
+  echo "Corrija e refaca o commit. Se for falso-positivo: git commit --no-verify (e reporte)."
+fi
+exit "$code"

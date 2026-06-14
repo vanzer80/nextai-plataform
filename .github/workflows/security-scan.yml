@@ -1,0 +1,38 @@
+name: Security scan
+
+# Camada SERVIDOR da governanca de seguranca (complementa o hook local
+# .githooks/pre-commit). Roda nos servidores do GitHub a cada push/PR, independente
+# de qual maquina ou harness criou o commit — inclusive commits da web/API do GitHub,
+# que nenhum hook local alcanca. Fonte unica dos checks: .claude/scripts/security-scan.ps1.
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: security-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Scanner mecanico (BLOCK reprova; WARN e advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout (historico completo)
+        uses: actions/checkout@v4
+        with:
+          # fetch-depth: 0 garante que -Full enxergue toda a arvore versionada.
+          fetch-depth: 0
+
+      # -Full -Strict: varre a base inteira e reprova (exit 1) em QUALQUER [BLOCK]
+      # (segredo hard-coded, tabela team_members inexistente). [BLOCK] e zero-falso-
+      # positivo por construcao, entao isto nunca reprova trabalho legitimo. Os [WARN]
+      # (heuristicas) sao impressos para revisao, mas nunca afetam o resultado.
+      - name: Rodar security-scan (strict)
+        shell: bash
+        run: pwsh -NoProfile -File .claude/scripts/security-scan.ps1 -Full -Strict
