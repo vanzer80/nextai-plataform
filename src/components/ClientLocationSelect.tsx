@@ -215,7 +215,7 @@ export default function ClientLocationSelect({
       ) : (
         /* Estado C — Select aberto para escolha */
         <Select onValueChange={handleSelectChange}>
-          <SelectTrigger className="h-12 text-base rounded-xl bg-muted border-border focus:ring-ring">
+          <SelectTrigger className="min-h-[3rem] h-auto py-2 text-base rounded-xl bg-muted border-border focus:ring-ring [&_[data-slot=select-value]]:whitespace-normal [&_[data-slot=select-value]]:line-clamp-none">
             <SelectValue placeholder="Selecione a filial" />
           </SelectTrigger>
           <SelectContent className="min-w-[280px]">
@@ -224,14 +224,14 @@ export default function ClientLocationSelect({
                 key={loc.id}
                 value={loc.id}
                 textValue={loc.nome}
-                className="py-3 text-base"
+                className="py-3 text-base [&_[data-slot=select-item-text]]:whitespace-normal [&_[data-slot=select-item-text]]:break-words"
               >
                 <span className="flex items-center gap-2 min-w-0">
-                  <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span className="truncate">
+                  <MapPin className="h-3.5 w-3.5 shrink-0 mt-1 text-muted-foreground" />
+                  <span>
                     <span className="font-medium">{loc.nome}</span>
                     {loc.cidade && (
-                      <span className="text-muted-foreground text-sm ml-1.5">
+                      <span className="text-muted-foreground text-sm ml-1.5 block sm:inline">
                         — {loc.cidade}{loc.estado ? `/${loc.estado}` : ''}
                       </span>
                     )}
@@ -242,7 +242,7 @@ export default function ClientLocationSelect({
             <SelectItem
               value={MANUAL_SENTINEL}
               textValue="Digitar manualmente"
-              className="py-3 text-base text-muted-foreground"
+              className="py-3 text-base text-muted-foreground [&_[data-slot=select-item-text]]:whitespace-normal [&_[data-slot=select-item-text]]:break-words"
             >
               <span className="flex items-center gap-2">
                 <PencilLine className="h-4 w-4" />

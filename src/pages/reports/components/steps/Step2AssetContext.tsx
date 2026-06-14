@@ -120,14 +120,14 @@ export default function Step2AssetContext({ form }: Step2Props) {
               setValue('site_location', '');
             }}
           >
-            <SelectTrigger className="h-12 text-base rounded-xl bg-muted border-border focus:ring-ring">
+            <SelectTrigger className="min-h-[3rem] h-auto py-2 text-base rounded-xl bg-muted border-border focus:ring-ring [&_[data-slot=select-value]]:whitespace-normal [&_[data-slot=select-value]]:line-clamp-none">
               <SelectValue placeholder="Selecione o cliente">
                 {clients.find(c => c.id === selectedClientId)?.name}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {clients.map(c => (
-                <SelectItem key={c.id} value={c.id} className="py-3 text-base">{c.name}</SelectItem>
+                <SelectItem key={c.id} value={c.id} className="py-3 text-base [&_[data-slot=select-item-text]]:whitespace-normal [&_[data-slot=select-item-text]]:break-words">{c.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -165,16 +165,16 @@ export default function Step2AssetContext({ form }: Step2Props) {
           {/* Dropdown — só exibe quando há equipamentos cadastrados */}
           {!showClientPrompt && !loadingEquipments && equipments.length > 0 && (
             <Select value={selectValue} onValueChange={handleSelectChange}>
-              <SelectTrigger className="h-12 text-base rounded-xl bg-muted border-border focus:ring-ring">
+              <SelectTrigger className="min-h-[3rem] h-auto py-2 text-base rounded-xl bg-muted border-border focus:ring-ring [&_[data-slot=select-value]]:whitespace-normal [&_[data-slot=select-value]]:line-clamp-none">
                 <SelectValue placeholder="Selecione o equipamento" />
               </SelectTrigger>
               <SelectContent>
                 {equipments.map(eq => (
-                  <SelectItem key={eq.id} value={eq.id} className="py-3 text-base">
+                  <SelectItem key={eq.id} value={eq.id} className="py-3 text-base [&_[data-slot=select-item-text]]:whitespace-normal [&_[data-slot=select-item-text]]:break-words">
                     {eq.name}
                   </SelectItem>
                 ))}
-                <SelectItem value={MANUAL_SENTINEL} className="py-3 text-base text-muted-foreground">
+                <SelectItem value={MANUAL_SENTINEL} className="py-3 text-base text-muted-foreground [&_[data-slot=select-item-text]]:whitespace-normal [&_[data-slot=select-item-text]]:break-words">
                   <span className="flex items-center gap-2">
                     <PencilLine className="h-4 w-4" />
                     Digitar manualmente
