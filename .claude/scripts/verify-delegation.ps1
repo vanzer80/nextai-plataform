@@ -1,9 +1,11 @@
 # Verificacao de handoff de agente delegado — PORTAVEL (qualquer harness: Claude, Codex, Gemini).
 # Roda TODOS os checks mecanicos numa unica chamada e emite um relatorio legivel.
 #
-#   pwsh -File .claude/scripts/verify-delegation.ps1 [-Commit <hash>] [-Build] [-SkipTests]
+#   pwsh -File .claude/scripts/verify-delegation.ps1 [-Commit <hash>] [-Fetch] [-Build] [-SkipTests]
 #
 # -Commit  hash reportado pelo agente (default HEAD)
+# -Fetch   roda "git fetch origin" antes — use p/ handoff CROSS-MAQUINA (o agente
+#          delegado commitou/pushou em OUTRO clone; sem fetch o hash nao existe aqui)
 # -Build   inclui "npm run build" (mais lento; gate de bundle do CLAUDE.md)
 # -SkipTests pula o vitest (iteracao rapida)
 #
@@ -12,6 +14,7 @@
 # (nao reimplementada aqui) — um lugar so define "hash valido = alcancavel a partir do HEAD".
 param(
     [string]$Commit = 'HEAD',
+    [switch]$Fetch,
     [switch]$Build,
     [switch]$SkipTests
 )
@@ -40,12 +43,34 @@ function Invoke-Native([string]$CommandLine) {
     return [pscustomobject]@{ Code = $LASTEXITCODE; Output = $out }
 }
 
+$branch = (& git rev-parse --abbrev-ref HEAD 2>$null).Trim()
+if ($Fetch) { & git fetch origin --quiet 2>$null }
+
 Write-Host '=== Verificacao de handoff (checks mecanicos) ==='
 
-# 1. Commit reportado e ALCANCAVEL a partir do HEAD (nao mera existencia — pega dangling)
-& git merge-base --is-ancestor $Commit HEAD 2>$null
-Check "commit '$Commit' alcancavel a partir do HEAD" ($LASTEXITCODE -eq 0) `
-    $(if ($LASTEXITCODE -ne 0) { 'inexistente ou dangling (nunca chegou ao master)' })
+# 1. Commit reportado e ALCANCAVEL a partir do HEAD (reachability, nao mera existencia).
+#    Distingue com PRECISAO os modos de falha — crucial no handoff cross-maquina, em que
+#    o agente (ex.: Gemini/Codex) commitou em OUTRO clone: o hash existe em origin mas pode
+#    nao ter sido fetchado p/ este local. Rotular isso "fabricado" seria um falso-FAIL.
+& git cat-file -e "$Commit^{commit}" 2>$null
+if ($LASTEXITCODE -ne 0) {
+    Check "commit '$Commit' alcancavel a partir do HEAD" $false `
+        'nao resolve neste clone — fabricado, ou commitado em outra maquina (rode com -Fetch)'
+} else {
+    & git merge-base --is-ancestor $Commit HEAD 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        Check "commit '$Commit' alcancavel a partir do HEAD" $true ''
+    } else {
+        & git merge-base --is-ancestor $Commit "origin/$branch" 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            Check "commit '$Commit' alcancavel a partir do HEAD" $false `
+                "existe em origin/$branch mas o HEAD local esta atras — rode 'git pull'"
+        } else {
+            Check "commit '$Commit' alcancavel a partir do HEAD" $false `
+                'existe como objeto mas fora da historia de master (dangling ou outra branch)'
+        }
+    }
+}
 
 # 2. Integridade do docs/HISTORY.md — delega ao script do hook (fonte unica)
 $histScript = Join-Path $repo '.githooks/verify-history-hashes.ps1'
@@ -62,8 +87,7 @@ $dirty = & git status --porcelain
 Check 'working tree limpo' ([string]::IsNullOrWhiteSpace($dirty)) `
     $(if (-not [string]::IsNullOrWhiteSpace($dirty)) { 'ha mudancas nao commitadas' })
 
-# 4. HEAD sincronizado com origin — o agente alegou push?
-$branch = (& git rev-parse --abbrev-ref HEAD 2>$null).Trim()
+# 4. HEAD sincronizado com origin — o agente alegou push? ($branch ja computado no topo)
 & git rev-parse --verify --quiet "origin/$branch" *> $null
 if ($LASTEXITCODE -eq 0) {
     $ahead = (& git rev-list --count "origin/$branch..HEAD" 2>$null).Trim()

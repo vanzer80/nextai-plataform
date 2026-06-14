@@ -13,6 +13,7 @@ pwsh -File .claude/scripts/verify-delegation.ps1 -Commit <hash-reportado>
 ```
 
 - `-Commit` é opcional (default `HEAD`); passe o hash que o agente reportou, se houver.
+- `-Fetch` se o agente delegado commitou/pushou em **outra máquina ou clone** — sem isso o hash dele não existe no seu repo local e o check o trataria como "não resolve".
 - Adicione `-Build` para incluir o gate de bundle; `-SkipTests` para iteração rápida.
 
 O script imprime `[PASS]/[FAIL]` para: commit alcançável (não dangling), integridade do `docs/HISTORY.md` (delegada a `.githooks/verify-history-hashes.ps1` — fonte única), working tree limpo, HEAD pushado, `tsc`, `vitest` (contagem **dinâmica**, nunca hardcoded) e build (se `-Build`). Exit 1 = algum check falhou.
