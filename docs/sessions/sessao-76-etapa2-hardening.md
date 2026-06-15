@@ -5,7 +5,7 @@
 - `6161150` feat(pwa): version handshake do Service Worker
 - `00abd32` feat(pwa): observabilidade Sentry inerte e lazy
 - `651151e` ci(pwa): workflow PWA & Quality — gates + Lighthouse
-- `a ser gerado` docs: registro da Sessão 76 + hash no HISTORY.md
+- `d2fdc75` docs: registro da Sessão 76 + hash no HISTORY.md
 
 ## Contexto
 
