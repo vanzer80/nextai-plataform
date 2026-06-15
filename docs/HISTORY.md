@@ -8,7 +8,7 @@
 
 **82 sessões registradas.**
 
-- [Sessão 75 — 15/06/2026 — Etapa 1 PWA: offline-first (compressão JPEG, timeout/allSettled de upload, write-through cache, fila de notificações, precache de chunks)](sessions/sessao-75-etapa1-offline-first.md)
+- [Sessão 75 — 15/06/2026 — Etapa 1 PWA: offline-first (compressão JPEG, timeout/allSettled de upload, write-through cache, fila de notificações, precache de chunks)](sessions/sessao-75-etapa1-offline-first.md) — `9def4f5`
 - [Sessão 74 — 15/06/2026 — Etapa 0 PWA: destravamento (ícones, manifest, SW, trigger de atribuição)](sessions/sessao-74-etapa0-pwa-destravamento.md) — `264ebfb`
 - [Sessão 73 — 14/06/2026 — Fix: 403 em process_orcamento_status + console.log](sessions/sessao-73-fix-403-process-orcamento-status.md) — `7430085`
 - [Sessão 72 — 14/06/2026 — Correção do SelectValue (Fallback para ID)](sessions/sessao-72-fix-selectvalue-fallback.md) — `8f471d1`

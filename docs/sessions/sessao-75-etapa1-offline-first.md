@@ -6,7 +6,7 @@
 - `9c66c0d` feat(pwa): write-through cache + last_full_sync (item 3)
 - `fccf496` feat(pwa): fila local de "marcar como lida" resiliente offline (item 4)
 - `c5bd626` feat(pwa): precache de chunks de boot no SW via manifest custom (item 5)
-- `a ser gerado` docs: registro da Sessão 75 + hash no HISTORY.md
+- `9def4f5` docs: registro da Sessão 75 + hash no HISTORY.md
 
 ## Contexto
 
