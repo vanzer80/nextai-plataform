@@ -36,6 +36,8 @@ export default defineConfig(() => {
             if (/node_modules[/\\]react[/\\]/.test(id))          return 'vendor-react';
             if (/node_modules[/\\]scheduler[/\\]/.test(id))      return 'vendor-react';
             if (id.includes('@supabase'))                         return 'vendor-supabase';
+            // @sentry é dynamic-imported só quando VITE_SENTRY_DSN existe no build;
+            // sem DSN é tree-shaken (zero bytes). O Vite cria o chunk async sozinho.
             if (id.includes('recharts'))                          return 'vendor-charts';
             if (id.includes('jspdf'))                             return 'vendor-pdf';
             if (id.includes('xlsx'))                              return 'vendor-xlsx';

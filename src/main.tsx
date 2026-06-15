@@ -2,7 +2,13 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { ThemeProvider } from '@/src/components/theme/ThemeProvider';
+import { initMonitoring } from '@/src/lib/monitoring';
 import { toast } from 'sonner';
+
+// Observabilidade (inerte sem VITE_SENTRY_DSN). Não bloqueia o render. O Sentry
+// init instala handlers globais (window.onerror + unhandledrejection), capturando
+// erros não tratados — inclusive os de render re-lançados pelo React.
+initMonitoring();
 
 createRoot(document.getElementById('root')!).render(
   <ThemeProvider>
