@@ -11,7 +11,12 @@ import {
   deletePendingBlobs,
   type QueueItem,
 } from '@/src/lib/reportIndexedDB';
-import { submitReport, type SubmitReportPayload } from '@/src/services/reportService';
+import {
+  submitReport,
+  uploadAndLinkAttachment,
+  type SubmitReportPayload,
+  type UploadAttachmentJob,
+} from '@/src/services/reportService';
 import type { EvidenceFile } from '@/src/types/reports';
 
 const MAX_RETRIES = 3;
@@ -76,6 +81,12 @@ async function processItem(item: QueueItem, teamId: string): Promise<boolean> {
 
       await updateDraftStatus(item.localDraftId, 'synced', String(supabaseId));
       await cacheReport(String(supabaseId), { ...payload, id: supabaseId, updated_at: data.updated_at });
+      return true;
+    }
+
+    // Anexo re-enfileirado: foto que falhou/estourou o timeout no submit da OS.
+    if (item.type === 'uploadAttachment') {
+      await uploadAndLinkAttachment(item.payload as UploadAttachmentJob);
       return true;
     }
 

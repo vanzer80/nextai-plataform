@@ -5,6 +5,11 @@ import type {
   ServiceReport, ReportStatusHistory, ReportAttachment, ReportSignature,
 } from '@/src/types/reports';
 import { generateUUID } from '@/src/lib/uuid';
+import { withTimeout } from '@/src/lib/withTimeout';
+import { enqueue } from '@/src/lib/reportIndexedDB';
+
+// Cada upload de mídia tem teto de tempo — rede de campo ruim não pode travar o envio.
+const UPLOAD_TIMEOUT_MS = 15_000;
 
 export interface SubmitReportPayload {
   formValues: ReportFormValues;
@@ -44,9 +49,10 @@ async function uploadSignature(
 ): Promise<string> {
   const path = `${teamId}/reports/${reportId}/signatures/${signerType}_${Date.now()}.png`;
   const blob = dataUrlToBlob(dataUrl);
-  const { error } = await supabase.storage
-    .from('reports_media')
-    .upload(path, blob, { contentType: 'image/png', upsert: false });
+  const { error } = await withTimeout<{ error: { message: string } | null }>(
+    supabase.storage.from('reports_media').upload(path, blob, { contentType: 'image/png', upsert: false }),
+    UPLOAD_TIMEOUT_MS,
+  );
   if (error) throw error;
   return path;
 }
@@ -54,9 +60,10 @@ async function uploadSignature(
 async function uploadAttachment(teamId: string, reportId: string, evidence: EvidenceFile): Promise<string> {
   const ext = evidence.file.name.split('.').pop() ?? 'jpg';
   const path = `${teamId}/reports/${reportId}/attachments/${evidence.id}.${ext}`;
-  const { error } = await supabase.storage
-    .from('reports_media')
-    .upload(path, evidence.file, { contentType: evidence.file.type, upsert: false });
+  const { error } = await withTimeout<{ error: { message: string } | null }>(
+    supabase.storage.from('reports_media').upload(path, evidence.file, { contentType: evidence.file.type, upsert: false }),
+    UPLOAD_TIMEOUT_MS,
+  );
   if (error) throw error;
   return path;
 }
@@ -123,7 +130,7 @@ export async function submitReport(payload: SubmitReportPayload): Promise<string
   const reportId = generateUUID();
 
   // 1. Upload all Storage files in parallel (outside the DB transaction)
-  const [signatureRows, attachmentRows] = await Promise.all([
+  const [signatureRows, attachmentResult] = await Promise.all([
     uploadSignatures(teamId, reportId, technicianSignature, clientSignature, clientSignerName),
     uploadAttachments(teamId, reportId, technicianId, attachments),
   ]);
@@ -174,7 +181,7 @@ export async function submitReport(payload: SubmitReportPayload): Promise<string
       technical_recommendation: formValues.technical_recommendation || null,
       priority: formValues.priority ?? 'normal',
     },
-    p_attachments: attachmentRows,
+    p_attachments: attachmentResult.rows,
     p_signatures: signatureRows,
     p_checklist: checklistRows,
   });
@@ -182,7 +189,15 @@ export async function submitReport(payload: SubmitReportPayload): Promise<string
   if (error) throw error;
   if (!data?.success) throw new Error(data?.error ?? 'Erro ao salvar relatório');
 
-  return data.report_id as string;
+  const finalReportId = data.report_id as string;
+
+  // Fotos que falharam/estouraram o timeout: a OS já foi criada com as que subiram;
+  // as restantes vão para a fila offline e sobem no próximo sync (técnico não bloqueia).
+  if (attachmentResult.failed.length > 0) {
+    await enqueueFailedAttachments(finalReportId, teamId, technicianId, attachmentResult.failed);
+  }
+
+  return finalReportId;
 }
 
 async function uploadSignatures(
@@ -206,23 +221,104 @@ async function uploadSignatures(
   return rows;
 }
 
+interface AttachmentUploadResult {
+  rows: object[];
+  failed: EvidenceFile[];
+}
+
 async function uploadAttachments(
   teamId: string,
   reportId: string,
   technicianId: string,
   attachments: EvidenceFile[],
-): Promise<object[]> {
-  if (attachments.length === 0) return [];
+): Promise<AttachmentUploadResult> {
+  if (attachments.length === 0) return { rows: [], failed: [] };
 
-  const paths = await Promise.all(attachments.map(att => uploadAttachment(teamId, reportId, att)));
+  // allSettled: uma foto que falhe ou estoure o timeout não derruba a OS inteira.
+  const settled = await Promise.allSettled(
+    attachments.map(att => uploadAttachment(teamId, reportId, att)),
+  );
 
-  return paths.map((path, i) => ({
-    uploaded_by: technicianId,
-    url: path,
-    filename: attachments[i].file.name,
-    mime_type: attachments[i].file.type,
-    caption: attachments[i].caption || null,
-  }));
+  const rows: object[] = [];
+  const failed: EvidenceFile[] = [];
+  settled.forEach((res, i) => {
+    if (res.status === 'fulfilled') {
+      rows.push({
+        uploaded_by: technicianId,
+        url: res.value,
+        filename: attachments[i].file.name,
+        mime_type: attachments[i].file.type,
+        caption: attachments[i].caption || null,
+      });
+    } else {
+      failed.push(attachments[i]);
+    }
+  });
+  return { rows, failed };
+}
+
+async function enqueueFailedAttachments(
+  reportId: string,
+  teamId: string,
+  technicianId: string,
+  failed: EvidenceFile[],
+): Promise<void> {
+  for (const ev of failed) {
+    await enqueue({
+      type: 'uploadAttachment',
+      localDraftId: reportId,
+      payload: {
+        reportId,
+        teamId,
+        technicianId,
+        attachmentId: ev.id,
+        file: ev.file,
+        caption: ev.caption || null,
+      } satisfies UploadAttachmentJob,
+      retries: 0,
+      createdAt: Date.now(), // sobrescrito por enqueue(); presente só p/ satisfazer o tipo
+    });
+  }
+}
+
+export interface UploadAttachmentJob {
+  reportId: string;
+  teamId: string;
+  technicianId: string;
+  attachmentId: string;
+  file: File;
+  caption: string | null;
+}
+
+/**
+ * Reprocessa um anexo que falhou no submit (re-enfileirado): upload + vínculo em
+ * report_attachments para o report já existente. Idempotente por `id = attachmentId`.
+ */
+export async function uploadAndLinkAttachment(job: UploadAttachmentJob): Promise<void> {
+  const ext = job.file.name.split('.').pop() ?? 'jpg';
+  const path = `${job.teamId}/reports/${job.reportId}/attachments/${job.attachmentId}.${ext}`;
+
+  const { error: upErr } = await withTimeout<{ error: { message: string } | null }>(
+    supabase.storage.from('reports_media').upload(path, job.file, { contentType: job.file.type, upsert: true }),
+    UPLOAD_TIMEOUT_MS,
+  );
+  if (upErr) throw upErr;
+
+  // RLS report_attachments_insert exige uploaded_by = auth.uid().
+  const { data: auth } = await supabase.auth.getUser();
+  const { error: insErr } = await supabase.from('report_attachments').upsert(
+    {
+      id: job.attachmentId,
+      report_id: job.reportId,
+      uploaded_by: auth.user?.id ?? null,
+      url: path,
+      filename: job.file.name,
+      mime_type: job.file.type,
+      caption: job.caption,
+    },
+    { onConflict: 'id' },
+  );
+  if (insErr) throw insErr;
 }
 
 // Reserva atômica do número da OS (variante authenticated — recebe p_team_id).
