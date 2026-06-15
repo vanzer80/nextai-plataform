@@ -6,8 +6,9 @@
 >
 > Migrado 1× do vault Obsidian em 2026-06-13. Daqui em diante o histórico é mantido aqui no repo.
 
-**82 sessões registradas.**
+**83 sessões registradas.**
 
+- [Sessão 76 — 15/06/2026 — Etapa 2 PWA: Hardening (badge online/offline, version handshake no SW, Sentry inerte/lazy, Lighthouse+gates no CI)](sessions/sessao-76-etapa2-hardening.md)
 - [Sessão 75 — 15/06/2026 — Etapa 1 PWA: offline-first (compressão JPEG, timeout/allSettled de upload, write-through cache, fila de notificações, precache de chunks)](sessions/sessao-75-etapa1-offline-first.md) — `9def4f5`
 - [Sessão 74 — 15/06/2026 — Etapa 0 PWA: destravamento (ícones, manifest, SW, trigger de atribuição)](sessions/sessao-74-etapa0-pwa-destravamento.md) — `264ebfb`
 - [Sessão 73 — 14/06/2026 — Fix: 403 em process_orcamento_status + console.log](sessions/sessao-73-fix-403-process-orcamento-status.md) — `7430085`

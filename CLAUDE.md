@@ -71,7 +71,7 @@ React 19 + TypeScript + Vite (SPA com lazy loading por módulo)
 Tailwind CSS + Shadcn/UI (base-ui) + tw-animate-css + @formkit/auto-animate  
 Supabase: Auth, PostgreSQL, RLS multi-tenant, Storage, Realtime, Edge Functions  
 jsPDF + jspdf-autotable · react-hook-form + Zod v4 · date-fns (ptBR) · sonner  
-driver.js v1.4.0 · Vitest (unit) + Playwright (E2E) · PWA: `public/sw.js` cache `nextai-v9`
+driver.js v1.4.0 · Vitest (unit) + Playwright (E2E) · PWA: `public/sw.js` cache `nextai-v10`
 
 ## Roles
 
@@ -194,6 +194,7 @@ Labels usam `text-sidebar-foreground/40` (nunca `text-muted-foreground` — fica
 
 - Nenhum comentário óbvio — só comentar WHY não-óbvio
 - Nenhum `any` explícito — `tsc --noEmit` deve ser EXIT:0
+- **`@types/react` NÃO está instalado e o `tsconfig` não tem `strict`** (modo permissivo). Consequência: o projeto é 100% function components — **class components não tipificam** (`this.props/state` acusam "does not exist" no `tsc`); error boundaries (que exigem class) não são viáveis sem antes adicionar `@types/react`. E adicionar `@types/react@19` **revela erros pré-existentes mascarados** (ex.: `ClientLocationSelect` passa `textValue` a `SelectItem`, prop inexistente) — só faça isso como tarefa dedicada de infra, corrigindo os erros revelados, nunca de passagem. (s76)
 - Services: async/await com throw em erro, sem `.eq('team_id', teamId)` nos reads. **UI nunca chama `supabase.from/rpc/storage/channel` direto** — todo acesso a dados passa por um `service` (e por um `hook` quando há estado). Ver § "Camada de Service (SoC)".
 - **Estrutura shadcn:** primitivos shadcn vivem em `src/components/ui/*` e o `cn` em `src/lib/utils.ts`. O alias `@` aponta para a **raiz** (tsconfig/vite), então imports de app usam `@/src/...` e o shadcn `@/src/components/ui`. `components.json` aponta os aliases para `@/src/*`. (Dualidade raiz↔src unificada no PR #4.)
 - Lazy loading: toda rota em `App.tsx` deve ser `React.lazy()` — sem exceção (inclui Login; AppLayout é o único componente síncrono no initial bundle)
@@ -227,7 +228,7 @@ Secrets (nunca no .env): `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, `OPENAI_API_KEY
 
 ## Estado dos testes
 
-- **Vitest (unit):** 187 testes passando ✅ (`npx vitest run`) — inclui `src/__tests__/pwa-assets.test.ts` (integridade manifest/ícones/SW), `imageCompression`, `reportService.uploadAttachment` (re-enfileiramento), `reportIndexedDB.lastSync`, `notificationService` (fila offline)
+- **Vitest (unit):** 194 testes passando ✅ (`npx vitest run`) — inclui `src/__tests__/pwa-assets.test.ts` (integridade manifest/ícones/SW), `imageCompression`, `reportService.uploadAttachment` (re-enfileiramento), `reportIndexedDB.lastSync`, `notificationService` (fila offline), `ConnectionStatus` (badge), `monitoring` (Sentry inerte)
 - **Playwright E2E:**
   - `tests/ux/` — 37 testes UX/UI (login, RBAC, responsividade, estados)
   - `tests/orcamentos-sprint-d.spec.ts` — 5 testes Sprint D (assinatura eletrônica) — flaky cold-start free tier
