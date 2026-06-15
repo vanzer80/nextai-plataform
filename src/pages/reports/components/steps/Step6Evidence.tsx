@@ -1,10 +1,11 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { generateUUID } from '@/src/lib/uuid';
+import { compressImageFile } from '@/src/lib/imageCompression';
 import type { ChangeEvent } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
-import { Camera, X, Plus, ImageIcon } from 'lucide-react';
+import { Camera, X, Plus, ImageIcon, Loader2 } from 'lucide-react';
 import type { EvidenceFile } from '@/src/types/reports';
 
 interface Step6Props {
@@ -14,19 +15,29 @@ interface Step6Props {
 
 export default function Step6Evidence({ attachments, onChange }: Step6Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
 
-  const handleFiles = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFiles = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []) as File[];
     const remaining = 4 - attachments.length;
     const toAdd = files.slice(0, remaining);
-    const newItems: EvidenceFile[] = toAdd.map(file => ({
-      id: generateUUID(),
-      file,
-      preview: URL.createObjectURL(file),
-      caption: '',
-    }));
-    onChange([...attachments, ...newItems]);
     e.target.value = '';
+    if (toAdd.length === 0) return;
+
+    setIsCompressing(true);
+    try {
+      // Comprime antes de virar EvidenceFile → pendingBlobs (IndexedDB) e upload ficam leves.
+      const compressed = await Promise.all(toAdd.map(file => compressImageFile(file)));
+      const newItems: EvidenceFile[] = compressed.map(file => ({
+        id: generateUUID(),
+        file,
+        preview: URL.createObjectURL(file),
+        caption: '',
+      }));
+      onChange([...attachments, ...newItems]);
+    } finally {
+      setIsCompressing(false);
+    }
   };
 
   const handleRemove = (id: string) => {
@@ -84,9 +95,15 @@ export default function Step6Evidence({ attachments, onChange }: Step6Props) {
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="w-full border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center gap-2 text-muted-foreground hover:bg-muted hover:border-primary/50 hover:text-primary transition-colors"
+            disabled={isCompressing}
+            className="w-full border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center gap-2 text-muted-foreground hover:bg-muted hover:border-primary/50 hover:text-primary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {attachments.length === 0 ? (
+            {isCompressing ? (
+              <>
+                <Loader2 className="h-7 w-7 animate-spin" />
+                <p className="text-xs font-medium">Otimizando fotos...</p>
+              </>
+            ) : attachments.length === 0 ? (
               <>
                 <ImageIcon className="h-9 w-9" />
                 <p className="text-sm font-medium">Adicionar fotos de evidência</p>
