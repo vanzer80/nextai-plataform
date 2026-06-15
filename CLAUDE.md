@@ -71,7 +71,7 @@ React 19 + TypeScript + Vite (SPA com lazy loading por módulo)
 Tailwind CSS + Shadcn/UI (base-ui) + tw-animate-css + @formkit/auto-animate  
 Supabase: Auth, PostgreSQL, RLS multi-tenant, Storage, Realtime, Edge Functions  
 jsPDF + jspdf-autotable · react-hook-form + Zod v4 · date-fns (ptBR) · sonner  
-driver.js v1.4.0 · Vitest (unit) + Playwright (E2E) · PWA: `public/sw.js` cache `nextai-v8`
+driver.js v1.4.0 · Vitest (unit) + Playwright (E2E) · PWA: `public/sw.js` cache `nextai-v9`
 
 ## Roles
 
@@ -227,7 +227,7 @@ Secrets (nunca no .env): `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, `OPENAI_API_KEY
 
 ## Estado dos testes
 
-- **Vitest (unit):** 169 testes passando ✅ (`npx vitest run`) — inclui `src/__tests__/pwa-assets.test.ts` (integridade de manifest/ícones/SW da PWA)
+- **Vitest (unit):** 187 testes passando ✅ (`npx vitest run`) — inclui `src/__tests__/pwa-assets.test.ts` (integridade manifest/ícones/SW), `imageCompression`, `reportService.uploadAttachment` (re-enfileiramento), `reportIndexedDB.lastSync`, `notificationService` (fila offline)
 - **Playwright E2E:**
   - `tests/ux/` — 37 testes UX/UI (login, RBAC, responsividade, estados)
   - `tests/orcamentos-sprint-d.spec.ts` — 5 testes Sprint D (assinatura eletrônica) — flaky cold-start free tier
