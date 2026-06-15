@@ -1,7 +1,7 @@
 # Sessão 74 — 15/06/2026 — Etapa 0 PWA: destravamento (ícones, manifest, SW, trigger de atribuição)
 
 ## Commits Realizados
-- `a ser gerado` feat(pwa): Etapa 0 — destrava instalabilidade e push (ícones PNG/maskable, manifest, SW v8, trigger de atribuição de OS)
+- `264ebfb` feat(pwa): Etapa 0 — destrava instalabilidade e push (ícones PNG/maskable, manifest, SW v8, trigger de atribuição de OS)
 
 ## Contexto
 
