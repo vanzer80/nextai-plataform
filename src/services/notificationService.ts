@@ -48,3 +48,58 @@ export function subscribeUserNotifications(
 export function markNotificationRead(id: string) {
   return supabase.from('notifications').update({ is_read: true }).eq('id', id);
 }
+
+// ── Fila local de "marcar como lida" (resiliência offline) ────────────────────
+// Em localStorage: ids cujo update falhou (offline/erro). Reenviados ao reconectar.
+
+const READ_QUEUE_KEY = 'nextai-notif-read-queue';
+
+function readQueue(): string[] {
+  try {
+    const raw = localStorage.getItem(READ_QUEUE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeQueue(ids: string[]): void {
+  try {
+    localStorage.setItem(READ_QUEUE_KEY, JSON.stringify(ids));
+  } catch {
+    /* storage indisponível — best-effort */
+  }
+}
+
+function enqueueRead(id: string): void {
+  const q = readQueue();
+  if (!q.includes(id)) writeQueue([...q, id]);
+}
+
+// Marca como lida com resiliência: em falha (offline/erro), enfileira para o próximo
+// sync. Nunca lança — a UI já atualizou de forma otimista.
+export async function markNotificationReadResilient(id: string): Promise<void> {
+  try {
+    const { error } = await markNotificationRead(id);
+    if (error) enqueueRead(id);
+  } catch {
+    enqueueRead(id);
+  }
+}
+
+// Reenvia as marcações pendentes (chamar no mount e ao reconectar). Best-effort.
+export async function flushNotificationReadQueue(): Promise<void> {
+  const q = readQueue();
+  if (q.length === 0) return;
+  const remaining: string[] = [];
+  for (const id of q) {
+    try {
+      const { error } = await markNotificationRead(id);
+      if (error) remaining.push(id);
+    } catch {
+      remaining.push(id);
+    }
+  }
+  writeQueue(remaining);
+}

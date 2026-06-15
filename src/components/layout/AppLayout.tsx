@@ -468,13 +468,22 @@ export default function AppLayout() {
       if (data) setNotifications(data);
     });
 
-    return unsubscribe;
+    // Reenvia marcações de leitura feitas offline — ao montar e ao reconectar.
+    notificationService.flushNotificationReadQueue();
+    const onOnline = () => notificationService.flushNotificationReadQueue();
+    window.addEventListener('online', onOnline);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('online', onOnline);
+    };
   }, [user?.id]);
 
   const markAsRead = async (id: string, is_read: boolean) => {
     if (is_read) return;
-    await notificationService.markNotificationRead(id);
+    // Otimista: a UI atualiza já; a persistência é resiliente (enfileira se offline).
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    await notificationService.markNotificationReadResilient(id);
   };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
