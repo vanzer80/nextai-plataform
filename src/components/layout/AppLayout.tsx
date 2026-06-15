@@ -46,6 +46,7 @@ import { invalidateClientsCache } from '@/src/hooks/useClients';
 import { useTenant } from '@/src/contexts/TenantContext';
 import { OnboardingButton } from '@/src/onboarding/OnboardingButton';
 import { useOfflineSync } from '@/src/hooks/useOfflineSync';
+import ConnectionStatus from '@/src/components/layout/ConnectionStatus';
 import { Button } from '@/src/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/src/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/src/components/ui/dropdown-menu';
@@ -558,6 +559,8 @@ export default function AppLayout() {
 
   return (
     <div className="flex h-screen w-full bg-background font-sans text-foreground overflow-hidden">
+
+      <ConnectionStatus isOnline={isOnline} isSyncing={isSyncing} pendingCount={pendingCount} />
 
       {/* DESKTOP SIDEBAR (Hidden on mobile) */}
       <aside className="hidden lg:flex w-[260px] flex-col bg-sidebar text-sidebar-foreground shrink-0 border-r border-sidebar-border z-50">
