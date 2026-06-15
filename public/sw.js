@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nextai-v7';
+const CACHE_NAME = 'nextai-v8';
 
 // ── Push Notifications ────────────────────────────────────────────────────────
 
@@ -35,9 +35,20 @@ self.addEventListener('notificationclick', (event) => {
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(['/', '/index.html', '/manifest.json'])
-    )
+    caches.open(CACHE_NAME).then(async (cache) => {
+      // Shell core: atômico — se falhar, não faz sentido instalar pela metade.
+      await cache.addAll(['/', '/index.html', '/manifest.json']);
+      // Ícones do push/instalação: best-effort — um 404 aqui NÃO pode derrubar o
+      // install do SW (addAll é atômico; cache.add individual + allSettled tolera falha).
+      await Promise.allSettled(
+        [
+          '/icons/icon-192.png',
+          '/icons/icon-512.png',
+          '/icons/badge-72.png',
+          '/icons/apple-touch-icon-180.png',
+        ].map((u) => cache.add(u))
+      );
+    })
   );
   self.skipWaiting();
 });

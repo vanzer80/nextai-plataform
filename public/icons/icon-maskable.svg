@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Maskable: fundo full-bleed (sem cantos arredondados — a plataforma aplica a
+       própria máscara). Logo na safe-zone central de ~80% (scale 2.0, centralizado). -->
+  <rect width="512" height="512" fill="#0F172A"/>
+  <g transform="translate(104,94) scale(2.0)">
+    <polygon points="27.5,21 44.5,21 34.5,141 17.5,141" fill="#2563EB"/>
+    <polygon points="117.5,21 134.5,21 124.5,141 107.5,141" fill="#2563EB"/>
+    <polygon points="37,25 52,17 115,137 100,145" fill="#2563EB"/>
+  </g>
+</svg>

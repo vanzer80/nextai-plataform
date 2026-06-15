@@ -6,8 +6,9 @@
 >
 > Migrado 1× do vault Obsidian em 2026-06-13. Daqui em diante o histórico é mantido aqui no repo.
 
-**80 sessões registradas.**
+**81 sessões registradas.**
 
+- [Sessão 74 — 15/06/2026 — Etapa 0 PWA: destravamento (ícones, manifest, SW, trigger de atribuição)](sessions/sessao-74-etapa0-pwa-destravamento.md)
 - [Sessão 73 — 14/06/2026 — Fix: 403 em process_orcamento_status + console.log](sessions/sessao-73-fix-403-process-orcamento-status.md) — `7430085`
 - [Sessão 72 — 14/06/2026 — Correção do SelectValue (Fallback para ID)](sessions/sessao-72-fix-selectvalue-fallback.md) — `8f471d1`
 - [Sessão 71 — 14/06/2026 — Fix de Truncamento de Texto no Select (OS)](sessions/sessao-71-fix-truncamento-texto-select.md) — `05b111c`
