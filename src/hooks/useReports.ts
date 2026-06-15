@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/src/lib/supabase';
-import { getAllCachedReports } from '@/src/lib/reportIndexedDB';
+import { getAllCachedReports, cacheReport, getLastFullSync, setLastFullSync } from '@/src/lib/reportIndexedDB';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import type { ServiceReport, ReportStatus } from '@/src/types/reports';
 
 export interface ReportsFilter {
@@ -67,6 +69,10 @@ export function useReports(filter: ReportsFilter = {}) {
       const rows = (data ?? []) as ServiceReport[];
       setReports(prev => pageIndex === 0 ? rows : [...prev, ...rows]);
       setHasMore(rows.length === PAGE_SIZE);
+
+      // Write-through: o que o técnico vê online fica disponível para leitura offline.
+      void Promise.all(rows.map(r => cacheReport(r.id, r))).catch(() => {});
+      if (pageIndex === 0) setLastFullSync(Date.now());
     } catch (err: unknown) {
       console.warn('[useReports] Supabase falhou, usando cache IndexedDB');
       const cached = await getAllCachedReports();
@@ -91,7 +97,9 @@ export function useReports(filter: ReportsFilter = {}) {
       }
       setReports(prev => pageIndex === 0 ? rows : [...prev, ...rows]);
       setHasMore(false); // sem paginação no cache offline
-      setError('Exibindo dados em cache — verifique sua conexão.');
+      const last = getLastFullSync();
+      const ago = last ? ` (sincronizado ${formatDistanceToNow(last, { addSuffix: true, locale: ptBR })})` : '';
+      setError(`Exibindo dados em cache${ago} — verifique sua conexão.`);
     } finally {
       setLoading(false);
     }

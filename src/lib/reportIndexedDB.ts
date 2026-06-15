@@ -181,6 +181,30 @@ export async function removeCachedReport(supabaseId: string): Promise<void> {
   await db.delete('cachedReports', supabaseId);
 }
 
+// ── last full sync ────────────────────────────────────────────
+// Timestamp da última leitura online bem-sucedida. Em localStorage com key
+// derivada do dbName → isolado por tenant, sem bump de schema do IndexedDB.
+
+function lastSyncKey(): string {
+  return `${dbName}-last-full-sync`;
+}
+
+export function setLastFullSync(ts: number): void {
+  try {
+    localStorage.setItem(lastSyncKey(), String(ts));
+  } catch {
+    /* storage indisponível (modo privado etc.) — best-effort */
+  }
+}
+
+export function getLastFullSync(): number {
+  try {
+    return Number(localStorage.getItem(lastSyncKey())) || 0;
+  } catch {
+    return 0;
+  }
+}
+
 // ── pendingBlobs ──────────────────────────────────────────────
 
 export async function savePendingBlobs(entry: PendingBlob): Promise<void> {
