@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nextai-v9';
+const CACHE_NAME = 'nextai-v10';
 
 // ── Push Notifications ────────────────────────────────────────────────────────
 
@@ -64,7 +64,13 @@ self.addEventListener('install', (event) => {
       }
     })
   );
-  self.skipWaiting();
+  // SEM skipWaiting automático: o novo SW fica em "waiting" até o usuário aceitar a
+  // atualização (version handshake — o cliente mostra o toast e envia SKIP_WAITING).
+});
+
+// Version handshake: o cliente envia SKIP_WAITING quando o usuário clica "Atualizar".
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
