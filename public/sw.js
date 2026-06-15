@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nextai-v8';
+const CACHE_NAME = 'nextai-v9';
 
 // ── Push Notifications ────────────────────────────────────────────────────────
 
@@ -48,6 +48,20 @@ self.addEventListener('install', (event) => {
           '/icons/apple-touch-icon-180.png',
         ].map((u) => cache.add(u))
       );
+      // Precache dos chunks de boot — lista gerada no build em /precache-manifest.json
+      // (entry + CSS + vendors do index.html). Garante boot offline em device novo.
+      // Best-effort: ausente em dev, ou offline no install → não derruba o SW.
+      try {
+        const res = await fetch('/precache-manifest.json', { cache: 'no-cache' });
+        if (res.ok) {
+          const manifest = await res.json();
+          if (Array.isArray(manifest.assets)) {
+            await Promise.allSettled(manifest.assets.map((u) => cache.add(u)));
+          }
+        }
+      } catch {
+        /* sem manifest (dev) ou sem rede no install — segue sem precache */
+      }
     })
   );
   self.skipWaiting();
