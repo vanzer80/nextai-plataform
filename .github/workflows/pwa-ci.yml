@@ -1,0 +1,72 @@
+name: PWA & Quality CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'scripts/**'
+      - 'index.html'
+      - 'package.json'
+      - 'vite.config.ts'
+      - 'lighthouserc.json'
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'URL base para o Lighthouse (vazio = secret AUDIT_BASE_URL)'
+        required: false
+        default: ''
+
+concurrency:
+  group: pwa-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Gates determinísticos: também gateiam a instalabilidade da PWA via
+  # src/__tests__/pwa-assets.test.ts (manifest/ícones/SW) — categoria PWA do
+  # Lighthouse foi descontinuada no LH12, então a instalabilidade é travada aqui.
+  gates:
+    name: Gates (tsc + vitest + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: TypeScript (noEmit)
+        run: npx tsc --noEmit
+      - name: Unit tests (inclui PWA installability)
+        run: npx vitest run
+      - name: Build (+ precache-manifest)
+        run: npm run build
+
+  # Lighthouse de performance/qualidade contra a rota pública /login. Assertions
+  # em "warn" → reporta sem reprovar o PR por flutuação de rede.
+  lighthouse:
+    name: Lighthouse (performance + PWA audits)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Determine base URL
+        id: url
+        run: |
+          OVERRIDE="${{ github.event.inputs.base_url }}"
+          if [ -n "$OVERRIDE" ]; then
+            echo "base_url=$OVERRIDE" >> "$GITHUB_OUTPUT"
+          else
+            echo "base_url=${{ secrets.AUDIT_BASE_URL }}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: ${{ steps.url.outputs.base_url }}/login
+          configPath: ./lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
