@@ -1,6 +1,6 @@
 # Roadmap Técnico — NextAI
 
-> Última atualização: 2026-06-14 (Sessão 70 - Governança de verificação de delegação)  
+> Última atualização: 2026-06-16 (Sessão 77 - Fix Global de Truncamento em Selects)  
 > Ver também: [[11 - Auditoria 2026-04-25]], [[Problemas e Dívida Técnica]], [[Segurança — Checklist]], [[14 - Auditoria de Performance 2026-05-02]]
 
 ---
@@ -53,6 +53,7 @@
 | Sessão 68 — Mem/SoC/a11y | ✅ Completo | Vault Obsidian → repo (docs/ HOT/WARM/COLD); SoC fase 2 (UI 100% via service); fecha 4 violações Axe a11y |
 | Sessão 69 — A11y Axe WCAG | ✅ Completo | Corrige as 10 violações de Axe de a11y (17 botões/triggers + 2 inputs) app-wide |
 | Sessão 70 — Governança verif. delegação | ✅ Completo | Skill `verificar-delegacao` + script portável + git hook `post-commit` + CI `history-integrity` (local advisory + servidor bloqueante); corrige causa-raiz da fabricação de hash no `/fechar-sessao` |
+| Sessões 71–77 — Estabilidade e PWA | ✅ Completo | Fix global de truncamento em Selects (wrapText customizado base-ui); Correção de Fallback ID; PWA Offline-first completo e hardening (badge, sync, chunks) |
 | **Background Sync** | **⏳ Pendente** | **Offline-first completo: sync automático ao reconectar** |
 | Notificações externas | ⏳ Pendente | Email (Resend) + WhatsApp (Evolution API) |
 | Fase 6 SaaS | ⏳ Pendente | Subdomain routing + billing + pentest |
