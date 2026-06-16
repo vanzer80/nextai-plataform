@@ -316,13 +316,15 @@ export default function NewMaterialRequest() {
             <div className="space-y-2">
               <Label className="text-sm font-semibold text-foreground">Cliente</Label>
               <Select onValueChange={(v) => setValue('client_id', v === 'none' ? '' : v)} value={selectedClient || 'none'}>
-                <SelectTrigger className="h-12 text-base rounded-xl bg-background border-input focus:ring-ring">
-                  <SelectValue placeholder="Selecione o cliente..." />
+                <SelectTrigger wrapText className="h-12 text-base rounded-xl bg-background border-input focus:ring-ring">
+                  <SelectValue placeholder="Selecione o cliente...">
+                    {selectedClient === 'none' || !selectedClient ? '-- Nenhum / Avulso --' : clients.find(c => c.id === selectedClient)?.name}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none" className="py-3 text-muted-foreground italic">-- Nenhum / Avulso --</SelectItem>
+                  <SelectItem wrapText value="none" className="py-3 text-muted-foreground italic">-- Nenhum / Avulso --</SelectItem>
                   {clients.map(c => (
-                    <SelectItem key={c.id} value={c.id} className="py-3">{c.name}</SelectItem>
+                    <SelectItem wrapText key={c.id} value={c.id} className="py-3">{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -347,12 +349,14 @@ export default function NewMaterialRequest() {
             <div className="space-y-2">
               <Label className="text-sm font-semibold text-foreground">Tipo de Manutenção *</Label>
               <Select onValueChange={(v) => setValue('maintenance_type', v, { shouldValidate: true })} value={selectedMaintenanceType}>
-                <SelectTrigger className="h-12 text-base rounded-xl bg-background border-input focus:ring-ring">
-                  <SelectValue placeholder="Selecione..." />
+                <SelectTrigger wrapText className="h-12 text-base rounded-xl bg-background border-input focus:ring-ring">
+                  <SelectValue placeholder="Selecione...">
+                    {selectedMaintenanceType === 'Preventiva' ? 'Manutenção Preventiva' : selectedMaintenanceType === 'Corretiva' ? 'Manutenção Corretiva' : null}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Preventiva" className="py-3">Manutenção Preventiva</SelectItem>
-                  <SelectItem value="Corretiva" className="py-3">Manutenção Corretiva</SelectItem>
+                  <SelectItem wrapText value="Preventiva" className="py-3">Manutenção Preventiva</SelectItem>
+                  <SelectItem wrapText value="Corretiva" className="py-3">Manutenção Corretiva</SelectItem>
                 </SelectContent>
               </Select>
               {errors.maintenance_type && <p className="text-sm text-rose-600">{errors.maintenance_type.message}</p>}

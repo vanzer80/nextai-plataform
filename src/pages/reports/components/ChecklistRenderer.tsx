@@ -104,12 +104,14 @@ export default function ChecklistRenderer({ items, answers, onChange }: Checklis
                   })
                 }
               >
-                <SelectTrigger className="h-10 rounded-lg bg-background border-input text-sm">
-                  <SelectValue placeholder="Selecione..." />
+                <SelectTrigger wrapText className="h-10 rounded-lg bg-background border-input text-sm">
+                  <SelectValue placeholder="Selecione...">
+                    {answer.value_option}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {item.options.map(opt => (
-                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                    <SelectItem wrapText key={opt} value={opt}>{opt}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

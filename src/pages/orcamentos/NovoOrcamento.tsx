@@ -748,7 +748,7 @@ export default function NovoOrcamento() {
                   removeFromAutoFilled('client_id');
                 }}
               >
-                <SelectTrigger className={errors.client_id ? 'border-rose-400' : ''}>
+                <SelectTrigger wrapText className={errors.client_id ? 'border-rose-400' : ''}>
                   {/* C2: children explícito para evitar UUID no Radix SelectValue */}
                   <SelectValue placeholder="Selecione o cliente">
                     {clients.find(c => c.id === watch('client_id'))?.name}
@@ -756,7 +756,7 @@ export default function NovoOrcamento() {
                 </SelectTrigger>
                 <SelectContent>
                   {clients.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    <SelectItem wrapText key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

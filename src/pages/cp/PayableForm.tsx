@@ -210,11 +210,15 @@ export default function PayableForm() {
               control={control}
               render={({ field }) => (
                 <Select onValueChange={v => field.onChange(v === '__none__' ? null : v)} value={field.value ?? '__none__'}>
-                  <SelectTrigger><SelectValue placeholder="Selecione (opcional)..." /></SelectTrigger>
+                  <SelectTrigger wrapText>
+                    <SelectValue placeholder="Selecione (opcional)...">
+                      {field.value === '__none__' || !field.value ? '— Nenhum —' : suppliers.find(s => s.id === field.value)?.name}
+                    </SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">— Nenhum —</SelectItem>
+                    <SelectItem wrapText value="__none__">— Nenhum —</SelectItem>
                     {suppliers.map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      <SelectItem wrapText key={s.id} value={s.id}>{s.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

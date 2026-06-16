@@ -436,10 +436,14 @@ export default function EmployeeForm() {
                   control={control}
                   render={({ field }) => (
                     <Select value={field.value ?? ''} onValueChange={v => field.onChange(v || null)}>
-                      <SelectTrigger className="h-10"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectTrigger wrapText className="h-10">
+                        <SelectValue placeholder="Selecione">
+                          {field.value ? departments.find(d => d.id === field.value)?.name : null}
+                        </SelectValue>
+                      </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Nenhum</SelectItem>
-                        {departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                        <SelectItem wrapText value="">Nenhum</SelectItem>
+                        {departments.map(d => <SelectItem wrapText key={d.id} value={d.id}>{d.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   )}
@@ -452,10 +456,14 @@ export default function EmployeeForm() {
                   control={control}
                   render={({ field }) => (
                     <Select value={field.value ?? ''} onValueChange={v => field.onChange(v || null)}>
-                      <SelectTrigger className="h-10"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectTrigger wrapText className="h-10">
+                        <SelectValue placeholder="Selecione">
+                          {field.value ? positions.find(p => p.id === field.value)?.title : null}
+                        </SelectValue>
+                      </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Nenhum</SelectItem>
-                        {positions.map(p => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}
+                        <SelectItem wrapText value="">Nenhum</SelectItem>
+                        {positions.map(p => <SelectItem wrapText key={p.id} value={p.id}>{p.title}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   )}

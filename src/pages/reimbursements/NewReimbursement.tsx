@@ -444,14 +444,16 @@ export default function NewReimbursement() {
                 }}
                 value={selectedCategory}
               >
-                <SelectTrigger className={`h-14 text-base rounded-xl ${aiClass('category')}`}>
-                  <SelectValue placeholder="Selecione..." />
+                <SelectTrigger wrapText className={`h-14 text-base rounded-xl ${aiClass('category')}`}>
+                  <SelectValue placeholder="Selecione...">
+                    {selectedCategory}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Alimentação" className="py-3 text-base">Alimentação</SelectItem>
-                  <SelectItem value="Transporte" className="py-3 text-base">Transporte (Combustível, App, Ônibus)</SelectItem>
-                  <SelectItem value="Hospedagem" className="py-3 text-base">Hospedagem</SelectItem>
-                  <SelectItem value="Outros" className="py-3 text-base">Outros</SelectItem>
+                  <SelectItem wrapText value="Alimentação" className="py-3 text-base">Alimentação</SelectItem>
+                  <SelectItem wrapText value="Transporte" className="py-3 text-base">Transporte (Combustível, App, Ônibus)</SelectItem>
+                  <SelectItem wrapText value="Hospedagem" className="py-3 text-base">Hospedagem</SelectItem>
+                  <SelectItem wrapText value="Outros" className="py-3 text-base">Outros</SelectItem>
                 </SelectContent>
               </Select>
               {errors.category && <p className="text-sm text-rose-600">{errors.category.message}</p>}
@@ -590,13 +592,15 @@ export default function NewReimbursement() {
             <div className="space-y-2">
               <Label className="text-sm font-semibold text-foreground">Cliente</Label>
               <Select onValueChange={(val) => setValue("client_id", val === "none" ? "" : val)} value={selectedClient || "none"}>
-                <SelectTrigger className="h-14 text-base rounded-xl bg-background border-input focus:ring-ring">
-                  <SelectValue placeholder="Selecione o cliente..." />
+                <SelectTrigger wrapText className="h-14 text-base rounded-xl bg-background border-input focus:ring-ring">
+                  <SelectValue placeholder="Selecione o cliente...">
+                    {selectedClient === "none" ? "-- Nenhum cliente / Avulso --" : clients.find(c => c.id === selectedClient)?.name}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none" className="py-3 text-base text-muted-foreground italic">-- Nenhum cliente / Avulso --</SelectItem>
+                  <SelectItem wrapText value="none" className="py-3 text-base text-muted-foreground italic">-- Nenhum cliente / Avulso --</SelectItem>
                   {clients.map(client => (
-                    <SelectItem key={client.id} value={client.id} className="py-3 text-base">
+                    <SelectItem wrapText key={client.id} value={client.id} className="py-3 text-base">
                       {client.name}
                     </SelectItem>
                   ))}

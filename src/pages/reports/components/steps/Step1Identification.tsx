@@ -94,12 +94,14 @@ export default function Step1Identification({ form }: Step1Props) {
             value={serviceType ?? ''}
             onValueChange={val => setValue('service_type', val as ReportFormValues['service_type'], { shouldValidate: true })}
           >
-            <SelectTrigger className="h-12 text-base rounded-xl bg-muted border-border focus:ring-ring">
-              <SelectValue placeholder="Selecione o tipo de serviço" />
+            <SelectTrigger wrapText className="h-12 text-base rounded-xl bg-muted border-border focus:ring-ring">
+              <SelectValue placeholder="Selecione o tipo de serviço">
+                {serviceTypes.find(opt => opt.value === serviceType)?.label}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {serviceTypes.map(opt => (
-                <SelectItem key={opt.value} value={opt.value} className="py-3 text-base">{opt.label}</SelectItem>
+                <SelectItem wrapText key={opt.value} value={opt.value} className="py-3 text-base">{opt.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>

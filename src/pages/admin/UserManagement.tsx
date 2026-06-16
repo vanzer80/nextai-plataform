@@ -389,11 +389,13 @@ export default function UserManagement() {
                   <div className="space-y-1">
                     <Label className="text-sm font-semibold text-foreground">Cliente vinculado <span className="text-rose-500">*</span></Label>
                     <Select value={createLinkedClientId} onValueChange={setCreateLinkedClientId}>
-                      <SelectTrigger className="h-11 rounded-lg focus:ring-ring">
-                        <SelectValue placeholder="Selecione o cliente..." />
+                      <SelectTrigger wrapText className="h-11 rounded-lg focus:ring-ring">
+                        <SelectValue placeholder="Selecione o cliente...">
+                          {clients.find(c => c.id === createLinkedClientId)?.name}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                        {clients.map(c => <SelectItem wrapText key={c.id} value={c.id}>{c.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">Este usuário só verá OS deste cliente.</p>
@@ -612,11 +614,13 @@ export default function UserManagement() {
                 <div className="space-y-1">
                   <Label className="text-sm font-semibold text-foreground">Cliente vinculado</Label>
                   <Select value={editLinkedClientId} onValueChange={setEditLinkedClientId} disabled={editingUser?.id === currentUser?.id}>
-                    <SelectTrigger className="h-11 rounded-lg focus:ring-ring">
-                      <SelectValue placeholder="Selecione o cliente..." />
+                    <SelectTrigger wrapText className="h-11 rounded-lg focus:ring-ring">
+                      <SelectValue placeholder="Selecione o cliente...">
+                        {clients.find(c => c.id === editLinkedClientId)?.name}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      {clients.map(c => <SelectItem wrapText key={c.id} value={c.id}>{c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">Este usuário só verá OS deste cliente.</p>
