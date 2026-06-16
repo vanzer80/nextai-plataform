@@ -41,6 +41,11 @@ export interface Orcamento {
   signer_email: string | null;
   client_location_id: string | null;
   site_location: string | null;
+  cliente_tipo?: string;
+  cliente_avulso_nome?: string | null;
+  cliente_avulso_documento?: string | null;
+  cliente_avulso_email?: string | null;
+  cliente_avulso_telefone?: string | null;
   created_at: string;
   updated_at: string;
   clients?: {
@@ -71,7 +76,12 @@ export interface OrcamentoComItens extends Orcamento {
 
 export interface CreateOrcamentoPayload {
   report_id?: string | null;
-  client_id: string;
+  client_id?: string | null;
+  cliente_tipo: 'cadastrado' | 'avulso';
+  cliente_avulso_nome?: string;
+  cliente_avulso_documento?: string;
+  cliente_avulso_email?: string;
+  cliente_avulso_telefone?: string;
   technician_id: string;
   client_location_id?: string | null;
   site_location?: string | null;

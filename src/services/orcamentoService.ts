@@ -12,7 +12,7 @@ const ORCAMENTO_SELECT = `
   id, report_id, client_id, technician_id, status, titulo, observacoes,
   rejection_reason, validade, desconto_pct, created_at, updated_at,
   version, signed_at, signer_name, signer_email,
-  client_location_id, site_location,
+  client_location_id, site_location, cliente_tipo, cliente_avulso_nome, cliente_avulso_documento, cliente_avulso_email, cliente_avulso_telefone,
   clients(name, cnpj, cidade, estado, logradouro, numero, bairro, contato_nome, contato_telefone, contato_email),
   users:technician_id(full_name),
   service_reports:report_id(os_number, service_type, service_date, status)
@@ -61,11 +61,16 @@ export async function buscarOrcamento(id: string): Promise<OrcamentoComItens | n
 export async function criarOrcamento(payload: CreateOrcamentoPayload): Promise<string> {
   const { data, error } = await supabase.rpc('create_orcamento', {
     p_orcamento: {
-      report_id:          payload.report_id ?? null,
-      client_id:          payload.client_id,
-      technician_id:      payload.technician_id,
-      titulo:             payload.titulo || null,
-      observacoes:        payload.observacoes || null,
+      report_id:                payload.report_id ?? null,
+      client_id:                payload.client_id ?? null,
+      cliente_tipo:             payload.cliente_tipo,
+      cliente_avulso_nome:      payload.cliente_avulso_nome ?? null,
+      cliente_avulso_documento: payload.cliente_avulso_documento ?? null,
+      cliente_avulso_email:     payload.cliente_avulso_email ?? null,
+      cliente_avulso_telefone:  payload.cliente_avulso_telefone ?? null,
+      technician_id:            payload.technician_id,
+      titulo:                   payload.titulo || null,
+      observacoes:              payload.observacoes || null,
       validade:           payload.validade ?? null,
       desconto_pct:       payload.desconto_pct ?? 0,
       client_location_id: payload.client_location_id ?? null,

@@ -91,8 +91,7 @@ const itemSchema = z.object({
   valor_unitario: z.number().min(0, 'Valor não pode ser negativo'),
 });
 
-const orcamentoSchema = z.object({
-  client_id:          z.string().min(1, 'Selecione um cliente'),
+const dadosClienteBase = {
   client_location_id: z.string().optional(),
   site_location:      z.string().optional(),
   titulo:             z.string().optional(),
@@ -101,6 +100,31 @@ const orcamentoSchema = z.object({
   desconto_pct:       z.number().min(0).max(100),
   itens:              z.array(itemSchema).min(1, 'Adicione pelo menos um item'),
   report_id:          z.string().uuid().optional(),
+};
+
+const orcamentoSchema = z.object({
+  cliente_tipo: z.enum(['cadastrado', 'avulso']),
+  client_id: z.string().optional(),
+  cliente_avulso_nome: z.string().optional(),
+  cliente_avulso_documento: z.string().optional(),
+  cliente_avulso_email: z.union([z.string().email('E-mail inválido'), z.literal('')]).optional(),
+  cliente_avulso_telefone: z.string().optional(),
+  ...dadosClienteBase,
+}).superRefine((data, ctx) => {
+  if (data.cliente_tipo === 'cadastrado' && !data.client_id) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Selecione um cliente',
+      path: ['client_id'],
+    });
+  }
+  if (data.cliente_tipo === 'avulso' && (!data.cliente_avulso_nome || data.cliente_avulso_nome.trim() === '')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Informe o nome do cliente',
+      path: ['cliente_avulso_nome'],
+    });
+  }
 });
 
 export type OrcamentoFormValues = z.infer<typeof orcamentoSchema>;
@@ -171,7 +195,12 @@ export default function NovoOrcamento() {
   } = useForm<OrcamentoFormValues>({
     resolver: zodResolver(orcamentoSchema),
     defaultValues: {
+      cliente_tipo:       'cadastrado',
       client_id:          '',
+      cliente_avulso_nome: '',
+      cliente_avulso_documento: '',
+      cliente_avulso_email: '',
+      cliente_avulso_telefone: '',
       client_location_id: undefined,
       site_location:      '',
       titulo:             '',
@@ -202,7 +231,12 @@ export default function NovoOrcamento() {
           });
         }
         reset({
-          client_id:          orc.client_id,
+          cliente_tipo:       orc.cliente_tipo === 'avulso' ? 'avulso' : 'cadastrado',
+          client_id:          orc.client_id || '',
+          cliente_avulso_nome: orc.cliente_avulso_nome || '',
+          cliente_avulso_documento: orc.cliente_avulso_documento || '',
+          cliente_avulso_email: orc.cliente_avulso_email || '',
+          cliente_avulso_telefone: orc.cliente_avulso_telefone || '',
           client_location_id: orc.client_location_id ?? undefined,
           site_location:      orc.site_location ?? '',
           titulo:             orc.titulo ?? '',
@@ -299,6 +333,7 @@ export default function NovoOrcamento() {
       if (os.technical_recommendation) linhas.push(`\nRecomendação técnica:\n${os.technical_recommendation}`);
       const observacoes = linhas.join('\n').trim();
 
+      setValue('cliente_tipo', 'cadastrado', { shouldDirty: true });
       setValue('client_id',   os.client_id ?? '', { shouldValidate: true, shouldDirty: true });
       setValue('titulo',      titulo,              { shouldDirty: true });
       setValue('observacoes', observacoes,         { shouldDirty: true });
@@ -368,6 +403,7 @@ export default function NovoOrcamento() {
   }, [searchTerm, isEdit, selectedOS]);
 
   // ── Track itens changes after OS fill ─────────────────────
+  const clienteTipo = watch('cliente_tipo');
   const watchedItens = watch('itens') ?? [];
   const itensJson = JSON.stringify(watchedItens);
   useEffect(() => {
@@ -422,32 +458,31 @@ export default function NovoOrcamento() {
     if (!user?.id) return;
     setIsSubmitting(true);
     try {
+      const basePayload: any = {
+        cliente_tipo:             values.cliente_tipo,
+        client_id:                values.cliente_tipo === 'cadastrado' ? values.client_id : null,
+        cliente_avulso_nome:      values.cliente_tipo === 'avulso' ? values.cliente_avulso_nome : undefined,
+        cliente_avulso_documento: values.cliente_tipo === 'avulso' ? values.cliente_avulso_documento : undefined,
+        cliente_avulso_email:     values.cliente_tipo === 'avulso' ? values.cliente_avulso_email : undefined,
+        cliente_avulso_telefone:  values.cliente_tipo === 'avulso' ? values.cliente_avulso_telefone : undefined,
+        client_location_id:       values.client_location_id || null,
+        site_location:            values.site_location || null,
+        titulo:                   values.titulo,
+        observacoes:              values.observacoes,
+        validade:                 values.validade || null,
+        desconto_pct:             values.desconto_pct,
+        report_id:                values.report_id ?? null,
+        itens:                    values.itens,
+      };
+
       if (isEdit && id) {
-        await atualizarOrcamento(id, {
-          client_id:          values.client_id,
-          client_location_id: values.client_location_id || null,
-          site_location:      values.site_location || null,
-          titulo:             values.titulo,
-          observacoes:        values.observacoes,
-          validade:           values.validade || null,
-          desconto_pct:       values.desconto_pct,
-          report_id:          values.report_id ?? null,
-          itens:              values.itens,
-        }, user.id);
+        await atualizarOrcamento(id, basePayload, user.id);
         toast.success('Orçamento atualizado!');
         navigate(`/orcamentos/${id}`);
       } else {
         const novoId = await criarOrcamento({
-          client_id:          values.client_id,
+          ...basePayload,
           technician_id:      user.id,
-          client_location_id: values.client_location_id || null,
-          site_location:      values.site_location || null,
-          titulo:             values.titulo,
-          observacoes:        values.observacoes,
-          validade:           values.validade || null,
-          desconto_pct:       values.desconto_pct,
-          itens:              values.itens,
-          report_id:          values.report_id ?? null,
         });
         toast.success('Orçamento criado!');
         navigate(`/orcamentos/${novoId}`);
@@ -732,58 +767,146 @@ export default function NovoOrcamento() {
         <Card data-onboarding="orc-form-dados">
           <CardHeader><CardTitle className="text-base">Dados Gerais</CardTitle></CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-2">
-                <Label>Cliente *</Label>
-                {osAutoFilledFields.has('client_id') && (
-                  <span className="text-[10px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md">• OS</span>
-                )}
-              </div>
-              <Select
-                value={watch('client_id')}
-                onValueChange={v => {
-                  setValue('client_id', v, { shouldValidate: true });
-                  setValue('client_location_id', undefined);
-                  setValue('site_location', '');
-                  removeFromAutoFilled('client_id');
+            <div className="inline-flex rounded-lg p-0.5 bg-slate-100 border border-slate-200 self-start mb-2">
+              <button
+                type="button"
+                className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                  clienteTipo === 'cadastrado'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+                onClick={() => {
+                  setValue('cliente_tipo', 'cadastrado');
+                  setValue('client_id', '');
                 }}
               >
-                <SelectTrigger wrapText className={errors.client_id ? 'border-rose-400' : ''}>
-                  {/* C2: children explícito para evitar UUID no Radix SelectValue */}
-                  <SelectValue placeholder="Selecione o cliente">
-                    {clients.find(c => c.id === watch('client_id'))?.name}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map(c => (
-                    <SelectItem wrapText key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.client_id && (
-                <p className="text-[11px] text-rose-500">{errors.client_id.message}</p>
-              )}
+                Cliente Cadastrado
+              </button>
+              <button
+                type="button"
+                className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                  clienteTipo === 'avulso'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+                onClick={() => {
+                  setValue('cliente_tipo', 'avulso');
+                  setValue('client_id', undefined as any);
+                }}
+              >
+                Cliente Não Cadastrado
+              </button>
             </div>
 
-            <ClientLocationSelect
-              clientId={watch('client_id') || undefined}
-              selectedLocationId={watch('client_location_id')}
-              manualText={watch('site_location') ?? ''}
-              onLocationSelect={(loc: ClientLocation | null) => {
-                if (loc) {
-                  setValue('client_location_id', loc.id);
-                  setValue('site_location', formatLocationLabel(loc));
-                } else {
+            {clienteTipo === 'cadastrado' ? (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <Label className="text-slate-700 font-medium">Cliente *</Label>
+                  {osAutoFilledFields.has('client_id') && (
+                    <span className="text-[10px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md">• OS</span>
+                  )}
+                </div>
+                <Select
+                  value={watch('client_id')}
+                  onValueChange={v => {
+                    setValue('client_id', v, { shouldValidate: true });
+                    setValue('client_location_id', undefined);
+                    setValue('site_location', '');
+                    removeFromAutoFilled('client_id');
+                  }}
+                >
+                  <SelectTrigger wrapText className={errors.client_id ? 'border-rose-400' : ''}>
+                    {/* C2: children explícito para evitar UUID no Radix SelectValue */}
+                    <SelectValue placeholder="Selecione o cliente">
+                      {clients.find(c => c.id === watch('client_id'))?.name}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map(c => (
+                      <SelectItem wrapText key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.client_id && (
+                  <p className="text-[11px] text-rose-500">{errors.client_id.message}</p>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 rounded-xl border border-slate-200/60 bg-slate-50/50">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider md:col-span-2 -mb-1">
+                  Dados do Cliente Não Cadastrado
+                </p>
+                
+                <div className="md:col-span-2 flex flex-col gap-1.5">
+                  <Label htmlFor="cliente_avulso_nome" className="text-slate-700 font-medium">Nome / Razão Social *</Label>
+                  <Input
+                    id="cliente_avulso_nome"
+                    placeholder="Ex.: João da Silva ou Empresa ABC Ltda"
+                    {...register('cliente_avulso_nome')}
+                    className="bg-white"
+                  />
+                  {errors.cliente_avulso_nome && (
+                    <p className="text-rose-500 text-xs mt-0.5">{errors.cliente_avulso_nome.message}</p>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="cliente_avulso_documento" className="text-slate-700 font-medium">CNPJ / CPF (opcional)</Label>
+                  <Input
+                    id="cliente_avulso_documento"
+                    placeholder="Ex.: 00.000.000/0001-00"
+                    {...register('cliente_avulso_documento')}
+                    className="bg-white"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="cliente_avulso_telefone" className="text-slate-700 font-medium">Telefone (opcional)</Label>
+                  <Input
+                    id="cliente_avulso_telefone"
+                    placeholder="(00) 00000-0000"
+                    {...register('cliente_avulso_telefone')}
+                    className="bg-white"
+                  />
+                </div>
+
+                <div className="md:col-span-2 flex flex-col gap-1.5">
+                  <Label htmlFor="cliente_avulso_email" className="text-slate-700 font-medium">E-mail (opcional)</Label>
+                  <Input
+                    id="cliente_avulso_email"
+                    type="email"
+                    placeholder="contato@empresa.com"
+                    {...register('cliente_avulso_email')}
+                    className="bg-white"
+                  />
+                  {errors.cliente_avulso_email && (
+                    <p className="text-rose-500 text-xs mt-0.5">{errors.cliente_avulso_email.message}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {clienteTipo === 'cadastrado' && (
+              <ClientLocationSelect
+                clientId={watch('client_id') || undefined}
+                selectedLocationId={watch('client_location_id')}
+                manualText={watch('site_location') ?? ''}
+                onLocationSelect={(loc: ClientLocation | null) => {
+                  if (loc) {
+                    setValue('client_location_id', loc.id);
+                    setValue('site_location', formatLocationLabel(loc));
+                  } else {
+                    setValue('client_location_id', undefined);
+                    setValue('site_location', '');
+                  }
+                }}
+                onManualTextChange={(text: string) => {
+                  setValue('site_location', text);
                   setValue('client_location_id', undefined);
-                  setValue('site_location', '');
-                }
-              }}
-              onManualTextChange={(text: string) => {
-                setValue('site_location', text);
-                setValue('client_location_id', undefined);
-              }}
-              label="Filial / Unidade (opcional)"
-            />
+                }}
+                label="Filial / Unidade (opcional)"
+              />
+            )}
 
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2">
@@ -828,32 +951,34 @@ export default function NovoOrcamento() {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <div className="grid grid-cols-[1fr_80px_60px_110px_auto] gap-2 text-[11px] font-medium text-slate-500 px-0">
-              <span>Descrição</span>
-              <span>Qtd</span>
-              <span>Un.</span>
-              <span>Valor unit.</span>
-              <span />
+          <CardContent className="flex flex-col gap-4">
+            <div className="grid grid-cols-[1fr_80px_60px_110px_auto] gap-2 pb-2 border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+              <span>Descrição do Item</span>
+              <span>Qtd.</span>
+              <span>Unid.</span>
+              <span>Valor Unitário</span>
+              <span className="w-9" />
             </div>
 
-            {fields.map((field, index) => (
-              <Fragment key={field.id}>
-                <ItemRow
-                  index={index}
-                  control={control}
-                  register={register}
-                  errors={errors}
-                  watch={watch}
-                  onRemove={() => {
-                    removeFromAutoFilled('itens');
-                    remove(index);
-                  }}
-                  isOnly={fields.length === 1}
-                  showOSHint={osAutoFilledFields.has('itens')} // M2: sinaliza preço zero por item
-                />
-              </Fragment>
-            ))}
+            <div className="flex flex-col gap-3">
+              {fields.map((field, index) => (
+                <Fragment key={field.id}>
+                  <ItemRow
+                    index={index}
+                    control={control}
+                    register={register}
+                    errors={errors}
+                    watch={watch}
+                    onRemove={() => {
+                      removeFromAutoFilled('itens');
+                      remove(index);
+                    }}
+                    isOnly={fields.length === 1}
+                    showOSHint={osAutoFilledFields.has('itens')} // M2: sinaliza preço zero por item
+                  />
+                </Fragment>
+              ))}
+            </div>
 
             {errors.itens && typeof errors.itens.message === 'string' && (
               <p className="text-[11px] text-rose-500">{errors.itens.message}</p>
